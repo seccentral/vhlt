@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AGENTS.md: package gate, smoke exit code, CI version check in the release checklist.
 - Manual: `-threads` range.
 - Added `docs/llms.txt`, a complete agent reference linked from AGENTS.md and README.
+- Added `.env.example` (`GITEA_ACCESS_TOKEN`, optional `CMAKE` path) and documented how to select the CMake to use.
 
 ## [3.5.2] - 2026-11-10
 

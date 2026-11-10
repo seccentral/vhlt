@@ -25,6 +25,8 @@ The project builds five command-line tools:
 
 ### With CMake (recommended)
 
+Requires CMake 3.16 or newer and a C++11 compiler (MinGW-w64 GCC on Windows, GCC or Clang on Linux/macOS). If more than one CMake is installed, check `cmake --version`; MinGW-w64 bundles its own copy, which may shadow a newer install. To pin one, copy `.env.example` to `.env` and set `CMAKE` to the full path, then call that path instead of `cmake`. `.env` is git-ignored.
+
 ```sh
 cmake -S . -B build
 cmake --build build

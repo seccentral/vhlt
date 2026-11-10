@@ -8,7 +8,7 @@ Vluzacn ZHLT (VHLT) is a set of Half-Life compilation tools: `hlcsg`, `hlbsp`, `
 
 ## Build
 
-Primary build system: CMake.
+Primary build system: CMake (3.16 or newer). If `.env` sets `CMAKE`, use that path in place of `cmake` below; see `.env.example`. `.env` is git-ignored and holds secrets, so never commit it or print its values.
 
 ```sh
 cmake -S . -B build -G "MinGW Makefiles"   # Windows/MinGW

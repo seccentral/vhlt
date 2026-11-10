@@ -26,6 +26,8 @@ cmake --build build --target lint          # cppcheck, if installed
 cmake --preset default && cmake --build --preset default   # Release preset into build/
 ```
 
+- **Which CMake:** use the CMake named by `CMAKE` in `.env` (template: `.env.example`) when it is set. Otherwise use the first `cmake` on `PATH`, after checking `cmake --version`: the MinGW-w64 bundle ships its own CMake, which can shadow a newer install, and shells started before an install keep the old `PATH`. The path contains spaces, so quote it (`"$CMAKE" -S . -B build …`). Use the same CMake for configure, build and package; it records itself and its `cpack` in `build/CMakeCache.txt` (`CMAKE_COMMAND`, `CMAKE_CPACK_COMMAND`).
+- **Secrets:** `.env` (git-ignored) holds `GITEA_ACCESS_TOKEN` for `git.example.invalid`. Pass it as a header (`git -c http.extraHeader="Authorization: token …"`, `curl -H "Authorization: token …"`). Never write it into a remote URL, a file, or output.
 - **Gates (must pass before committing):**
   1. Configure.
   2. Build all five tools.
@@ -35,7 +37,7 @@ cmake --preset default && cmake --build --preset default   # Release preset into
   6. `lint`, when cppcheck is installed.
   7. Review the working tree for stray artifacts.
 - **Smoke test:** run each `build/bin/<tool>` with **no arguments**. It prints `<tool> v3.5.2 VL35 64-bit (<date>)` as its first line and then usage. **The exit code is 1 by design**; check the banner, not the exit code.
-- **Warning baseline:** about 333 GCC warnings on a clean MinGW build (sign-compare, unknown-pragmas, maybe-uninitialized, …). Don't add new warnings in lines you touch.
+- **Warning baseline:** about 370 GCC warnings on a clean MinGW build (GCC 15.2, CMake 4.4.5) (sign-compare, unknown-pragmas, maybe-uninitialized, …). Don't add new warnings in lines you touch.
 - **Debug builds:** `CMAKE_BUILD_TYPE=Debug` enables `hlassert`/`assert`. `NDEBUG` comes only from CMake's Release flags.
 - **CI:** `.github/workflows/.github.yml` runs a matrix of ubuntu/macos/windows × g++/clang++, with configure, build, docs and smoke steps. The smoke step greps a hard-coded version string, so bump it on release.
 - **Makefile:** a legacy, POSIX-only build. It hard-codes `VERSION_LINUX`/`SYSTEM_POSIX`, doesn't build docs or packages, and always rebuilds. Prefer CMake.
