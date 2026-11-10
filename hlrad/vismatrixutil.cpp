@@ -220,10 +220,6 @@ static transfer_index_t* CompressTransferIndicies(const transfer_raw_index_t* tR
  * It can be run multi threaded.
  * =============
  */
-#ifdef SYSTEM_WIN32
-#pragma warning(push)
-#pragma warning(disable: 4100)                             // unreferenced formal parameter
-#endif
 void            MakeScales(const int threadnum)
 {
     int             i;
@@ -234,9 +230,10 @@ void            MakeScales(const int threadnum)
     float           trans;
     patch_t*        patch;
     patch_t*        patch2;
+#if !defined(HLRAD_TRANSWEIRDFIX) || !defined(HLRAD_TRANSNONORMALIZE) || !defined(HLRAD_RGBTRANSFIX)
     float           send;
+#endif
     vec3_t          origin;
-    vec_t           area;
     const vec_t*    normal1;
     const vec_t*    normal2;
 
@@ -294,7 +291,6 @@ void            MakeScales(const int threadnum)
         VectorCopy(patch->origin, origin);
         normal1 = getPlaneFromFaceNumber(patch->faceNumber)->normal;
 
-        area = patch->area;
 #ifdef HLRAD_TRANSLUCENT
 		vec3_t backorigin;
 		vec3_t backnormal;
@@ -426,8 +422,8 @@ void            MakeScales(const int threadnum)
 			// we should limit "trans(patch2receive) * patch1area"
 			// instead of "trans(patch2receive) * patch2area".
 			// also raise "0.4f" to "0.8f" ( 0.8/Q_PI = 1/4).
-            if (trans * area > 0.8f)
-                trans = 0.8f / area;
+            if (trans * patch->area > 0.8f)
+                trans = 0.8f / patch->area;
 #endif
 #endif
 #ifdef HLRAD_ACCURATEBOUNCE
@@ -502,7 +498,7 @@ void            MakeScales(const int threadnum)
             {
 #ifndef HLRAD_TRANSWEIRDFIX
 #ifdef HLRAD_NOSWAP
-				send = trans * area;
+				send = trans * patch->area;
 #else
                 send = trans * patch2->area;
 #endif
@@ -511,7 +507,7 @@ void            MakeScales(const int threadnum)
                 if (send > 0.4f)
                 {
 #ifdef HLRAD_NOSWAP
-					trans = 0.4f / area;
+					trans = 0.4f / patch->area;
 #else
                     trans = 0.4f / patch2->area;
 #endif
@@ -531,7 +527,7 @@ void            MakeScales(const int threadnum)
 #ifdef HLRAD_NOSWAP
                 trans = trans * patch2->area * INVERSE_TRANSFER_SCALE;
 #else
-                trans = trans * area * INVERSE_TRANSFER_SCALE;
+                trans = trans * patch->area * INVERSE_TRANSFER_SCALE;
 #endif /*HLRAD_NOSWAP*/
                 if (trans >= TRANSFER_SCALE_MAX)
                 {
@@ -640,9 +636,6 @@ void            MakeScales(const int threadnum)
     ThreadUnlock();
 }
 
-#ifdef SYSTEM_WIN32
-#pragma warning(pop)
-#endif
 
 /*
  * =============
@@ -717,10 +710,6 @@ void            SwapTransfers(const int patchnum)
  * It can be run multi threaded.
  * =============
  */
-#ifdef SYSTEM_WIN32
-#pragma warning(push)
-#pragma warning(disable: 4100)                             // unreferenced formal parameter
-#endif
 void            MakeRGBScales(const int threadnum)
 {
     int             i;
@@ -732,9 +721,10 @@ void            MakeRGBScales(const int threadnum)
     float           trans_one;
     patch_t*        patch;
     patch_t*        patch2;
+#if !defined(HLRAD_TRANSWEIRDFIX) || !defined(HLRAD_TRANSNONORMALIZE) || !defined(HLRAD_RGBTRANSFIX)
     float           send;
+#endif
     vec3_t          origin;
-    vec_t           area;
     const vec_t*    normal1;
     const vec_t*    normal2;
 
@@ -789,7 +779,6 @@ void            MakeRGBScales(const int threadnum)
         VectorCopy(patch->origin, origin);
         normal1 = getPlaneFromFaceNumber(patch->faceNumber)->normal;
 
-        area = patch->area;
 #ifdef HLRAD_TRANSLUCENT
 		vec3_t backorigin;
 		vec3_t backnormal;
@@ -914,9 +903,9 @@ void            MakeRGBScales(const int threadnum)
 				trans_one = 0.8f / patch2->area;
 			}
 #else
-			if (trans_one * area > 0.8f)
+			if (trans_one * patch->area > 0.8f)
 			{
-				trans_one = 0.8f / area;
+				trans_one = 0.8f / patch->area;
 			}
 #endif
 #endif
@@ -1002,14 +991,14 @@ void            MakeRGBScales(const int threadnum)
 			{
 #ifndef HLRAD_TRANSWEIRDFIX
 	#ifdef HLRAD_NOSWAP
-				send = trans_one * area;
+				send = trans_one * patch->area;
 	#else
 				send = trans_one * patch2->area;
 	#endif
 				if (send > 0.4f)
 				{
 	#ifdef HLRAD_NOSWAP
-					trans_one = 0.4f / area;
+					trans_one = 0.4f / patch->area;
 	#else
                     trans_one = 0.4f / patch2->area;
 	#endif
@@ -1075,7 +1064,7 @@ void            MakeRGBScales(const int threadnum)
 #ifdef HLRAD_NOSWAP
                 VectorScale(trans, patch2 -> area * INVERSE_TRANSFER_SCALE, trans);
 #else
-                VectorScale(trans, area * INVERSE_TRANSFER_SCALE, trans);
+                VectorScale(trans, patch->area * INVERSE_TRANSFER_SCALE, trans);
 #endif /*HLRAD_NOSWAP*/
 
                 if (trans[0] >= TRANSFER_SCALE_MAX)
@@ -1194,9 +1183,6 @@ void            MakeRGBScales(const int threadnum)
     ThreadUnlock();
 }
 
-#ifdef SYSTEM_WIN32
-#pragma warning(pop)
-#endif
 
 /*
  * =============

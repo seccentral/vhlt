@@ -670,10 +670,6 @@ static void     SimpleFlood(byte* const srcmightsee, const int leafnum, byte* co
 }
 
 #define PORTALSEE_SIZE (MAX_PORTALS*2)
-#ifdef SYSTEM_WIN32
-#pragma warning(push)
-#pragma warning(disable: 4100)                             // unreferenced formal parameter
-#endif
 
 #ifdef HLVIS_MAXDIST
 #ifndef HLVIS_MAXDIST_NEW
@@ -1495,13 +1491,15 @@ vec_t WindingDist (const winding_t *w[2])
 void	MaxDistVis(int unused)
 {
 	int i, j, k, m;
-	int a, b, c, d;
+	int a, b;
+#ifndef HLVIS_MAXDIST_NEW
+	int c, d;
+	vec3_t delta;
+	float new_dist;
+#endif
 	leaf_t	*l;
 	leaf_t	*tl;
 	plane_t	*boundary = NULL;
-	vec3_t delta;
-
-	float new_dist;
 
 	unsigned offset_l;
 	unsigned bit_l;
@@ -1769,7 +1767,3 @@ NoWork:
 		delete [] boundary;
 }
 #endif // HLVIS_MAXDIST
-
-#ifdef SYSTEM_WIN32
-#pragma warning(pop)
-#endif

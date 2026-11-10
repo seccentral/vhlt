@@ -628,17 +628,16 @@ static void     BuildVisRow(const int patchnum, byte* pvs, const int head)
  * This is run by multiple threads
  * ===========
  */
-#ifdef SYSTEM_WIN32
-#pragma warning(push)
-#pragma warning(disable: 4100)                             // unreferenced formal parameter
-#endif
 static void     BuildVisLeafs(int threadnum)
 {
     int             i;
-    int             lface, facenum, facenum2;
+    int             facenum, facenum2;
+#ifndef HLRAD_VISMATRIX_NOMARKSURFACES
+    int             lface;
+    dleaf_t*        leaf;
+#endif
     byte            pvs[(MAX_MAP_LEAFS + 7) / 8];
     dleaf_t*        srcleaf;
-    dleaf_t*        leaf;
     patch_t*        patch;
     int             head;
     unsigned        patchnum;
@@ -778,9 +777,6 @@ static void     BuildVisLeafs(int threadnum)
 #endif
 }
 
-#ifdef SYSTEM_WIN32
-#pragma warning(pop)
-#endif
 
 /*
  * ==============

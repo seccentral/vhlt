@@ -151,7 +151,7 @@ int AddFaceForVertexNormal (const int edgeabs, int &edgeabsnext, const int edgee
 {
 	VectorCopy(getPlaneFromFace(f)->normal, normal);
 	int vnum = g_dedges[edgeabs].v[edgeend];
-	int iedge, iedgenext, edge, edgenext;
+	int edge, edgenext;
 	int i, e, count1, count2;
 	vec_t dot;
 	for (count1 = count2 = 0, i = 0; i < f->numedges; i++)
@@ -161,13 +161,11 @@ int AddFaceForVertexNormal (const int edgeabs, int &edgeabsnext, const int edgee
 			continue;
 		if (abs(e) == edgeabs)
 		{
-			iedge = i;
 			edge = e;
 			count1 ++;
 		}
 		else if (g_dedges[abs(e)].v[0] == vnum || g_dedges[abs(e)].v[1] == vnum)
 		{
-			iedgenext = i;
 			edgenext = e;
 			count2 ++;
 		}
@@ -1826,11 +1824,6 @@ static samplefraginfo_t *CreateSampleFrag (int facenum, vec_t s, vec_t t,
 	return info;
 }
 
-static bool IsFragEmpty (samplefraginfo_t *fraginfo)
-{
-	return (fraginfo->size == 0);
-}
-
 static void DeleteSampleFrag (samplefraginfo_t *fraginfo)
 {
 	while (fraginfo->head)
@@ -2220,9 +2213,6 @@ static light_flag_t SetSampleFromST(vec_t* const point,
 static void		CalcPoints(lightinfo_t* l)
 {
 	const int       facenum = l->surfnum;
-	const dface_t*  f = g_dfaces + facenum;
-	const dplane_t* p = getPlaneFromFace (f);
-	const vec_t*    face_delta = g_face_offset[facenum];
 	const eModelLightmodes lightmode = g_face_lightmode[facenum];
 	const int       h = l->texsize[1] + 1;
 	const int       w = l->texsize[0] + 1;
@@ -4408,8 +4398,6 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
 #ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
 						VectorCopy (l->origin, testline_origin);
 #endif
-                        float           denominator;
-
                         VectorSubtract(l->origin, pos, delta);
 #ifdef HLRAD_ACCURATEBOUNCE_TEXLIGHT
 						if (l->type == emit_surface)
@@ -4433,17 +4421,6 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
                         {
                             dist = 1.0;
                         }
-
-#ifdef HLRAD_ARG_MISC
-						denominator = dist * dist * l->fade;
-#else
-                        // Variable power falloff (1 = inverse linear, 2 = inverse square
-                        denominator = dist * l->fade;
-                        if (l->falloff == 2)
-                        {
-                            denominator *= dist;
-                        }
-#endif
 
 #ifdef HLRAD_OPAQUE_STYLE
 						vec3_t add;
@@ -5995,7 +5972,6 @@ void            BuildFacelights(const int facenum)
     int             size;
 #ifdef HLRAD_TRANSLUCENT
 	vec3_t			spot2, normal2;
-	vec3_t			delta;
 	byte			pvs2[(MAX_MAP_LEAFS + 7) / 8];
 	int				thisoffset2 = -1, lastoffset2 = -1;
 #endif
@@ -7584,7 +7560,6 @@ void            PrecompLightmapOffsets()
     int             lightstyles;
 
 #ifdef ZHLT_TEXLIGHT
-    int             i; //LRC
 	patch_t*        patch; //LRC
 #endif
 
@@ -7940,8 +7915,10 @@ void ReduceLightmap ()
 
 const int MLH_MAXFACECOUNT = 16;
 const int MLH_MAXSAMPLECOUNT = 4;
+#ifndef HLRAD_MDL_LIGHT_HACK_NEW
 const vec_t MLH_LEFT = 0;
 const vec_t MLH_RIGHT = 1;
+#endif
 
 typedef struct
 {
@@ -8657,7 +8634,10 @@ void            FinalLightFace(const int facenum)
 	}
 #endif
     int             i, j, k;
-    vec3_t          lb, v;
+    vec3_t          lb;
+#ifndef HLRAD_GROWSAMPLE
+    vec3_t          v;
+#endif
     facelight_t*    fl;
     sample_t*       samp;
     float           minlight;

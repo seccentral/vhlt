@@ -888,8 +888,6 @@ bool FindNearestPosition (int facenum, const Winding *texwinding, const dplane_t
 	vec3_t original_st;
 	int x;
 	int itmin, itmax, ismin, ismax;
-	const vec3_t v_s = {1, 0, 0};
-	const vec3_t v_t = {0, 1, 0};
 	int is;
 	int it;
 	vec3_t v;

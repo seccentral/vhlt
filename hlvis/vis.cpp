@@ -484,10 +484,6 @@ void			CompressAll(void)
 // =====================================================================================
 //  LeafThread
 // =====================================================================================
-#ifdef SYSTEM_WIN32
-#pragma warning(push)
-#pragma warning(disable: 4100)                             // unreferenced formal parameter
-#endif
 
 #ifndef ZHLT_NETVIS
 static void     LeafThread(int unused)
@@ -583,9 +579,6 @@ static void     LeafThread(int unused)
 }
 #endif
 
-#ifdef SYSTEM_WIN32
-#pragma warning(pop)
-#endif
 
 // =====================================================================================
 //  LeafFlow
@@ -1445,7 +1438,7 @@ static void     Usage()
 // =====================================================================================
 static void     Settings()
 {
-    char*           tmp;
+    const char*     tmp;
 
     if (!g_info)
     {

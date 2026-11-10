@@ -169,7 +169,6 @@ static bool     CheckVisBitNoVismatrix(unsigned patchnum1, unsigned patchnum2
 #endif
 									   )
 {
-    patch_t*        patch = &g_patches[receiver];
     patch_t*        emitpatch = &g_patches[emitter];
 
 #ifdef HLRAD_HULLU

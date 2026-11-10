@@ -607,6 +607,7 @@ static void     WriteDrawNodes_r(const node_t* const node)
 // =====================================================================================
 //  FreeDrawNodes_r
 // =====================================================================================
+#ifndef ZHLT_DETAILBRUSH
 static void     FreeDrawNodes_r(node_t* node)
 {
     int             i;
@@ -632,6 +633,7 @@ static void     FreeDrawNodes_r(node_t* node)
 
     free(node);
 }
+#endif
 
 // =====================================================================================
 //  WriteDrawNodes

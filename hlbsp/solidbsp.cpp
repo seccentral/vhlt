@@ -82,8 +82,10 @@ static int      FaceSide(face_t* in, const dplane_t* const split
     // axial planes are fast
     if (split->type <= last_axial)
     {
+#ifndef HLBSP_AVOIDEPSILONSPLIT
         vec_t           splitGtEp = split->dist + ON_EPSILON;   // Invariant moved out of loop
         vec_t           splitLtEp = split->dist - ON_EPSILON;   // Invariant moved out of loop
+#endif
 
         for (i = 0, p = in->pts[0] + split->type; i < in->numpoints; i++, p += 3)
         {
@@ -480,7 +482,7 @@ static surface_t* ChooseMidPlaneFromList(surface_t* surfaces, const vec3_t mins,
 #endif
 										 )
 {
-    int             j, l;
+    int             l;
     surface_t*      p;
     surface_t*      bestsurface;
     vec_t           bestvalue;
@@ -590,7 +592,7 @@ static surface_t* ChooseMidPlaneFromList(surface_t* surfaces, const vec3_t mins,
 		// the first part is how the split will increase the number of faces
 		// the second part is how the split will increase the average depth of the bsp tree
 #else
-        for (j = 0; j < 3; j++)
+        for (int j = 0; j < 3; j++)
         {
             if (j == l)
             {
@@ -657,7 +659,9 @@ static surface_t* ChoosePlaneFromList(surface_t* surfaces, const vec3_t mins, co
 									  )
 {
 	surface_t*      p;
+#ifndef HLBSP_FAST_SELECTPARTITION
 	surface_t*      p2;
+#endif
 	surface_t*      bestsurface;
 	vec_t           bestvalue;
 	vec_t           value;

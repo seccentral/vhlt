@@ -222,7 +222,9 @@ static void     InitHash()
     vec3_t          size;
     vec_t           volume;
     vec_t           scale;
+#ifndef HLBSP_HASH_FIX
     int             newsize[2];
+#endif
     int             i;
 
     memset(hashverts, 0, sizeof(hashverts));

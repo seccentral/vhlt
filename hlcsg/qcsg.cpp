@@ -1361,10 +1361,6 @@ static void     SetLightStyles()
     char            value[10];
     char            lighttargets[MAX_SWITCHED_LIGHTS][MAX_LIGHTTARGETS_NAME];
 
-#ifdef ZHLT_TEXLIGHT
-    	bool			newtexlight = false;
-#endif
-
     // any light that is controlled (has a targetname)
     // must have a unique style number generated for it
 
@@ -1396,7 +1392,6 @@ static void     SetLightStyles()
 				continue;
 			case -3: // (HACK) a piggyback texlight: switched on and off by triggering a real light that has the same name
 				SetKeyValue(e, "style", "0"); // just in case the level designer didn't give it a name
-				newtexlight = true;
 				// don't 'continue', fall out
 			}
 	        //LRC (ends)
@@ -1728,7 +1723,7 @@ int typecontents[NUM_TYPECONTENTS] = {
 
 static void     ProcessModels()
 {
-    int             i, j, type;
+    int             i, j;
     int             placed;
     int             first, contents;
     brush_t         temp;
@@ -1803,6 +1798,7 @@ static void     ProcessModels()
 			}
 		}
 #else
+        int type;
         placed = 0;
         for (type = 0; type < NUM_TYPECONTENTS; type++)                 // for each of the contents types
         {
@@ -2039,7 +2035,7 @@ static void     DumpWadinclude()
 // =====================================================================================
 static void     Settings()
 {
-    char*           tmp;
+    const char*     tmp;
 
     if (!g_info)
         return;

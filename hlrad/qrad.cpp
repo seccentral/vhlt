@@ -541,7 +541,9 @@ static void     ReadLightFile(const char* const filename)
     FILE*           f;
     char            scan[MAXTOKEN];
     short           argCnt;
+#ifndef HLRAD_CUSTOMTEXLIGHT
     unsigned int    file_texlights = 0;
+#endif
 
     f = fopen(filename, "r");
     if (!f)
@@ -623,7 +625,9 @@ static void     ReadLightFile(const char* const filename)
         texlight.value[1] = g;
         texlight.value[2] = b;
         texlight.filename = filename;
+#ifndef HLRAD_CUSTOMTEXLIGHT
         file_texlights++;
+#endif
         s_texlights.push_back(texlight);
     }
 	fclose (f); //--vluzacn
@@ -2187,7 +2191,6 @@ static void		LoadOpaqueEntities()
 	int modelnum, entnum;
 	for (modelnum = 0; modelnum < g_nummodels; modelnum++)
 	{
-		dmodel_t *model = &g_dmodels[modelnum];
 		char stringmodel[16];
 		sprintf (stringmodel, "*%i", modelnum);
 		for (entnum = 0; entnum < g_numentities; entnum++)
@@ -2877,10 +2880,6 @@ static void     CollectLight()
 //      Get light from other g_patches
 //      Run multi-threaded
 // =====================================================================================
-#ifdef SYSTEM_WIN32
-#pragma warning(push)
-#pragma warning(disable: 4100)                             // unreferenced formal parameter
-#endif
 static void     GatherLight(int threadnum)
 {
     int             j;
@@ -3675,9 +3674,6 @@ static void     GatherRGBLight(int threadnum)
 }
 #endif
 
-#ifdef SYSTEM_WIN32
-#pragma warning(pop)
-#endif
 
 // =====================================================================================
 //  BounceLight
@@ -3931,9 +3927,11 @@ static void ExtendLightmapBuffer ()
 // =====================================================================================
 static void     RadWorld()
 {
+#ifndef HLRAD_AUTOCORING
     unsigned        i;
 #ifdef ZHLT_TEXLIGHT
     unsigned        j;
+#endif
 #endif
 
     MakeBackplanes();
@@ -4369,7 +4367,7 @@ static void     Usage()
 // =====================================================================================
 static void     Settings()
 {
-    char*           tmp;
+    const char*     tmp;
     char            buf1[1024];
     char            buf2[1024];
 
@@ -4649,7 +4647,9 @@ void            ReadInfoTexlights()
 {
     int         k;
     int         values;
+#ifndef HLRAD_CUSTOMTEXLIGHT
     int         numtexlights = 0;
+#endif
     float       r, g, b, i;
     entity_t*   mapent;
     epair_t*    ep;
@@ -4699,7 +4699,9 @@ void            ReadInfoTexlights()
             texlight.value[2] = b;
             texlight.filename = "info_texlights";
             s_texlights.push_back(texlight);
+#ifndef HLRAD_CUSTOMTEXLIGHT
             numtexlights++;
+#endif
         }
 
 #ifndef HLRAD_CUSTOMTEXLIGHT

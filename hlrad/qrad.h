@@ -26,9 +26,7 @@
 #endif
 
 #ifdef SYSTEM_WIN32
-#pragma warning(disable: 4142 4028)
 #include <io.h>
-#pragma warning(default: 4142 4028)
 #endif
 
 #ifdef HAVE_UNISTD_H

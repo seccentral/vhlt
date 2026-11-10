@@ -839,7 +839,9 @@ static contents_t ParseBrush(entity_t* mapent)
 // =====================================================================================
 bool            ParseMapEntity()
 {
+#ifndef HLCSG_HLBSP_ALLOWEMPTYENTITY
     bool            all_clip = true;
+#endif
     int             this_entity;
     entity_t*       mapent;
     epair_t*        e;
@@ -898,7 +900,9 @@ bool            ParseMapEntity()
 				&& contents != CONTENTS_BOUNDINGBOX
 #endif
 				)
+#ifndef HLCSG_HLBSP_ALLOWEMPTYENTITY
                 all_clip = false;
+#endif
 #endif
         }
         else                        // else assume an epair
@@ -940,7 +944,9 @@ bool            ParseMapEntity()
 	#endif
 				)
 			{
+#ifndef HLCSG_HLBSP_ALLOWEMPTYENTITY
 				all_clip = false;
+#endif
 			}
 		}
 	}

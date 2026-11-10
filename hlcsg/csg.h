@@ -5,7 +5,6 @@
 #pragma once
 #endif
 
-#pragma warning(disable: 4786)	// identifier was truncated to '255' characters in the browser information
 #include <deque>
 #include <string>
 #include <map>

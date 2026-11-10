@@ -6,7 +6,6 @@ void LoadWadconfig (const char *filename, const char *configname)
 {
 	Log ("Loading wad configuration '%s' from '%s' :\n", configname, filename);
 	int found = 0;
-	int count = 0;
 	int size;
 	char *buffer;
 	size = LoadFile (filename, &buffer);
@@ -53,7 +52,6 @@ void LoadWadconfig (const char *filename, const char *configname)
 			{
 				Error ("parsing '%s': too many wad files.", filename);
 			}
-			count++;
 #ifdef HLCSG_AUTOWAD_NEW
 			PushWadPath (g_token, !include);
 #else
@@ -86,7 +84,6 @@ void LoadWadconfig (const char *filename, const char *configname)
 void LoadWadcfgfile (const char *filename)
 {
 	Log ("Loading wad configuration file '%s' :\n", filename);
-	int count = 0;
 	int size;
 	char *buffer;
 	size = LoadFile (filename, &buffer);
@@ -109,7 +106,6 @@ void LoadWadcfgfile (const char *filename)
 		{
 			Error ("parsing '%s': too many wad files.", filename);
 		}
-		count++;
 #ifdef HLCSG_AUTOWAD_NEW
 		PushWadPath (g_token, !include);
 #else
@@ -227,7 +223,7 @@ void        Safe_GetToken(FILE* source, char* TokenBuffer, const unsigned int Ma
             InComment = false;
         }
 
-        if (ThinkChar[0] == 'ÿ')
+        if (ThinkChar[0] == 'ï¿½')
             return;  
                 
         if (IsWhitespace(ThinkChar[0]) && !InToken)

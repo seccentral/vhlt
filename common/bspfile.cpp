@@ -961,7 +961,7 @@ void DoAllocBlock (lightmapblock_t *blocks, int w, int h)
 	// code from Quake
 	int i, j;
 	int best, best2;
-	int x = 0, y = 0;
+	int x = 0;
 	bool found = false;
 	if (w < 1 || h < 1)
 	{
@@ -984,7 +984,7 @@ void DoAllocBlock (lightmapblock_t *blocks, int w, int h)
 			if (j == w)
 			{
 				x = i;
-				y = best = best2;
+				best = best2;
 				found = true;
 			}
 		}
