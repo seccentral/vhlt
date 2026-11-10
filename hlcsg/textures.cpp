@@ -97,7 +97,7 @@ static void texmap_clear ()
 }
 #else
 // fix for 64 bit machines
-#if /* 64 bit */
+#if 0
     static char* texmap64[MAX_MAP_BRUSHES];
     static int   tex_max64=0;
 

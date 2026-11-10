@@ -24,8 +24,8 @@
 
 /*!
   \author  Sean Cavanaugh
-  \email   sean@dimensionalrift.com
-  \cvsauthor $Author: sean $
+  \email{sean\@dimensionalrift.com}
+  \cvsauthor{$Author: sean $}
   \date    $Date: 2000/09/11 20:28:24 $
   \version $Revision: 1.1 $
   \brief   ReferenceCounter abstracts a reference counted integer with proper thread safe access

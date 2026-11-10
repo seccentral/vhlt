@@ -290,7 +290,7 @@ TAB_SIZE               = 4
 # with the commands \{ and \} for these it is advised to use the version @{ and
 # @} or use a double escape (\\{ and \\})
 
-ALIASES                = "email=\par Email: " "cvsauthor=\par CVS Author: "
+ALIASES                = "email{1}=\par Email: \1" "cvsauthor{1}=\par CVS Author: \1"
 
 # Set the OPTIMIZE_OUTPUT_FOR_C tag to YES if your project consists of C sources
 # only. Doxygen will then generate output that is more tailored for C. For
@@ -1026,7 +1026,7 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = "../README.md" "../common" "../template" "../hlcsg" "../hlbsp" "../hlvis" "../hlrad" "../ripent"
+INPUT                  = "../README.md" "../docs/manual.md" "../docs/developer.md" "../common" "../template" "../hlcsg" "../hlbsp" "../hlvis" "../hlrad" "../ripent"
 
 # This tag can be used to specify the character encoding of the source files
 # that Doxygen parses. Internally Doxygen uses the UTF-8 encoding. Doxygen uses
@@ -1241,7 +1241,7 @@ FILTER_SOURCE_PATTERNS =
 # (index.html). This can be useful if you have a project on for instance GitHub
 # and want to reuse the introduction page also for the Doxygen output.
 
-USE_MDFILE_AS_MAINPAGE  = ../README.md
+USE_MDFILE_AS_MAINPAGE  = ../docs/manual.md
 
 # If the IMPLICIT_DIR_DOCS tag is set to YES, any README.md file found in sub-
 # directories of the project's root, is used as the documentation for that sub-
@@ -1250,7 +1250,7 @@ USE_MDFILE_AS_MAINPAGE  = ../README.md
 # command in order to be used as directory documentation.
 # The default value is: YES.
 
-IMPLICIT_DIR_DOCS      = YES
+IMPLICIT_DIR_DOCS      = NO
 
 # The Fortran standard specifies that for fixed formatted Fortran code all
 # characters from position 72 are to be considered as comment. A common

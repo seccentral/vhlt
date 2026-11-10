@@ -48,8 +48,9 @@ Outputs are written to `build/bin/`, `build/docs/html/`, and `build/*.zip`.
 ## Documentation
 
 - Public API and shared helpers should have Doxygen comments.
+- User-facing options must be documented in `docs/manual.md` and kept in sync with tool help output.
 - Keep `README.md` accurate for build and usage instructions.
-- Regenerate docs with the `docs` target after API changes.
+- Regenerate docs with the `docs` target after API or option changes.
 
 ## Gates
 

@@ -32,8 +32,8 @@ public:
 
 /*!
   \author  Sean Cavanaugh
-  \email   sean@dimensionalrift.com
-  \cvsauthor $Author: sean $
+  \email{sean\@dimensionalrift.com}
+  \cvsauthor{$Author: sean $}
   \date    $Date: 2000/09/11 20:28:24 $
   \version $Revision: 1.1 $
   \brief   ReferenceObject is a template class designed to be used a base class for pass-by-reference objects, to that things such as returning objects up the stack efficiently are possible.
