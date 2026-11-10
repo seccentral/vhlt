@@ -23,8 +23,8 @@ These options are accepted by most tools:
 |--------|-------------|
 | `-console #` | Set to 0 to disable the pop-up console (default 1). |
 | `-lang file` | Localization file. |
-| `-texdata #` | Alter maximum texture memory limit (KB). |
-| `-lightdata #` | Alter maximum lighting memory limit (KB). |
+| `-texdata #` | Alter maximum texture memory limit (KB, 1 to 2097151). |
+| `-lightdata #` | Alter maximum lighting memory limit (KB, 1 to 2097151). |
 | `-chart` | Display BSP statistics. |
 | `-low` / `-high` | Run at altered process priority. |
 | `-nolog` | Do not generate compile log files. |

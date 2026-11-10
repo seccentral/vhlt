@@ -5399,7 +5399,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        int x = ParseIntArgOrError(argv[++i], "-texdata") * 1024;
+                        int x = ParseKibArgOrError(argv[++i], "-texdata");
 
                         //if (x > g_max_map_miptex) //--vluzacn
                         {
@@ -5415,7 +5415,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //--vluzacn
                     {
-                        int x = ParseIntArgOrError(argv[++i], "-lightdata") * 1024;
+                        int x = ParseKibArgOrError(argv[++i], "-lightdata");
 
                         //if (x > g_max_map_lightdata) //--vluzacn
                         {

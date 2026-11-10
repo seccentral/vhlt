@@ -209,6 +209,16 @@ int ParseIntArgOrError(const char* value, const char* option)
     return (int)parsed;
 }
 
+int ParseKibArgOrError(const char* value, const char* option)
+{
+    int kib = ParseIntArgOrError(value, option);
+    if (kib < 1 || kib > INT_MAX / 1024)
+    {
+        Error("invalid value '%s' for %s", value, option);
+    }
+    return kib * 1024;
+}
+
 double ParseFloatArgOrError(const char* value, const char* option)
 {
     char* end = NULL;

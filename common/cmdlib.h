@@ -694,6 +694,8 @@ extern void DefaultExtension(char* path, const char* extension, size_t path_size
 
 /** Parse a strict command-line integer; exits with an error on invalid input. */
 extern int ParseIntArgOrError(const char* value, const char* option);
+/** Parse a strict command-line size in KiB (1 to INT_MAX / 1024) and return it in bytes; exits with an error on invalid input. */
+extern int ParseKibArgOrError(const char* value, const char* option);
 /** Parse a strict command-line floating-point value; exits with an error on invalid input. */
 extern double ParseFloatArgOrError(const char* value, const char* option);
 extern void DefaultPath(char* path, char* basepath);

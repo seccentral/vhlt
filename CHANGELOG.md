@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `docs/user/max-quality.md`, a final-quality compile preset that explains each setting's effect, default and cost. It is linked from the manual and README and installed in the release ZIP.
 
 ### Fixed
+- hlbsp: `-threads` is applied again; the value was stored in a local variable and ignored.
+- `-texdata` and `-lightdata` accept 1 to 2097151 KB in every tool; larger values overflowed the byte limit, and zero or negative values set an unusable limit.
 - Lint: `VHLT_CLANG_TIDY=ON` now passes Zig's system include paths and libc++ macros to clang-tidy, so system headers resolve. clang-tidy is pinned to 22.1.8 to match Zig 0.17.1's clang.
 - hlrad: free face windings that do not become patches, clear the luxel flag array before use, initialize transfer decompression temporaries, and fix a 32-bit shift in the transfer bit helpers.
 - hlbsp: do not read children of leaf clipnodes, free the surface-chain wrapper after `SolidBSP`, and stop with a clear error if a detail node has no `portalleaf`.

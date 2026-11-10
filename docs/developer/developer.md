@@ -68,6 +68,7 @@ Every reader of external data must validate counts, offsets and sizes before all
 
 - `CopyLump` (`common/bspfile.cpp`): per-lump bounds against the file size and destination capacity.
 - `ValidateMiptexHeader` (`common/bspfile.h`): miptex dimensions, mip offsets and data size for BSP and WAD textures. Header-only miptex entries (`offsets[0] == 0`) reference an external WAD and carry no pixel data.
+- `ParseIntArgOrError` / `ParseFloatArgOrError` / `ParseKibArgOrError` (`common/cmdlib.h`): strict command-line number parsing; use them for every numeric option. `ParseKibArgOrError` returns bytes and rejects sizes that overflow `int`.
 - `MAX_MAP_PORTALS` (`common/bspfile.h`): shared `.prt` portal limit for hlbsp and hlvis.
 
 Use `safe_snprintf` / `safe_strncpy` / `safe_strncat`; the `strcpy_s` / `sprintf_s` compatibility macros have been removed.
