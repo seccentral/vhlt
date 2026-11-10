@@ -10,7 +10,7 @@ extern time_t   getfiletime(const char* const filename);
 extern long     getfilesize(const char* const filename);
 extern long     getfiledata(const char* const filename, char* buffer, const int buffersize);
 extern bool     q_exists(const char* const filename);
-extern int      q_filelength(FILE* f);
+extern long     q_filelength(FILE* f);
 
 extern FILE*    SafeOpenWrite(const char* const filename);
 extern FILE*    SafeOpenRead(const char* const filename);

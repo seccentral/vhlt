@@ -3,7 +3,9 @@
 // (see LPGL.txt, or http://www.gnu.org/copyleft/lesser.txt)
 
 // AJM:
+#if defined(_MSC_VER)
 #pragma warning(disable: 4305)                             // truncation from 'const double' to 'float'
+#endif
 
 
 #ifndef BOUNDINGBOX_H__

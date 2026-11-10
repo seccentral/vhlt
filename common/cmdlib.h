@@ -633,7 +633,7 @@
 #include "win32fix.h"
 #include "mathtypes.h"
 
-#ifdef SYSTEM_WIN32
+#if defined(SYSTEM_WIN32) && defined(_MSC_VER)
 #pragma warning(disable: 4127)                      // conditional expression is constant
 #pragma warning(disable: 4115)                      // named type definition in parentheses
 #pragma warning(disable: 4244)                      // conversion from 'type' to type', possible loss of data

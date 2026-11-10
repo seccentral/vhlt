@@ -135,9 +135,17 @@ void            HandleWadinclude()
 #ifdef HLCSG_STRIPWADPATH
 			char tmp[_MAX_PATH];
 			ExtractFile (pszWadFile, tmp);
-            safe_snprintf(szTmpWad, 1024, "%s%s;", szTmpWad, tmp);
+            {
+                char tmpwad[1024];
+                safe_snprintf(tmpwad, 1024, "%s%s;", szTmpWad, tmp);
+                safe_strncpy(szTmpWad, tmpwad, 1024);
+            }
 #else
-            safe_snprintf(szTmpWad, 1024, "%s%s;", szTmpWad, pszWadFile);
+            {
+                char tmpwad[1024];
+                safe_snprintf(tmpwad, 1024, "%s%s;", szTmpWad, pszWadFile);
+                safe_strncpy(szTmpWad, tmpwad, 1024);
+            }
 #endif
         }
     }

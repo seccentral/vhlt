@@ -269,7 +269,11 @@ void ParseParamFile (const int argc, char ** const argv, int &argcnew, char **&a
 	safe_strncpy (tmp, argv[0], _MAX_PATH);
 #endif
 	ExtractFilePath (tmp, filepath);
-	strcat (filepath, paramfilename);
+	{
+		char pathbuf[_MAX_PATH];
+		safe_snprintf (pathbuf, _MAX_PATH, "%s%s", filepath, paramfilename);
+		safe_strncpy (filepath, pathbuf, _MAX_PATH);
+	}
 	f = fopen (filepath, "r");
 	if (f)
 	{

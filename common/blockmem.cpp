@@ -50,7 +50,7 @@ bool            FreeBlock(void* pointer)
 
     if (!pointer)
     {
-        Warning("Freeing a null pointer");
+        return true;
     }
 
     h = GlobalHandle(pointer);

@@ -11,7 +11,9 @@
 /////////////////////////////
 #ifdef SYSTEM_WIN32
 
+#ifndef alloca
 #define alloca      _alloca
+#endif
 
 #define strncasecmp _strnicmp
 #define strcasecmp  _stricmp

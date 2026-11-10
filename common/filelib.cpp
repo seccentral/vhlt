@@ -80,7 +80,7 @@ long            getfiledata(const char* const filename, char* buffer, const int 
         int             bytesread;
 
         Log("%-20s Restoring [%-13s - ", "BuildVisMatrix:", filename);
-        while ((bytesread = _read(handle, buffer, qmin(32 * 1024, buffersize - size))) > 0)
+        while (size < buffersize && (bytesread = _read(handle, buffer, qmin(32 * 1024, buffersize - size))) > 0)
         {
             size += bytesread;
             buffer += bytesread;
@@ -104,13 +104,20 @@ long            getfiledata(const char* const filename, char* buffer, const int 
  * filelength
  * ================
  */
-int             q_filelength(FILE* f)
+long            q_filelength(FILE* f)
 {
-    int             pos;
-    int             end;
+    long            pos;
+    long            end;
 
     pos = ftell(f);
-    fseek(f, 0, SEEK_END);
+    if (pos == -1L)
+    {
+        return -1L;
+    }
+    if (fseek(f, 0, SEEK_END) != 0)
+    {
+        return -1L;
+    }
     end = ftell(f);
     fseek(f, pos, SEEK_SET);
 

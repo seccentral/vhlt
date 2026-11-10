@@ -1759,13 +1759,13 @@ static void     ProcessFile(const char* const filename)
     for (i = 0; i < NUM_HULLS; i++)
     {
                    //mapname.p[0-3]
-		sprintf(name, "%s.p%i", filename, i);
+		safe_snprintf(name, sizeof(name), "%s.p%i", filename, i);
         polyfiles[i] = fopen(name, "r");
 
         if (!polyfiles[i])
             Error("Can't open %s", name);
 #ifdef ZHLT_DETAILBRUSH
-		sprintf(name, "%s.b%i", filename, i);
+		safe_snprintf(name, sizeof(name), "%s.b%i", filename, i);
 		brushfiles[i] = fopen(name, "r");
 		if (!brushfiles[i])
 			Error("Can't open %s", name);
@@ -1863,7 +1863,7 @@ static void     ProcessFile(const char* const filename)
 		polyfiles[i] = NULL;
 		unlink (name);
 #ifdef ZHLT_DETAILBRUSH
-		sprintf(name, "%s.b%i", filename, i);
+		safe_snprintf(name, sizeof(name), "%s.b%i", filename, i);
 		fclose (brushfiles[i]);
 		brushfiles[i] = NULL;
 		unlink (name);

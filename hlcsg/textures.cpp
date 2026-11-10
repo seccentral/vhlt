@@ -467,8 +467,8 @@ bool            TEX_InitFromWad()
 #endif
 #endif
 
+        hlassume(nTexFiles + 1 < MAX_TEXFILES, assume_MAX_TEXFILES);
         nTexFiles++;
-        hlassume(nTexFiles < MAX_TEXFILES, assume_MAX_TEXFILES);
     }
 
     //Log("num of used textures: %i\n", g_numUsedTextures);

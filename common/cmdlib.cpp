@@ -129,7 +129,11 @@ inline void getFilePositions(const char* path, int* extension_position, int* dir
 	else
 	{ *extension_position = ptr - path; }
 
-	ptr = qmax(strrchr(path,'/'),strrchr(path,'\\'));
+	{
+		const char* slash = strrchr(path,'/');
+		const char* backslash = strrchr(path,'\\');
+		ptr = slash ? (backslash && backslash > slash ? backslash : slash) : backslash;
+	}
 	if(ptr == 0)
 	{ *directory_position = -1; }
 	else
@@ -155,13 +159,19 @@ char* FlipSlashes(char* string)
 	char* ptr = string;
 	if(SYSTEM_SLASH_CHAR == '\\')
 	{
-		while(ptr = strchr(ptr,'/'))
-		{ *ptr = SYSTEM_SLASH_CHAR; }
+		while((ptr = strchr(ptr,'/')) != NULL)
+		{
+			*ptr = SYSTEM_SLASH_CHAR;
+			ptr++;
+		}
 	}
 	else
 	{
-		while(ptr = strchr(ptr,'\\'))
-		{ *ptr = SYSTEM_SLASH_CHAR; }
+		while((ptr = strchr(ptr,'\\')) != NULL)
+		{
+			*ptr = SYSTEM_SLASH_CHAR;
+			ptr++;
+		}
 	}
 	return string;
 }

@@ -137,7 +137,7 @@ void PrintBrink (const bbrink_t *b)
 
 void BrinkSplitClipnode (bbrink_t *b, const dplane_t *plane, int planenum, bclipnode_t *prev, bclipnode_t *n0, bclipnode_t *n1)
 {
-	int found;
+	int found = -1;
 	int numfound = 0;
 	for (int i = 0; i < b->numnodes; i++)
 	{
@@ -148,20 +148,17 @@ void BrinkSplitClipnode (bbrink_t *b, const dplane_t *plane, int planenum, bclip
 			numfound++;
 		}
 	}
-	if (numfound == 0)
+	if (numfound == 0 || numfound > 1)
 	{
-		PrintOnce ("BrinkSplitClipnode: internal error: couldn't find clipnode");
-		hlassume (false, assume_first);
-	}
-	if (numfound > 1)
-	{
-		PrintOnce ("BrinkSplitClipnode: internal error: found more than one clipnode");
-		hlassume (false, assume_first);
+		PrintOnce ("BrinkSplitClipnode: internal error: couldn't find clipnode uniquely");
+		Error ("BrinkSplitClipnode: internal error");
+		return;
 	}
 	if (n0 == n1)
 	{
 		PrintOnce ("BrinkSplitClipnode: internal error: n0 == n1");
-		hlassume (false, assume_first);
+		Error ("BrinkSplitClipnode: internal error");
+		return;
 	}
 	b->nodes->resize (b->numnodes + 2);
 	bbrinknode_t *node = &(*b->nodes)[found];
@@ -188,7 +185,7 @@ void BrinkSplitClipnode (bbrink_t *b, const dplane_t *plane, int planenum, bclip
 
 void BrinkReplaceClipnode (bbrink_t *b, bclipnode_t *prev, bclipnode_t *n)
 {
-	int found;
+	int found = -1;
 	int numfound = 0;
 	for (int i = 0; i < b->numnodes; i++)
 	{
@@ -199,15 +196,11 @@ void BrinkReplaceClipnode (bbrink_t *b, bclipnode_t *prev, bclipnode_t *n)
 			numfound++;
 		}
 	}
-	if (numfound == 0)
+	if (numfound != 1 || found < 0)
 	{
-		PrintOnce ("BrinkSplitClipnode: internal error: couldn't find clipnode");
-		hlassume (false, assume_first);
-	}
-	if (numfound > 1)
-	{
-		PrintOnce ("BrinkSplitClipnode: internal error: found more than one clipnode");
-		hlassume (false, assume_first);
+		PrintOnce ("BrinkReplaceClipnode: internal error: couldn't find clipnode uniquely");
+		Error ("BrinkReplaceClipnode: internal error");
+		return;
 	}
 	bbrinknode_t *node = &(*b->nodes)[found];
 	node->clipnode = n;

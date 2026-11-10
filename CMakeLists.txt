@@ -15,6 +15,7 @@ endif()
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ----------------------------------------------------------------------
 # Platform-specific configuration
@@ -90,12 +91,11 @@ function(add_vhlt_tool target)
     )
 
     if(MSVC)
-        target_compile_options(${target} PRIVATE /O2 /W3)
+        target_compile_options(${target} PRIVATE /W3)
     else()
         target_compile_options(${target} PRIVATE
             -Wall
             -Wno-deprecated-declarations
-            -O2
             -fno-strict-aliasing
         )
         if(NOT WIN32)
