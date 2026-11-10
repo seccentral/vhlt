@@ -193,8 +193,8 @@ add_vhlt_tool(ripent
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
     add_custom_target(docs
-        COMMAND "${DOXYGEN_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/docs"
+        COMMAND "${DOXYGEN_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/docs/api/Doxyfile"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/docs/api"
         COMMENT "Generating API documentation with Doxygen"
         VERBATIM
     )
