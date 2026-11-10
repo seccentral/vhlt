@@ -983,19 +983,8 @@ bool            IPlaneEquiv(const plane_t* const p1, const plane_t* const p2)
         return true;
     }
 
-    // see if the plane is reversed (normal points the other way)
-    for (j = 0; j < 3; j++)
-    {
-        if (fabs(p2->normal[j] + p1->normal[j]) > NORMAL_EPSILON)
-        {
-            break;
-        }
-    }
-    if (j == 3)
-    {
-        return true;
-    }
-
+    // Reversed planes are intentionally NOT equivalent: AddBrushPlane uses this
+    // to skip duplicate faces, and an opposite-facing face must be kept.
     return false;
 }
 

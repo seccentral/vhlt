@@ -80,6 +80,9 @@
 #define MAX_MAP_VISIBILITY  0x800000 //0x200000 //vluzacn
 // arbitrary
 
+#define MAX_MAP_PORTALS     32768
+// shared by hlbsp (.prt writer) and hlvis (.prt reader)
+
 // these are for entity key:value pairs
 #define MAX_KEY                 128 //32 //vluzacn
 #define MAX_VAL               4096 // the name used to be MAX_VALUE //vluzacn

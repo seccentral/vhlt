@@ -5433,7 +5433,8 @@ void            GetPhongNormal(int facenum, const vec3_t spot, vec3_t phongnorma
             aa = DotProduct(v1, v1);
             bb = DotProduct(v2, v2);
             ab = DotProduct(v1, v2);
-            if (bb <= NORMAL_EPSILON || aa * bb - ab * ab <= NORMAL_EPSILON * NORMAL_EPSILON)
+            // Scale-invariant test: aa*bb - ab*ab = aa*bb*sin^2(angle between v1 and v2).
+            if (bb <= NORMAL_EPSILON || aa * bb - ab * ab <= NORMAL_EPSILON * aa * bb)
             {
                 // Degenerate edge geometry: fall back to the face normal.
                 continue;

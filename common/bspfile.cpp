@@ -521,6 +521,11 @@ void            LoadBSPImage(dheader_t* const header, int filesize)
 {
     unsigned int     i;
 
+    if (filesize > 0 && filesize < (int)sizeof(dheader_t))
+    {
+        Error("LoadBSPFile: file too small for BSP header");
+    }
+
     // swap the header
     for (i = 0; i < sizeof(dheader_t) / 4; i++)
     {

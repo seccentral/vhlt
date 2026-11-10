@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- ripent: `-textureexport` no longer marks textures that reference an external WAD as missing (regression in 3.5.2).
+- hlcsg: reverted the 3.5.2 `IPlaneEquiv` change that treated opposite-facing planes as duplicates and could drop faces from expanded hulls.
+- hlrad: the `GetPhongNormal` degenerate-geometry guard is now scale-invariant.
+
+### Security
+- Reject BSP files smaller than the BSP header.
+- ripent: range-check the WAD `infotableofs` before using it in size arithmetic.
+
+### Changed
+- `MAX_MAP_PORTALS` is defined once in `common/bspfile.h` and shared by hlbsp and hlvis.
+
 ## [3.5.2] - 2026-11-10
 
 ### Added

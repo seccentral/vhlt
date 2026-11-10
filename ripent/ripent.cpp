@@ -501,6 +501,19 @@ void WriteEmptyTexture(FILE *outwad, const miptex_t *tex)
 	SafeWrite (outwad, &outtex, sizeof (miptex_t));
 	fseek (outwad, end, SEEK_SET);
 }*/
+// Returns the miptex at ofs if it can be exported, else NULL. Textures that
+// reference an external WAD (offsets[0] == 0) are a bare header with no pixel
+// data, so only the header has to fit; embedded textures are fully validated.
+static miptex_t*	GetExportableMiptex(int ofs)
+{
+	if (ofs < 0 || ofs + (int)sizeof(miptex_t) > g_texdatasize)
+		return NULL;
+	miptex_t* tex = (miptex_t*)(g_dtexdata + ofs);
+	if (tex->offsets[0] == 0)
+		return tex;
+	return ValidateMiptexHeader (tex->width, tex->height, tex->offsets, g_texdatasize - ofs, false)? tex: NULL;
+}
+
 static void		WriteTextures(const char* const name)
 {
 	char wadfilename[_MAX_PATH];
@@ -551,15 +564,7 @@ static void		WriteTextures(const char* const name)
 		{
 			int ofs = ((dmiptexlump_t*)g_dtexdata)->dataofs[i];
 			int size = 0;
-			bool validtex = false;
-			if (ofs >= 0 && ofs + (int)sizeof(miptex_t) <= g_texdatasize)
-			{
-				miptex_t* tex = (miptex_t*)(g_dtexdata + ofs);
-				if (ValidateMiptexHeader (tex->width, tex->height, tex->offsets, g_texdatasize - ofs, false))
-				{
-					validtex = true;
-				}
-			}
+			bool validtex = GetExportableMiptex (ofs) != NULL;
 			if (validtex)
 			{
 				size = g_texdatasize - ofs;
@@ -600,8 +605,8 @@ static void		WriteTextures(const char* const name)
 		for (int itex = 0; itex < ((dmiptexlump_t*)g_dtexdata)->nummiptex; ++itex)
 		{
 			int ofs = ((dmiptexlump_t*)g_dtexdata)->dataofs[itex];
-			miptex_t *tex = (ofs >= 0 && ofs + (int)sizeof(miptex_t) <= g_texdatasize)? (miptex_t*)(g_dtexdata + ofs): NULL;
-			if (!tex || !ValidateMiptexHeader (tex->width, tex->height, tex->offsets, g_texdatasize - ofs, false))
+			miptex_t *tex = GetExportableMiptex (ofs);
+			if (!tex)
 			{
 				fprintf (texfile, "[-1]\r\n");
 			}
@@ -681,9 +686,13 @@ static void		ReadTextures(const char *name)
 		{
 			long wadfilesize = q_filelength (wadfile);
 			int dataofs = (int)(intptr_t)&((dmiptexlump_t*)NULL)->dataofs[header.numlumps];
+			// Range-check infotableofs before using it in arithmetic (avoids int overflow).
+			if (header.infotableofs < wadofs || header.infotableofs > g_max_map_miptex)
+			{
+				Error ("Invalid wad file %s", wadfilename);
+			}
 			int texdatasize = header.infotableofs - wadofs + dataofs;
 			if (wadfilesize < 0 ||
-				header.infotableofs < wadofs || header.infotableofs > g_max_map_miptex ||
 				texdatasize < dataofs || texdatasize > g_max_map_miptex ||
 				wadfilesize < (long)header.infotableofs + (long)header.numlumps * (long)sizeof(lumpinfo_t))
 			{
