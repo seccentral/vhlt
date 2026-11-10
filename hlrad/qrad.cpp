@@ -1366,7 +1366,7 @@ static void SubdividePatch(patch_t* patch)
     unsigned x;
     patch_t* new_patch;
 
-    memset(windingArray, 0, sizeof(windingArray));
+    memset((void*)windingArray, 0, sizeof(windingArray));
     g_numwindings = 0;
 
     getGridPlanes(patch, planes);
@@ -1734,6 +1734,8 @@ static bool getEmitMode(const patch_t* patch)
             break;
         case 2:
             emitmode = true;
+            break;
+        default:
             break;
         }
     }
@@ -2258,7 +2260,8 @@ static void LoadOpaqueEntities()
             bool b_transparency = false;
             {
                 const char* s;
-                if (*(s = ValueForKey(ent, "zhlt_customshadow")))
+                s = ValueForKey(ent, "zhlt_customshadow");
+                if (*s)
                 {
                     double r1 = 1.0, g1 = 1.0, b1 = 1.0, tmp = 1.0;
                     // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
@@ -2452,7 +2455,7 @@ static void MakePatches()
 
     Log("Create Patches : ");
 #ifdef HLRAD_MORE_PATCHES
-    g_patches = (patch_t*)AllocBlock(MAX_PATCHES * sizeof(patch_t));
+    g_patches = (patch_t*)AllocBlock((size_t)MAX_PATCHES * sizeof(patch_t));
 #endif
 
     for (i = 0; i < g_nummodels; i++)
@@ -2471,14 +2474,16 @@ static void MakePatches()
         ent = EntityForModel(i);
         VectorCopy(vec3_origin, origin);
 
-        if (*(s = ValueForKey(ent, "zhlt_lightflags")))
+        s = ValueForKey(ent, "zhlt_lightflags");
+        if (*s)
         {
             // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
             lightmode = (eModelLightmodes)atoi(s);
         }
 
         // models with origin brushes need to be offset into their in-use position
-        if (*(s = ValueForKey(ent, "origin")))
+        s = ValueForKey(ent, "origin");
+        if (*s)
         {
             double v1, v2, v3;
 
@@ -2492,13 +2497,15 @@ static void MakePatches()
         }
 
         // Allow models to be lit in an alternate location (pt1)
-        if (*(s = ValueForKey(ent, "light_origin")))
+        s = ValueForKey(ent, "light_origin");
+        if (*s)
         {
             entity_t* e = FindTargetEntity(s);
 
             if (e)
             {
-                if (*(s = ValueForKey(e, "origin")))
+                s = ValueForKey(e, "origin");
+                if (*s)
                 {
                     double v1, v2, v3;
 
@@ -2516,7 +2523,8 @@ static void MakePatches()
         }
 
         // Allow models to be lit in an alternate location (pt2)
-        if (*(s = ValueForKey(ent, "model_center")))
+        s = ValueForKey(ent, "model_center");
+        if (*s)
         {
             double v1, v2, v3;
 
@@ -2537,7 +2545,8 @@ static void MakePatches()
         VectorFill(d_transparency, 1.0);
         b_transparency = false;
 
-        if (*(s = ValueForKey(ent, "zhlt_customshadow")))
+        s = ValueForKey(ent, "zhlt_customshadow");
+        if (*s)
         {
             double r1 = 1.0, g1 = 1.0, b1 = 1.0, tmp = 1.0;
             if (sscanf(s, "%lf %lf %lf", &r1, &g1, &b1) == 3) //RGB version
@@ -2573,7 +2582,8 @@ static void MakePatches()
 
 #ifdef ZHLT_TEXLIGHT
         //LRC:
-        if (*(s = ValueForKey(ent, "style")))
+        s = ValueForKey(ent, "style");
+        if (*s)
         {
             // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
             style = atoi(s);
@@ -2752,7 +2762,7 @@ static void SortPatches()
     qsort((void*)g_patches, (size_t)g_num_patches, sizeof(patch_t), patch_sorter);
 
     // Fixup g_face_patches & Fixup patch->next
-    memset(g_face_patches, 0, sizeof(g_face_patches));
+    memset((void*)g_face_patches, 0, sizeof(g_face_patches));
     {
         unsigned x;
         patch_t* patch = g_patches + 1;
@@ -3836,6 +3846,8 @@ static void CheckMaxPatches()
     case eMethodVismatrix:
         hlassume(g_num_patches < MAX_VISMATRIX_PATCHES, assume_MAX_PATCHES); // should use "<=" instead. --vluzacn
         break;
+    // NOLINTNEXTLINE(bugprone-branch-clone): each method has a different patch limit
+    // NOLINTNEXTLINE(bugprone-branch-clone): each method has a different patch limit
     case eMethodSparseVismatrix:
         hlassume(g_num_patches < MAX_SPARSE_VISMATRIX_PATCHES, assume_MAX_PATCHES);
         break;
@@ -5834,12 +5846,7 @@ int main(const int argc, char** argv)
                 }
 #endif
 
-                else if (argv[i][0] == '-')
-                {
-                    Log("Unknown option \"%s\"\n", argv[i]);
-                    Usage();
-                }
-                else if (!mapname_from_arg)
+                else if (!mapname_from_arg && argv[i][0] != '-')
                 {
                     mapname_from_arg = argv[i];
                 }

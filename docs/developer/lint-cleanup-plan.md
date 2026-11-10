@@ -44,26 +44,17 @@ Before Batch 0: **510 unique findings, 0 errors** (measured 2026-11-10 at `b7881
 After Batch 0 (`Error` and `hlassume_fail` marked `[[noreturn]]`): **395 unique findings, 0 errors**.
 After Batch 1 (real defects): **333 unique findings, 0 errors**.
 After Batch 2 (strings and numbers): **114 unique findings, 0 errors**.
+After Batch 3 (mechanical clarity): **16 unique findings, 0 errors**.
 
-The table below is the remaining set after Batch 2.
+The table below is the remaining set after Batch 3; all are Batch 4 configuration decisions.
 
 | Check | Sites | Main files |
 |---|---:|---|
-| `bugprone-implicit-widening-of-multiplication-result` | 37 | loadtextures.cpp 9, lightmap.cpp 8, bspfile.cpp 5, vismatrixutil.cpp 3 |
-| `bugprone-assignment-in-if-condition` | 16 | qrad.cpp 7, brush.cpp 3 |
-| `bugprone-multi-level-implicit-pointer-conversion` | 15 | outside.cpp 3, writebsp.cpp 3, qrad.cpp 2, brush.cpp 2 |
-| `bugprone-branch-clone` | 7 | qrad.cpp 2, qbsp.cpp 2 |
-| `bugprone-switch-missing-default-case` | 7 | solidbsp.cpp 2 |
-| `performance-enum-size` | 6 | lightmap.cpp 2 |
-| `clang-analyzer-deadcode.DeadStores` | 6 | bspfile.cpp 2 |
+| `performance-enum-size` | 6 | cmdlinecfg.cpp, lerp.cpp, lightmap.cpp 2, qrad.cpp, ripent.cpp |
 | `bugprone-undefined-memory-manipulation` | 4 | hlcsg/map.cpp 4 (`brush_t`) |
-| `bugprone-terminating-continue` | 4 | hlrad/lightmap.cpp 4 |
-| `bugprone-integer-division` | 4 | lightmap.cpp 2, brush.cpp 1, brushunion.cpp 1 |
-| `clang-analyzer-optin.performance.Padding` | 2 | scriplib.cpp 1, qradutil.cpp 1 |
-| `bugprone-exception-escape` | 2 | qrad.cpp 1, qcsg.cpp 1 |
-| `bugprone-throwing-static-initialization` | 2 | qcsg.cpp 1, map.cpp 1 |
-| `bugprone-signed-char-misuse` | 1 | transparency.cpp 1 |
-| `performance-no-int-to-ptr` | 1 | threads.cpp 1 |
+| `bugprone-exception-escape` | 2 | qrad.cpp, qcsg.cpp |
+| `bugprone-throwing-static-initialization` | 2 | qcsg.cpp, map.cpp |
+| `clang-analyzer-optin.performance.Padding` | 2 | scriplib.cpp, qradutil.cpp |
 
 ## Gates after every batch
 

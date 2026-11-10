@@ -529,13 +529,6 @@ inline static void RecursiveLeafFlow(const int leafnum, const threaddata_t* cons
             stack.clipPlaneCount = 0;
             stack.clipPlane = clipPlanes;
 
-            {
-                size_t clipPlaneCount = (size_t)prevstack->source->numpoints * (size_t)prevstack->pass->numpoints;
-                if (clipPlaneCount > 2 * MAX_POINTS_ON_WINDING)
-                {
-                    clipPlaneCount = 2 * MAX_POINTS_ON_WINDING;
-                }
-            }
 
             ClipToSeperators(prevstack->source, prevstack->pass, NULL, false, &stack);
             ClipToSeperators(prevstack->pass, prevstack->source, NULL, true, &stack);

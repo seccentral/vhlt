@@ -187,9 +187,11 @@ find_plane:
     {
         // BUG: there might be some multithread issue --vluzacn
 #ifdef HLCSG_FACENORMALEPSILON
-        if (-DIR_EPSILON < (t = normal[0] - g_mapplanes[returnval].normal[0]) && t < DIR_EPSILON &&
-            -DIR_EPSILON < (t = normal[1] - g_mapplanes[returnval].normal[1]) && t < DIR_EPSILON &&
-            -DIR_EPSILON < (t = normal[2] - g_mapplanes[returnval].normal[2]) && t < DIR_EPSILON)
+        vec_t t0 = normal[0] - g_mapplanes[returnval].normal[0];
+        vec_t t1 = normal[1] - g_mapplanes[returnval].normal[1];
+        vec_t t2 = normal[2] - g_mapplanes[returnval].normal[2];
+        if (-DIR_EPSILON < t0 && t0 < DIR_EPSILON && -DIR_EPSILON < t1 && t1 < DIR_EPSILON && -DIR_EPSILON < t2 &&
+            t2 < DIR_EPSILON)
         {
             t = DotProduct(origin, g_mapplanes[returnval].normal) - g_mapplanes[returnval].dist;
 
@@ -1234,7 +1236,7 @@ void SortSides(brushhull_t* h)
     {
         *(i >= 0 ? &sides[sorted[i]]->next : &h->faces) = (i + 1 < numsides ? sides[sorted[i + 1]] : NULL);
     }
-    free(sides);
+    free((void*)sides);
     free(normals);
     free(isused);
     free(sorted);
@@ -1328,7 +1330,7 @@ restart:
     unsigned int i;
     for (i = 0; i < 3; i++)
     {
-        if (h->bounds.m_Mins[i] < -BOGUS_RANGE / 2 || h->bounds.m_Maxs[i] > BOGUS_RANGE / 2)
+        if (h->bounds.m_Mins[i] < -(vec_t)BOGUS_RANGE / 2 || h->bounds.m_Maxs[i] > (vec_t)BOGUS_RANGE / 2)
         {
             Fatal(assume_BRUSH_OUTSIDE_WORLD,
                   "Entity %i, Brush %i: outside world(+/-%d): (%.0f,%.0f,%.0f)-(%.0f,%.0f,%.0f)",
@@ -2287,7 +2289,7 @@ void CreateHullShape(int entitynum, bool disabled, const char* id, int defaulthu
             {
                 DeleteHullBrush(target->brushes[i]);
             }
-            free(target->brushes);
+            free((void*)target->brushes);
             free(target->id);
             target->id = _strdup(hs->id);
             target->disabled = hs->disabled;

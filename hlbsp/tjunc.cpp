@@ -62,7 +62,7 @@ static void InitHash(const vec3_t mins, const vec3_t maxs)
     VectorCopy(mins, hash_min);
     VectorSubtract(maxs, mins, size);
 #endif
-    memset(wedge_hash, 0, sizeof(wedge_hash));
+    memset((void*)wedge_hash, 0, sizeof(wedge_hash));
 
     volume = size[0] * size[1];
 

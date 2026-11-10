@@ -503,7 +503,8 @@ static void LeafThread(int unused)
 
     while (1)
     {
-        if (!(p = GetNextPortal()))
+        p = GetNextPortal();
+        if (!p)
         {
             return;
         }
@@ -612,7 +613,7 @@ static void LeafFlow(const int leafnum)
     // flow through all portals, collecting visible bits
     //
     memset(compressed, 0, sizeof(compressed));
-    outbuffer = g_uncompressed + leafnum * g_bitbytes;
+    outbuffer = g_uncompressed + (size_t)leafnum * g_bitbytes;
     leaf = &g_leafs[leafnum];
     tmp = 0;
 
@@ -1155,7 +1156,7 @@ static void LoadPortals(char* portal_image)
     g_bitlongs = g_bitbytes / sizeof(long);
 
     // each file portal is split into two memory portals
-    g_portals = (portal_t*)calloc(2 * g_numportals, sizeof(portal_t));
+    g_portals = (portal_t*)calloc((size_t)2 * g_numportals, sizeof(portal_t));
     g_leafs = (leaf_t*)calloc(g_portalleafs, sizeof(leaf_t));
 #ifdef HLVIS_OVERVIEW
     g_leafinfos = (leafinfo_t*)calloc(g_portalleafs, sizeof(leafinfo_t));

@@ -137,7 +137,7 @@ static int WriteClipNodes_r(node_t* node
             }
             num = portalleaf->contents;
         }
-        free(node->markfaces);
+        free((void*)node->markfaces);
         free(node);
         return num;
     }
@@ -145,7 +145,7 @@ static int WriteClipNodes_r(node_t* node
     if (node->planenum == -1)
     {
         num = node->contents;
-        free(node->markfaces);
+        free((void*)node->markfaces);
         free(node);
         return num;
     }
@@ -399,7 +399,7 @@ static void WriteDrawLeaf(const node_t* const node)
             f = f->original; // grab tjunction split faces
         } while (f);
     }
-    free(node->markfaces);
+    free((void*)node->markfaces);
 
     leaf_p->nummarksurfaces = g_nummarksurfaces - leaf_p->firstmarksurface;
 #ifdef ZHLT_DETAILBRUSH
@@ -503,7 +503,7 @@ static void WriteDrawNodes_r(const node_t* const node)
     {
         if (node->iscontentsdetail)
         {
-            free(node->markfaces);
+            free((void*)node->markfaces);
             return -1;
         }
         else

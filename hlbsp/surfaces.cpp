@@ -228,7 +228,7 @@ static void InitHash()
 #endif
     int i;
 
-    memset(hashverts, 0, sizeof(hashverts));
+    memset((void*)hashverts, 0, sizeof(hashverts));
 
     for (i = 0; i < 3; i++)
     {

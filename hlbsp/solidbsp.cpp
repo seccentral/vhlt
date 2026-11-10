@@ -537,7 +537,9 @@ static surface_t* ChooseMidPlaneFromList(surface_t* surfaces, const vec3_t mins,
         //
         // calculate the split metric along axis l, smaller values are better
         //
+#ifndef HLBSP_FAST_SELECTPARTITION
         value = 0;
+#endif
 
         dist = plane->dist * plane->normal[l];
 #ifdef HLBSP_MAXNODESIZE_SKYBOX
@@ -581,6 +583,8 @@ static surface_t* ChooseMidPlaneFromList(surface_t* surfaces, const vec3_t mins,
                 break;
             case SIDE_ON:
                 crosscount++;
+                break;
+            default:
                 break;
             }
         }
@@ -819,6 +823,8 @@ static surface_t* ChoosePlaneFromList(surface_t* surfaces, const vec3_t mins,
                     totalsplit++;
 #endif
                     crosscount++;
+                    break;
+                default:
                     break;
                 }
             }
@@ -1600,6 +1606,7 @@ static int ContentsForRank(const int rank)
 #endif
 #endif
 
+    // NOLINTNEXTLINE(bugprone-branch-clone): case 0 shares this body only when HLCSG_HLBSP_ALLOWEMPTYENTITY is on
     case -1:
 #ifdef HLCSG_HLBSP_ALLOWEMPTYENTITY
         return CONTENTS_EMPTY;
@@ -1848,7 +1855,7 @@ static void LinkLeafFaces(surface_t* planelist, node_t* leafnode)
         nummarkfaces++;
 
         leafnode->markfaces = (face_t**)malloc(nummarkfaces * sizeof(*leafnode->markfaces));
-        memcpy(leafnode->markfaces, markfaces, nummarkfaces * sizeof(*leafnode->markfaces));
+        memcpy((void*)leafnode->markfaces, (const void*)markfaces, nummarkfaces * sizeof(*leafnode->markfaces));
     }
 
     FreeLeafSurfs(leafnode);
@@ -1912,7 +1919,7 @@ static void MakeLeaf(node_t* leafnode)
         nummarkfaces++;
 
         leafnode->markfaces = (face_t**)malloc(nummarkfaces * sizeof(*leafnode->markfaces));
-        memcpy(leafnode->markfaces, markfaces, nummarkfaces * sizeof(*leafnode->markfaces));
+        memcpy((void*)leafnode->markfaces, (const void*)markfaces, nummarkfaces * sizeof(*leafnode->markfaces));
     }
 
     FreeLeafSurfs(leafnode);

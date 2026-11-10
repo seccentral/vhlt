@@ -130,7 +130,7 @@ void TextureAxisFromPlane(const plane_t* const pln, vec3_t xv, vec3_t yv)
 
     for (i = 0; i < 6; i++)
     {
-        dot = DotProduct(pln->normal, s_baseaxis[i * 3]);
+        dot = DotProduct(pln->normal, s_baseaxis[(size_t)i * 3]);
         if (dot > best)
         {
             best = dot;
@@ -463,9 +463,13 @@ static contents_t ParseBrush(entity_t* mapent)
             {
                 b->cliphull |= (1 << NUM_HULLS); // arbitrary nonexistent hull
                 int h;
-                if (!strncasecmp(g_token, "CLIPHULL", 8) && (h = g_token[8] - '0', 0 < h && h < NUM_HULLS))
+                if (!strncasecmp(g_token, "CLIPHULL", 8))
                 {
-                    b->cliphull |= (1 << h); // hull h
+                    h = g_token[8] - '0';
+                    if (0 < h && h < NUM_HULLS)
+                    {
+                        b->cliphull |= (1 << h); // hull h
+                    }
                 }
                 if (!strncasecmp(g_token, "CLIPBEVEL", 9))
                 {

@@ -1289,7 +1289,7 @@ void DumpTransfersMemoryUsage()
 void DumpTransfersMemoryUsage()
 {
 #ifdef ZHLT_64BIT_FIX
-    if (g_total_transfer > 1000 * 1000)
+    if (g_total_transfer > (size_t)1000 * 1000)
         Log("Transfer Lists : %11.0f : %8.2fM transfers\n", (double)g_total_transfer,
             (double)g_total_transfer / (1000.0f * 1000.0f));
     else if (g_total_transfer > 1000)
@@ -1298,7 +1298,7 @@ void DumpTransfersMemoryUsage()
     else
         Log("Transfer Lists : %11.0f transfers\n", (double)g_total_transfer);
 
-    if (g_transfer_index_bytes > 1024 * 1024)
+    if (g_transfer_index_bytes > (size_t)1024 * 1024)
         Log("       Indices : %11.0f : %8.2fM bytes\n", (double)g_transfer_index_bytes,
             (double)g_transfer_index_bytes / (1024.0f * 1024.0f));
     else if (g_transfer_index_bytes > 1024)
@@ -1307,7 +1307,7 @@ void DumpTransfersMemoryUsage()
     else
         Log("       Indices : %11.0f bytes\n", (double)g_transfer_index_bytes);
 
-    if (g_transfer_data_bytes > 1024 * 1024)
+    if (g_transfer_data_bytes > (size_t)1024 * 1024)
         Log("          Data : %11.0f : %8.2fM bytes\n", (double)g_transfer_data_bytes,
             (double)g_transfer_data_bytes / (1024.0f * 1024.0f));
     else if (g_transfer_data_bytes > 1024)
@@ -1316,14 +1316,14 @@ void DumpTransfersMemoryUsage()
     else
         Log("          Data : %11.0f bytes\n", (double)g_transfer_data_bytes);
 #else
-    if (g_total_transfer > 1000 * 1000)
+    if (g_total_transfer > (size_t)1000 * 1000)
         Log("Transfer Lists : %11u : %7.2fM transfers\n", g_total_transfer, g_total_transfer / (1000.0f * 1000.0f));
     else if (g_total_transfer > 1000)
         Log("Transfer Lists : %11u : %7.2fk transfers\n", g_total_transfer, g_total_transfer / 1000.0f);
     else
         Log("Transfer Lists : %11u transfers\n", g_total_transfer);
 
-    if (g_transfer_index_bytes > 1024 * 1024)
+    if (g_transfer_index_bytes > (size_t)1024 * 1024)
         Log("       Indices : %11u : %7.2fM bytes\n", g_transfer_index_bytes,
             g_transfer_index_bytes / (1024.0f * 1024.0f));
     else if (g_transfer_index_bytes > 1024)
@@ -1331,7 +1331,7 @@ void DumpTransfersMemoryUsage()
     else
         Log("       Indices : %11u bytes\n", g_transfer_index_bytes);
 
-    if (g_transfer_data_bytes > 1024 * 1024)
+    if (g_transfer_data_bytes > (size_t)1024 * 1024)
         Log("          Data : %11u : %7.2fM bytes\n", g_transfer_data_bytes,
             g_transfer_data_bytes / (1024.0f * 1024.0f));
     else if (g_transfer_data_bytes > 1024)

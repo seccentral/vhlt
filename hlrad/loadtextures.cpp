@@ -240,7 +240,7 @@ void DefaultTexture(radtexture_t* tex, const char* name)
         strncpy(tex->name, tmpname, 16);
         tex->name[16 - 1] = '\0';
     }
-    tex->canvas = (byte*)malloc(tex->width * tex->height);
+    tex->canvas = (byte*)malloc((size_t)tex->width * tex->height);
     hlassume(tex->canvas != NULL, assume_NoMemory);
     for (i = 0; i < 256; i++)
     {
@@ -275,20 +275,20 @@ void LoadTexture(radtexture_t* tex, const miptex_t* mt, int size)
     {
         Error("Texture '%s': palette size is not 256.", tex->name);
     }
-    tex->canvas = (byte*)malloc(tex->width * tex->height);
+    tex->canvas = (byte*)malloc((size_t)tex->width * tex->height);
     hlassume(tex->canvas != NULL, assume_NoMemory);
     for (i = 0; i < tex->height; i++)
     {
         for (j = 0; j < tex->width; j++)
         {
-            tex->canvas[i * tex->width + j] = data[sizeof(miptex_t) + i * tex->width + j];
+            tex->canvas[(size_t)i * tex->width + j] = data[sizeof(miptex_t) + (size_t)i * tex->width + j];
         }
     }
     for (i = 0; i < 256; i++)
     {
         for (j = 0; j < 3; j++)
         {
-            tex->palette[i][j] = data[sizeof(miptex_t) + mipsize + 2 + i * 3 + j];
+            tex->palette[i][j] = data[sizeof(miptex_t) + mipsize + 2 + (size_t)i * 3 + j];
         }
     }
 }
@@ -957,7 +957,7 @@ static void GetLightInt(dface_t* face, const int texsize[2], int ix, int iy, vec
         byte* samples = &g_dlightdata[face->lightofs + k * (texsize[0] + 1) * (texsize[1] + 1) * 3];
         if (face->styles[k] == 0)
         {
-            VectorAdd(light, &samples[(iy * (texsize[0] + 1) + ix) * 3], light);
+            VectorAdd(light, &samples[((size_t)iy * (texsize[0] + 1) + ix) * 3], light);
         }
     }
 }
@@ -1147,7 +1147,7 @@ void EmbedLightmapInTextures()
             }
             side[k] = (texturesize[k] * resolution - texsize[k] * TEXTURE_STEP) / 2;
         }
-        texture = (float (*)[5])malloc(texturesize[0] * texturesize[1] * sizeof(float[5]));
+        texture = (float (*)[5])malloc((size_t)texturesize[0] * texturesize[1] * sizeof(float[5]));
         hlassume(texture != NULL, assume_NoMemory);
         for (miplevel = 0; miplevel < MIPLEVELS; miplevel++)
         {
@@ -1346,7 +1346,8 @@ void EmbedLightmapInTextures()
                 palettemaxcolors = 256;
             }
 
-            samplepoints = (unsigned char (*)[3])malloc(texturesize[0] * texturesize[1] * sizeof(unsigned char[3]));
+            samplepoints =
+                (unsigned char (*)[3])malloc((size_t)texturesize[0] * texturesize[1] * sizeof(unsigned char[3]));
             hlassume(samplepoints != NULL, assume_NoMemory);
             numsamplepoints = 0;
             for (t = 0; t < texturesize[1]; t++)
@@ -1440,8 +1441,8 @@ void EmbedLightmapInTextures()
         }
         *(short*)p = 256;
         p += 2;
-        memcpy(p, palette, 256 * 3);
-        p += 256 * 3;
+        memcpy(p, palette, (size_t)256 * 3);
+        p += (size_t)256 * 3;
         *(short*)p = 0;
         p += 2;
         if (p != (byte*)miptex + miptexsize)

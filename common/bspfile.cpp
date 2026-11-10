@@ -431,7 +431,7 @@ bool ValidateMiptexHeader(int width, int height, const unsigned offsets[MIPLEVEL
     }
 
     // header + mip data + palette (2-byte count + 256 * 3)
-    if (available_bytes < 0 || mipsize + sizeof(miptex_t) + 2 + 256 * 3 > (size_t)available_bytes)
+    if (available_bytes < 0 || mipsize + sizeof(miptex_t) + 2 + (size_t)256 * 3 > (size_t)available_bytes)
     {
         return false;
     }
@@ -473,7 +473,9 @@ static int CopyLump(int lump, void* dest, int size, const dheader_t* const heade
         destmax = MAX_MAP_MODELS;
         break;
     case LUMP_VERTEXES:
-        destmax = MAX_MAP_VERTS;
+    case LUMP_FACES:
+    case LUMP_MARKSURFACES:
+        destmax = MAX_MAP_VERTS; // MAX_MAP_VERTS == MAX_MAP_FACES == MAX_MAP_MARKSURFACES
         break;
     case LUMP_PLANES:
         destmax = MAX_MAP_PLANES;
@@ -482,16 +484,9 @@ static int CopyLump(int lump, void* dest, int size, const dheader_t* const heade
         destmax = MAX_MAP_LEAFS;
         break;
     case LUMP_NODES:
-        destmax = MAX_MAP_NODES;
-        break;
-    case LUMP_TEXINFO:
-        destmax = MAX_MAP_TEXINFO;
-        break;
-    case LUMP_FACES:
-        destmax = MAX_MAP_FACES;
-        break;
     case LUMP_CLIPNODES:
-        destmax = MAX_MAP_CLIPNODES;
+    case LUMP_TEXINFO:
+        destmax = MAX_MAP_NODES; // MAX_MAP_NODES == MAX_MAP_CLIPNODES == MAX_MAP_TEXINFO
         break;
 #ifdef ZHLT_XASH2
     case LUMP_CLIPNODES2:
@@ -501,9 +496,6 @@ static int CopyLump(int lump, void* dest, int size, const dheader_t* const heade
         destmax = MAX_MAP_CLIPNODES;
         break;
 #endif
-    case LUMP_MARKSURFACES:
-        destmax = MAX_MAP_MARKSURFACES;
-        break;
     case LUMP_SURFEDGES:
         destmax = MAX_MAP_SURFEDGES;
         break;
@@ -1231,7 +1223,6 @@ char* FindWadValue()
             {
                 if (!inentity)
                     return NULL;
-                inentity = false;
                 return _strdup(""); // only parse the first entity
             }
             else
@@ -1600,8 +1591,6 @@ void DeleteEmbeddedLightmaps()
                 }
                 texdata->dataofs[i] += newdataaddr - dataaddr;
             }
-
-            numtextures = texdata->nummiptex;
         }
     }
 

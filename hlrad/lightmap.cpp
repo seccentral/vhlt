@@ -884,16 +884,16 @@ static void CalcFaceExtents(lightinfo_t* l)
         hlassume(l->lmcache_direction != NULL, assume_NoMemory);
 #endif
 #ifdef HLRAD_AVOIDNORMALFLIP
-        l->lmcache_normal = (vec3_t*)malloc(l->lmcachewidth * l->lmcacheheight * sizeof(vec3_t));
+        l->lmcache_normal = (vec3_t*)malloc((size_t)l->lmcachewidth * l->lmcacheheight * sizeof(vec3_t));
         hlassume(l->lmcache_normal != NULL, assume_NoMemory);
 #endif
 #ifdef HLRAD_AVOIDWALLBLEED
-        l->lmcache_wallflags = (int*)malloc(l->lmcachewidth * l->lmcacheheight * sizeof(int));
+        l->lmcache_wallflags = (int*)malloc((size_t)l->lmcachewidth * l->lmcacheheight * sizeof(int));
         hlassume(l->lmcache_wallflags != NULL, assume_NoMemory);
 #endif
 #ifdef HLRAD_GROWSAMPLE
-        l->surfpt_position = (vec3_t*)malloc(MAX_SINGLEMAP * sizeof(vec3_t));
-        l->surfpt_surface = (int*)malloc(MAX_SINGLEMAP * sizeof(int));
+        l->surfpt_position = (vec3_t*)malloc((size_t)MAX_SINGLEMAP * sizeof(vec3_t));
+        l->surfpt_surface = (int*)malloc((size_t)MAX_SINGLEMAP * sizeof(int));
         hlassume(l->surfpt_position != NULL && l->surfpt_surface != NULL, assume_NoMemory);
 #endif
     }
@@ -2342,6 +2342,8 @@ static void CalcPoints(lightinfo_t* l)
                         case 3:
                             s_other = s;
                             t_other = t - 1;
+                            break;
+                        default:
                             break;
                         }
                         if (t_other < 0 || t_other >= h || s_other < 0 || s_other >= w)
@@ -3870,7 +3872,7 @@ void BuildDiffuseNormals()
     edges[10].point[0] = 5, edges[10].point[1] = 1, edges[10].divided = false;
     edges[11].point[0] = 1, edges[11].point[1] = 4, edges[11].divided = false;
     int numtriangles = 8;
-    triangle_t* triangles = (triangle_t*)malloc(((1 << (2 * SKYLEVELMAX)) * 2) * sizeof(triangle_t));
+    triangle_t* triangles = (triangle_t*)malloc((size_t)((1 << (2 * SKYLEVELMAX)) * 2) * sizeof(triangle_t));
     hlassume(triangles != NULL, assume_NoMemory);
     triangles[0].edge[0] = 0, triangles[0].dir[0] = 0, triangles[0].edge[1] = 4, triangles[0].dir[1] = 0,
     triangles[0].edge[2] = 8, triangles[0].dir[2] = 0;
@@ -4100,12 +4102,12 @@ static void GatherSampleLight(const vec3_t pos, const byte* const pvs, const vec
                             // check step
                             step_match = (int)l->topatch;
                             if (step != step_match)
-                                continue;
+                                break;
 #endif
 #ifdef HLRAD_ALLOWZEROBRIGHTNESS
                             // check intensity
                             if (!(l->intensity[0] || l->intensity[1] || l->intensity[2]))
-                                continue;
+                                break;
 #endif
 #ifdef HLRAD_SUNSPREAD
                             // loop over the normals
@@ -4241,7 +4243,7 @@ static void GatherSampleLight(const vec3_t pos, const byte* const pvs, const vec
                                 step_match = 1;
 #endif
                             if (step != step_match)
-                                continue;
+                                break;
 #endif
                             // check intensity
                             if (g_indirect_sun <= 0.0 || (VectorCompare(
@@ -4255,7 +4257,7 @@ static void GatherSampleLight(const vec3_t pos, const byte* const pvs, const vec
                                                           && VectorCompare(l->diffuse_intensity2, vec3_origin)
 #endif
                                                               ))
-                                continue;
+                                break;
 
                             vec3_t sky_intensity;
 #ifndef HLRAD_SUNDIFFUSE
@@ -4707,7 +4709,6 @@ static void GatherSampleLight(const vec3_t pos, const byte* const pvs, const vec
 #ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
                                 if (light_behind_surface)
                                 {
-                                    dot = 0.0;
                                     ratio = 0.0;
                                 }
                                 GetAlternateOrigin(pos, normal, l->patch, testline_origin);
@@ -5216,8 +5217,9 @@ static void AddSamplesToPatches(const sample_t** samples, const unsigned char* s
     {
         // prepare clip planes
         vec_t s_vec, t_vec;
+        const int row = i / (l->texsize[0] + 1); // integer row index, truncated on purpose
         s_vec = l->texmins[0] * TEXTURE_STEP + (i % (l->texsize[0] + 1)) * TEXTURE_STEP;
-        t_vec = l->texmins[1] * TEXTURE_STEP + (i / (l->texsize[0] + 1)) * TEXTURE_STEP;
+        t_vec = l->texmins[1] * TEXTURE_STEP + (vec_t)row * TEXTURE_STEP;
 
         dplane_t clipplanes[4];
         VectorClear(clipplanes[0].normal);
@@ -5295,7 +5297,7 @@ static void AddSamplesToPatches(const sample_t** samples, const unsigned char* s
     {
         delete texwindings[j];
     }
-    free(texwindings);
+    free((void*)texwindings);
 }
 #else
 #ifdef ZHLT_TEXLIGHT
@@ -5646,7 +5648,7 @@ void CalcLightmap(lightinfo_t* l, byte* styles)
 
     facenum = l->surfnum;
 #ifdef HLRAD_AUTOCORING
-    memset(l->lmcache, 0, l->lmcachewidth * l->lmcacheheight * sizeof(vec3_t[ALLSTYLES]));
+    memset(l->lmcache, 0, (size_t)l->lmcachewidth * l->lmcacheheight * sizeof(vec3_t[ALLSTYLES]));
 #ifdef ZHLT_XASH
     memset(l->lmcache_direction, 0, l->lmcachewidth * l->lmcacheheight * sizeof(vec3_t[ALLSTYLES]));
 #endif
@@ -5691,8 +5693,9 @@ void CalcLightmap(lightinfo_t* l, byte* styles)
 
         // prepare input parameter and output parameter
         {
+            const int row = i / l->lmcachewidth; // integer row index, truncated on purpose
             s = ((i % l->lmcachewidth) - l->lmcache_offset) / (vec_t)l->lmcache_density;
-            t = ((i / l->lmcachewidth) - l->lmcache_offset) / (vec_t)l->lmcache_density;
+            t = ((vec_t)row - l->lmcache_offset) / (vec_t)l->lmcache_density;
             s_vec = l->texmins[0] * TEXTURE_STEP + s * TEXTURE_STEP;
             t_vec = l->texmins[1] * TEXTURE_STEP + t * TEXTURE_STEP;
             nearest_s = qmax(0, qmin((int)floor(s + 0.5), l->texsize[0]));
@@ -6318,7 +6321,7 @@ void BuildFacelights(const int facenum)
 #endif
 
 #ifdef HLRAD_AVOIDWALLBLEED
-    sample_wallflags = (int*)malloc((2 * l.lmcache_side + 1) * (2 * l.lmcache_side + 1) * sizeof(int));
+    sample_wallflags = (int*)malloc((size_t)(2 * l.lmcache_side + 1) * (2 * l.lmcache_side + 1) * sizeof(int));
     hlassume(sample_wallflags != NULL, assume_NoMemory);
 #endif
     spot = l.surfpt[0];
@@ -8108,7 +8111,7 @@ void ReduceLightmap()
             hlassume(g_lightdatasize + fl->numsamples * 3 * (numstyles + 1) <= g_max_map_lightdata,
                      assume_MAX_MAP_LIGHTING);
             memcpy(&g_dlightdata[f->lightofs + fl->numsamples * 3 * numstyles],
-                   &oldlightdata[oldofs + fl->numsamples * 3 * k], fl->numsamples * 3);
+                   &oldlightdata[oldofs + (size_t)fl->numsamples * 3 * k], (size_t)fl->numsamples * 3);
 #ifdef ZHLT_XASH
             hlassume(g_dlitdatasize + fl->numsamples * 3 * (numstyles + 1) <= g_max_map_dlitdata,
                      assume_MAX_MAP_LIGHTING);

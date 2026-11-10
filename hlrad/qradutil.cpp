@@ -274,10 +274,11 @@ dleaf_t* HuntForWorld(vec_t* point, const vec_t* plane_offset, const dplane_t* p
                     if (dist < best_dist)
                     {
 #ifdef HLRAD_HuntForWorld_EDGE_FIX
-                        if ((leaf = PointInLeaf_Worst(current_point)) != g_dleafs)
+                        leaf = PointInLeaf_Worst(current_point);
 #else
-                        if ((leaf = PointInLeaf(current_point)) != g_dleafs)
+                        leaf = PointInLeaf(current_point);
 #endif
+                        if (leaf != g_dleafs)
                         {
                             if ((leaf->contents != CONTENTS_SKY) && (leaf->contents != CONTENTS_SOLID))
                             {
@@ -811,7 +812,7 @@ void FindFacePositions(int facenum)
         return;
     }
 
-    map->grid = (position_t*)malloc(map->w * map->h * sizeof(position_t));
+    map->grid = (position_t*)malloc((size_t)map->w * map->h * sizeof(position_t));
     hlassume(map->grid != NULL, assume_NoMemory);
 
     for (it = 0; it < map->h; it++)

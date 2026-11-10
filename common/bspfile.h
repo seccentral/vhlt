@@ -21,7 +21,7 @@
 #define MAX_MAP_ENTITIES 16384    //2048 //vluzacn
 // hard limit, in actuallity it is too much, as temporary entities in the game plus static map entities can overflow
 
-#define MAX_MAP_ENTSTRING (2048 * 1024) //(512*1024) //vluzacn
+#define MAX_MAP_ENTSTRING ((size_t)2048 * 1024) //(512*1024) //vluzacn
 // abitrary, 512Kb of string data should be plenty even with TFC FGD's
 
 #define MAX_MAP_PLANES                                                                                                 \

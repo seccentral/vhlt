@@ -244,7 +244,7 @@ static bool isInvalidHull(const brushhull_t* const hull)
 
     for (x = 0; x < 3; x++)
     {
-        if ((mins[x] < (-BOGUS_RANGE / 2)) || (maxs[x] > (BOGUS_RANGE / 2)))
+        if ((mins[x] < -(vec_t)BOGUS_RANGE / 2) || (maxs[x] > (vec_t)BOGUS_RANGE / 2))
         {
             return true;
         }

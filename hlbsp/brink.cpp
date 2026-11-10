@@ -1194,7 +1194,8 @@ bclipnode_t* ExpandClipnodes_r(bclipnode_t* bclipnodes, int& numbclipnodes, cons
 
 void ExpandClipnodes(bbrinkinfo_t* info, const dclipnode_t* clipnodes, int headnode)
 {
-    bclipnode_t* bclipnodes = (bclipnode_t*)malloc(MAXCLIPNODES * sizeof(bclipnode_t)); // 262144 * 30byte = 7.5MB
+    bclipnode_t* bclipnodes =
+        (bclipnode_t*)malloc((size_t)MAXCLIPNODES * sizeof(bclipnode_t)); // 262144 * 30byte = 7.5MB
     hlassume(bclipnodes != NULL, assume_NoMemory);
     info->numclipnodes = 0;
     ExpandClipnodes_r(bclipnodes, info->numclipnodes, clipnodes, headnode);
@@ -1326,7 +1327,7 @@ void CollectBrinks(bbrinkinfo_t* info)
 
 void FreeBrinks(bbrinkinfo_t* info)
 {
-    free(info->brinks);
+    free((void*)info->brinks);
 }
 
 struct bwedge_s;

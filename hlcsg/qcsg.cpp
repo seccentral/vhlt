@@ -891,7 +891,6 @@ static void CSGBrush(int brushnum)
 
         // set outside to a copy of the brush's faces
         outside = CopyFacesToOutside(bh1);
-        overwrite = false;
 #ifdef HLCSG_EMPTYBRUSH
         if (b1->contents == CONTENTS_TOEMPTY)
         {
@@ -1406,6 +1405,9 @@ static void SetLightStyles()
             case -3: // (HACK) a piggyback texlight: switched on and off by triggering a real light that has the same name
                 SetKeyValue(e, "style", "0"); // just in case the level designer didn't give it a name
                                               // don't 'continue', fall out
+                break;
+            default:
+                break;
             }
             //LRC (ends)
 #else
@@ -2632,12 +2634,7 @@ int main(const int argc, char** argv)
                     g_nullifytrigger = false;
                 }
 #endif
-                else if (argv[i][0] == '-')
-                {
-                    Log("Unknown option \"%s\"\n", argv[i]);
-                    Usage();
-                }
-                else if (!mapname_from_arg)
+                else if (!mapname_from_arg && argv[i][0] != '-')
                 {
                     mapname_from_arg = argv[i];
                 }

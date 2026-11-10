@@ -672,6 +672,8 @@ void SplitBrush(brush_t* in, const dplane_t* split, brush_t** front, brush_t** b
             break;
         case SIDE_ON:
             break;
+        default:
+            Error("SplitFace: bad side");
         }
         if (onfront && onback)
             break;
@@ -1063,6 +1065,7 @@ static facestyle_e SetFaceType(face_t* f)
     }
 #ifdef ZHLT_NULLTEX // AJM
     else if (CheckFaceForNull(f))
+    // NOLINTNEXTLINE(bugprone-branch-clone): distinct ordered predicates; env_sky also maps to face_null
     {
         f->facestyle = face_null;
     }
@@ -2194,12 +2197,7 @@ int main(const int argc, char** argv)
                     }
                 }
 #endif
-                else if (argv[i][0] == '-')
-                {
-                    Log("Unknown option \"%s\"\n", argv[i]);
-                    Usage();
-                }
-                else if (!mapname_from_arg)
+                else if (!mapname_from_arg && argv[i][0] != '-')
                 {
                     mapname_from_arg = argv[i];
                 }

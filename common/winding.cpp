@@ -368,6 +368,8 @@ void Winding::initFromPlane(const vec3_t normal, const vec_t dist)
     case 2:
         vup[0] = 1;
         break;
+    default:
+        Error("BaseWindingForPlane: bad plane type");
     }
 
     v = DotProduct(vup, normal);

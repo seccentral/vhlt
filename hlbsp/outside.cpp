@@ -121,7 +121,7 @@ static void FreeDetailNode_r(node_t* n)
     {
         if (!(n->isportalleaf && n->contents == CONTENTS_SOLID))
         {
-            free(n->markfaces);
+            free((void*)n->markfaces);
             n->markfaces = NULL;
         }
         return;
@@ -410,7 +410,7 @@ void FreeAllowableOutsideList()
 {
     if (g_strAllowableOutsideList)
     {
-        free(g_strAllowableOutsideList);
+        free((void*)g_strAllowableOutsideList);
         g_strAllowableOutsideList = NULL;
     }
 }
@@ -439,7 +439,8 @@ void LoadAllowableOutsideList(const char* const filename)
 
     if (q_exists(fname))
     {
-        if ((i = LoadFile(fname, &pData)))
+        i = LoadFile(fname, &pData);
+        if (i)
         {
             Log("Reading allowable void entities from file '%s'\n", fname);
             g_nAllowableOutside = 0;
@@ -453,8 +454,8 @@ void LoadAllowableOutsideList(const char* const filename)
                         if (g_nAllowableOutside == g_maxAllowableOutside)
                         {
                             g_maxAllowableOutside += MAX_ALLOWABLE_OUTSIDE_GROWTH_SIZE;
-                            char** newlist =
-                                (char**)realloc(g_strAllowableOutsideList, sizeof(char*) * g_maxAllowableOutside);
+                            char** newlist = (char**)realloc((void*)g_strAllowableOutsideList,
+                                                             sizeof(char*) * g_maxAllowableOutside);
                             hlassume(newlist != NULL, assume_NoMemory);
                             g_strAllowableOutsideList = newlist;
                         }

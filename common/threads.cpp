@@ -418,6 +418,7 @@ void RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction func)
     }
     for (i = 0; i < g_numthreads; i++)
     {
+        // NOLINTNEXTLINE(performance-no-int-to-ptr): deliberate thread-index argument
         HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ThreadEntryStub, (LPVOID)(intptr_t)i,
                                       CREATE_SUSPENDED, &threadid[i]);
 

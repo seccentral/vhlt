@@ -197,7 +197,7 @@ void CreateFinalTransparencyArrays(const char* print_name)
 #else
     unsigned size = s_sorted_count * sizeof(transList_t) + s_max_trans_count * sizeof(vec3_t);
 #endif
-    if (size > 1024 * 1024)
+    if (size > (size_t)1024 * 1024)
         Log("%-20s: %5.1f megs \n", print_name, (double)size / (1024.0 * 1024.0));
     else if (size > 1024)
         Log("%-20s: %5.1f kilos\n", print_name, (double)size / 1024.0);
@@ -398,7 +398,7 @@ void CreateFinalStyleArrays(const char* print_name)
 #else
     unsigned size = s_max_style_count * sizeof(styleList_t);
 #endif
-    if (size > 1024 * 1024)
+    if (size > (size_t)1024 * 1024)
         Log("%-20s: %5.1f megs \n", print_name, (double)size / (1024.0 * 1024.0));
     else if (size > 1024)
         Log("%-20s: %5.1f kilos\n", print_name, (double)size / 1024.0);
@@ -432,7 +432,7 @@ void GetStyle(const unsigned p1, const unsigned p2, int& style, unsigned int& ne
             }
             else if (s_style_list[i].p2 == p2)
             {
-                style = (int)s_style_list[i].style;
+                style = (int)(unsigned char)s_style_list[i].style;
                 next_index = i + 1;
 
                 return;

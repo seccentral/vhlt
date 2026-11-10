@@ -261,7 +261,8 @@ static void SetVisBit(unsigned x, unsigned y)
 
     ThreadLock();
 
-    if ((offset = IsVisbitInArray(x, y)) != -1)
+    offset = IsVisbitInArray(x, y);
+    if (offset != -1)
     {
         s_vismatrix[x].row[offset].values |= 1 << (y & 7);
     }
@@ -322,7 +323,8 @@ static bool CheckVisBitSparse(unsigned x, unsigned y
         Warning("in CheckVisBit(), y > num_patches");
     }
 
-    if ((offset = IsVisbitInArray(x, y)) != -1)
+    offset = IsVisbitInArray(x, y);
+    if (offset != -1)
     {
 #ifdef HLRAD_HULLU
         if (g_customshadow_with_bouncelight)
@@ -370,7 +372,8 @@ static bool CheckVisBitSparse(unsigned x, unsigned y
         Warning("in CheckVisBit(), y > num_patches");
     }
 
-    if ((offset = IsVisbitInArray(x, y)) != -1)
+    offset = IsVisbitInArray(x, y);
+    if (offset != -1)
     {
 #ifdef HLRAD_HULLU
         if (g_customshadow_with_bouncelight)
@@ -648,9 +651,9 @@ static void BuildVisLeafs(int threadnum)
     int head;
     unsigned patchnum;
 #ifdef HLRAD_SPARSEVISMATRIX_FAST
-    bool* uncompressedcolumn = (bool*)malloc(MAX_SPARSE_VISMATRIX_PATCHES * sizeof(bool));
+    bool* uncompressedcolumn = (bool*)malloc((size_t)MAX_SPARSE_VISMATRIX_PATCHES * sizeof(bool));
     hlassume(uncompressedcolumn != NULL, assume_NoMemory);
-    memset(uncompressedcolumn, 0, MAX_SPARSE_VISMATRIX_PATCHES * sizeof(bool));
+    memset(uncompressedcolumn, 0, (size_t)MAX_SPARSE_VISMATRIX_PATCHES * sizeof(bool));
 #endif
 
     while (1)

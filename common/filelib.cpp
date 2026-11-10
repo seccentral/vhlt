@@ -75,7 +75,8 @@ long getfiledata(const char* const filename, char* buffer, const int buffersize)
 
     time(&start);
 
-    if ((handle = _open(filename, O_RDONLY)) != -1)
+    handle = _open(filename, O_RDONLY);
+    if (handle != -1)
     {
         int bytesread;
 
