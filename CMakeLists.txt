@@ -199,3 +199,15 @@ if(DOXYGEN_FOUND)
         VERBATIM
     )
 endif()
+
+# ----------------------------------------------------------------------
+# Packaging
+# ----------------------------------------------------------------------
+set(CPACK_PACKAGE_NAME "vhlt")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VENDOR "Vluzacn")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Vluzacn ZHLT - Half-Life Compilation Tools")
+set(CPACK_GENERATOR "ZIP")
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY ON)
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/Terms of Use.txt")
+include(CPack)
