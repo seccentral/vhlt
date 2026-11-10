@@ -114,7 +114,7 @@ typedef struct leaf_s
 
 typedef struct pstack_s
 {
-    byte            mightsee[MAX_MAP_LEAFS / 8];           // bit string
+    byte            mightsee[(MAX_MAP_LEAFS + 63) / 64 * 8];           // bit string
 #ifdef USE_CHECK_STACK
     struct pstack_s* next;
 #endif

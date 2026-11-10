@@ -360,6 +360,11 @@ void            WritePortalfile(node_t* headnode)
     num_visportals = 0;
     NumberLeafs_r(headnode);
 
+    if (num_visportals > 32768)
+    {
+        Error("Too many portals");
+    }
+
     // write the file
     pf = fopen(g_portfilename, "w");
     if (!pf)

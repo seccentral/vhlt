@@ -2053,7 +2053,7 @@ hullbrush_t *CreateHullBrush (const brush_t *b)
 			{
 				continue;
 			}
-			if (numvertexes > MAXSIZE)
+			if (numvertexes >= MAXSIZE)
 			{
 				failed = true;
 				continue;

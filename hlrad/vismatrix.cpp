@@ -420,7 +420,7 @@ static void     BuildVisLeafs(int threadnum)
 // =====================================================================================
 static void     BuildVisMatrix()
 {
-    int             c;
+    size_t          c;
 
 #ifdef HALFBIT
     c = ((g_num_patches + 1) * (g_num_patches + 1)) / 16;

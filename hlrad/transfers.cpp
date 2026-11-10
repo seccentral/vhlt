@@ -142,6 +142,10 @@ bool            readtransfers(const char* const transferfile, const long numpatc
             {
                 goto FailedRead;
             }
+            if (patch->iIndex < 0 || patch->iIndex > g_num_patches)
+            {
+                goto FailedRead;
+            }
             if (patch->iIndex)
             {
                 patch->tIndex = (transfer_index_t*)AllocBlock(patch->iIndex * sizeof(transfer_index_t *));
@@ -155,6 +159,10 @@ bool            readtransfers(const char* const transferfile, const long numpatc
 
             amtread = fread(&patch->iData, sizeof(patch->iData), 1, file);
             if (amtread != 1)
+            {
+                goto FailedRead;
+            }
+            if (patch->iData < 0)
             {
                 goto FailedRead;
             }
@@ -226,10 +234,12 @@ bool            readtransfers(const char* const transferfile, const long numpatc
         {
             FreeBlock(patch->tData);
             FreeBlock(patch->tIndex);
+            FreeBlock(patch->tRGBData);
             patch->iData = 0;
             patch->iIndex = 0;
             patch->tData = NULL;
             patch->tIndex = NULL;
+            patch->tRGBData = NULL;
         }
     }
     fclose(file);

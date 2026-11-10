@@ -1240,6 +1240,10 @@ bool            ParseMapEntity()
             int             i;
 
             newbrushes = mapent->numbrushes;
+            if (strcmp(ValueForKey(&g_entities[0], "classname"), "worldspawn"))
+            {
+                Error("Entity 0 is not worldspawn");
+            }
             worldbrushes = g_entities[0].numbrushes;
 
             temp = (brush_t*)Alloc(newbrushes * sizeof(brush_t));

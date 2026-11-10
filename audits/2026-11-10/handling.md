@@ -117,3 +117,37 @@ Legend:
 ## Conclusion
 
 All findings have been either fixed, mitigated, or explicitly accepted with rationale and documented follow-ups. No source behavior was intentionally changed beyond the targeted safety and correctness fixes; builds and docs were verified after each change.
+
+## 2026-11-10 Follow-up
+
+| ID | Status |
+|----|--------|
+| H1 | Fixed |
+| H2 | Fixed |
+| H3 | Fixed |
+| H4 | Fixed |
+| H5 | Fixed |
+| H6 | Fixed |
+| H7 | Fixed |
+| H8 | Fixed |
+| H9 | Fixed |
+| H10 | Fixed |
+| H11 | Fixed |
+| H12 | Fixed |
+| H13 | Fixed |
+| M1 | Fixed |
+| M2 | Fixed |
+| M3 | Fixed |
+| M4 | Fixed |
+| M5 | Fixed |
+| M6 | Fixed |
+| M7 | Fixed |
+| M8 | Fixed |
+| M9 | Fixed |
+| M10 | Fixed |
+| M11 | Skipped (low, not touched) |
+| M12 | Skipped (plausible, guard only) |
+| M15 | Fixed |
+| M17 | Fixed |
+| M18 | Fixed |
+| L (misc) | Fixed where one-line |

@@ -3692,6 +3692,8 @@ void            DeleteDirectLights()
         while (dl)
         {
             directlights[l] = dl->next;
+            free(dl->sunnormals);
+            dl->sunnormals = NULL;
             free(dl);
             dl = directlights[l];
         }

@@ -30,7 +30,6 @@ if(WIN32)
     set(VHLT_PLATFORM_DEFINITIONS
         ${VHLT_VERSION_MACRO}
         SYSTEM_WIN32
-        NDEBUG
         STDC_HEADERS
         WIN32
         _CONSOLE
@@ -39,7 +38,6 @@ else()
     set(VHLT_PLATFORM_DEFINITIONS
         VERSION_LINUX
         SYSTEM_POSIX
-        NDEBUG
         STDC_HEADERS
         HAVE_FCNTL_H
         HAVE_PTHREAD_H
@@ -112,6 +110,11 @@ function(add_vhlt_tool target)
         RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
     )
 endfunction()
+
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/Terms of Use.txt"
+        DESTINATION "${CMAKE_INSTALL_DOCDIR}")
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/user/manual.md"
+        DESTINATION "${CMAKE_INSTALL_DOCDIR}")
 
 # ----------------------------------------------------------------------
 # Tools

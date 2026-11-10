@@ -41,6 +41,10 @@ void        LoadHullfile(const char* filename)
 	char magic;
 
     FILE* file = fopen(filename, "r");
+    if (!file)
+    {
+        Error("Could not open hull file %s", filename);
+    }
 
     int count;
     int i;

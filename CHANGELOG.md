@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CPack ZIP packaging (`cmake --build build --target package`).
 - `AGENTS.md` with coding standards, gates, and lifecycle rules.
 - `audits/` consolidated audit report.
+- `docs/user/manual.md` and `docs/developer/developer.md`.
+- Multicore cppcheck lint target and clangd support.
+
+### Fixed
+- Thread pool clamping, POSIX affinity counting, and thread lifecycle handling.
+- BSP lump validation, checksum, `AddLump` padding, and `GetTextureByNumber` bounds.
+- WAD/miptex validation and hlrad/ripent texture loading hardening.
+- hlvis portal validation and winding bounds.
+- hlcsg texdata handling, worldspawn checks, and hull file handling.
+- hlrad transfer and vismatrix integer safety.
+- Removed unconditional `NDEBUG` from CMake platform definitions.
 
 ### Changed
 - Tidied codebase and removed Visual Studio-era project files.

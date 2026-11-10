@@ -1,3 +1,5 @@
 release/
 bin/
 build/
+*.o
+buildwarn.txt

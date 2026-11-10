@@ -375,6 +375,7 @@ inline static void     RecursiveLeafFlow(const int leafnum, const threaddata_t* 
 {
     pstack_t        stack;
     leaf_t*         leaf;
+    plane_t         clipPlanes[2 * MAX_POINTS_ON_WINDING];
 
     leaf = &g_leafs[leafnum];
 #ifdef USE_CHECK_STACK
@@ -529,16 +530,13 @@ inline static void     RecursiveLeafFlow(const int leafnum, const threaddata_t* 
         if (stack.clipPlaneCount == -1)
         {
             stack.clipPlaneCount = 0;
+            stack.clipPlane = clipPlanes;
+
             {
                 size_t clipPlaneCount = (size_t)prevstack->source->numpoints * (size_t)prevstack->pass->numpoints;
-                if (clipPlaneCount == 0 || clipPlaneCount > 1024 * 1024)
+                if (clipPlaneCount > 2 * MAX_POINTS_ON_WINDING)
                 {
-                    Error("PortalFlow: unreasonable clip plane count");
-                }
-                stack.clipPlane = (plane_t*)malloc(sizeof(plane_t) * clipPlaneCount);
-                if (!stack.clipPlane)
-                {
-                    Error("PortalFlow: out of memory");
+                    clipPlaneCount = 2 * MAX_POINTS_ON_WINDING;
                 }
             }
 
@@ -592,11 +590,7 @@ inline static void     RecursiveLeafFlow(const int leafnum, const threaddata_t* 
     }
 
 #ifdef RVIS_LEVEL_2
-    if (stack.clipPlane != NULL)
-    {
-        free(stack.clipPlane);
-        stack.clipPlane = NULL;
-    }
+    stack.clipPlane = NULL;
 #endif
 }
 
@@ -1578,7 +1572,7 @@ void	MaxDistVis(int unused)
 						}
 					}
 				}
-				if (!count[0] && !count[1])
+				if (!count[0] || !count[1])
 				{
 					goto Work;
 				}

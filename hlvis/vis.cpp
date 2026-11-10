@@ -815,7 +815,7 @@ static void     CalcVis()
             LeafFlow(i);
         }
 
-        Log("average leafs visible: %i\n", totalvis / g_portalleafs);
+        Log("average leafs visible: %i\n", g_portalleafs ? totalvis / g_portalleafs : 0);
     }
 }
 #endif
@@ -1124,14 +1124,14 @@ static void     LoadPortals(char* portal_image)
 
     token = strtok(portal_image, seperators);
     CheckNullToken(token);
-    if (!sscanf(token, "%u", &g_portalleafs))
+    if (!sscanf(token, "%u", &g_portalleafs) || g_portalleafs == 0 || g_portalleafs > MAX_MAP_LEAFS)
     {
         Error("LoadPortals: failed to read header: number of leafs");
     }
 
     token = strtok(NULL, seperators);
     CheckNullToken(token);
-    if (!sscanf(token, "%i", &g_numportals))
+    if (!sscanf(token, "%i", &g_numportals) || g_numportals < 0 || g_numportals > MAX_PORTALS)
     {
         Error("LoadPortals: failed to read header: number of portals");
     }
@@ -1228,11 +1228,11 @@ static void     LoadPortals(char* portal_image)
         {
             Error("LoadPortals: reading portal %i", i);
         }
-        if (numpoints > MAX_POINTS_ON_WINDING)
+        if (numpoints < 3 || numpoints > MAX_POINTS_ON_WINDING)
         {
             Error("LoadPortals: portal %i has too many points", i);
         }
-        if (((unsigned)leafnums[0] > g_portalleafs) || ((unsigned)leafnums[1] > g_portalleafs))
+        if (((unsigned)leafnums[0] >= g_portalleafs) || ((unsigned)leafnums[1] >= g_portalleafs))
         {
             Error("LoadPortals: reading portal %i", i);
         }

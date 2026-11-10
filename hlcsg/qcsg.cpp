@@ -163,7 +163,7 @@ void            GetParamsFromEnt(entity_t* mapent)
     Log("%30s [ %-9s ]\n", "Texture Data Memory", szTmp);
 
     // hullfile(string) : "Custom Hullfile"
-    if (ValueForKey(mapent, "hullfile"))
+    if (*ValueForKey(mapent, "hullfile"))
     {
         g_hullfile = ValueForKey(mapent, "hullfile");
         Log("%30s [ %-9s ]\n", "Custom Hullfile", g_hullfile);
@@ -2473,7 +2473,11 @@ int             main(const int argc, char** argv)
             {
                 int             x = atoi(argv[++i]) * 1024;
 
-                //if (x > g_max_map_miptex) //--vluzacn
+                if (x <= 0)
+                {
+                    Usage();
+                }
+                else
                 {
                     g_max_map_miptex = x;
                 }
@@ -2686,7 +2690,6 @@ int             main(const int argc, char** argv)
 #endif
 #endif
     atexit(CSGCleanup); // AJM
-    dtexdata_init();
     atexit(dtexdata_free);
 
     // START CSG
@@ -2792,6 +2795,7 @@ int             main(const int argc, char** argv)
     ThreadSetDefault();
     ThreadSetPriority(g_threadpriority);
     Settings();
+    dtexdata_init();
 
 
 #ifdef HLCSG_GAMETEXTMESSAGE_UTF8
