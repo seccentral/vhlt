@@ -45,16 +45,12 @@ After Batch 0 (`Error` and `hlassume_fail` marked `[[noreturn]]`): **395 unique 
 After Batch 1 (real defects): **333 unique findings, 0 errors**.
 After Batch 2 (strings and numbers): **114 unique findings, 0 errors**.
 After Batch 3 (mechanical clarity): **16 unique findings, 0 errors**.
+After Batch 4 (configuration decisions): **0 findings, 0 errors**.
 
-The table below is the remaining set after Batch 3; all are Batch 4 configuration decisions.
-
-| Check | Sites | Main files |
-|---|---:|---|
-| `performance-enum-size` | 6 | cmdlinecfg.cpp, lerp.cpp, lightmap.cpp 2, qrad.cpp, ripent.cpp |
-| `bugprone-undefined-memory-manipulation` | 4 | hlcsg/map.cpp 4 (`brush_t`) |
-| `bugprone-exception-escape` | 2 | qrad.cpp, qcsg.cpp |
-| `bugprone-throwing-static-initialization` | 2 | qcsg.cpp, map.cpp |
-| `clang-analyzer-optin.performance.Padding` | 2 | scriplib.cpp, qradutil.cpp |
+The five Batch 4 checks are disabled in `.clang-tidy` with written reasons:
+`performance-enum-size`, `clang-analyzer-optin.performance.Padding`,
+`bugprone-exception-escape`, `bugprone-throwing-static-initialization`, and
+`bugprone-undefined-memory-manipulation` (the documented `brush_t` byte copies).
 
 ## Gates after every batch
 

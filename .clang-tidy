@@ -1,15 +1,28 @@
 # Used when configuring with -DVHLT_CLANG_TIDY=ON.
 # Focused on real defects; style checks are deliberately off for this legacy code.
+#
+# Disabled by decision (lint cleanup plan, Batch 4):
+# - performance-enum-size: changing enum widths would change memory layout for no gain.
+# - clang-analyzer-optin.performance.Padding: same; struct padding is not a concern here.
+# - bugprone-exception-escape and bugprone-throwing-static-initialization: the tools have
+#   no exception strategy; an out-of-memory std::string at startup ending the process is acceptable.
+# - bugprone-undefined-memory-manipulation: brush_t raw byte copies are intentional and
+#   documented in hlcsg/csg.h.
 Checks: >
   -*,
   clang-analyzer-*,
   -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -clang-analyzer-optin.performance.Padding,
   bugprone-*,
   -bugprone-easily-swappable-parameters,
   -bugprone-narrowing-conversions,
   -bugprone-reserved-identifier,
   -bugprone-macro-parentheses,
+  -bugprone-exception-escape,
+  -bugprone-throwing-static-initialization,
+  -bugprone-undefined-memory-manipulation,
   performance-*,
+  -performance-enum-size,
   portability-*
 WarningsAsErrors: ''
 HeaderFilterRegex: '(common|hlcsg|hlbsp|hlvis|hlrad|ripent)/'
