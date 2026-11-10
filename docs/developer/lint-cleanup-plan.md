@@ -43,19 +43,17 @@ To re-lint one file after editing it, touch it and rebuild its target, for examp
 Before Batch 0: **510 unique findings, 0 errors** (measured 2026-11-10 at `b7881a9`, clang-tidy 22.1.8).
 After Batch 0 (`Error` and `hlassume_fail` marked `[[noreturn]]`): **395 unique findings, 0 errors**.
 After Batch 1 (real defects): **333 unique findings, 0 errors**.
+After Batch 2 (strings and numbers): **114 unique findings, 0 errors**.
 
-The table below is the remaining set after Batch 1.
+The table below is the remaining set after Batch 2.
 
 | Check | Sites | Main files |
 |---|---:|---|
-| `bugprone-unchecked-string-to-number-conversion` | 147 | qrad.cpp 68, map.cpp 20, qbsp.cpp 15, vis.cpp 14 |
-| `bugprone-suspicious-string-compare` | 55 | map.cpp 17, qrad.cpp 14, qcsg.cpp 10, bspfile.cpp 4 |
 | `bugprone-implicit-widening-of-multiplication-result` | 37 | loadtextures.cpp 9, lightmap.cpp 8, bspfile.cpp 5, vismatrixutil.cpp 3 |
-| `clang-analyzer-security.insecureAPI.strcpy` | 17 | cmdlinecfg.cpp 12, log.cpp 2, bspfile.cpp 2, cmdlib.cpp 1 |
 | `bugprone-assignment-in-if-condition` | 16 | qrad.cpp 7, brush.cpp 3 |
 | `bugprone-multi-level-implicit-pointer-conversion` | 15 | outside.cpp 3, writebsp.cpp 3, qrad.cpp 2, brush.cpp 2 |
-| `bugprone-switch-missing-default-case` | 7 | solidbsp.cpp 2 |
 | `bugprone-branch-clone` | 7 | qrad.cpp 2, qbsp.cpp 2 |
+| `bugprone-switch-missing-default-case` | 7 | solidbsp.cpp 2 |
 | `performance-enum-size` | 6 | lightmap.cpp 2 |
 | `clang-analyzer-deadcode.DeadStores` | 6 | bspfile.cpp 2 |
 | `bugprone-undefined-memory-manipulation` | 4 | hlcsg/map.cpp 4 (`brush_t`) |

@@ -295,7 +295,7 @@ void MakeScalesNoVismatrix()
 #else
     safe_strncpy(transferfile, g_source, _MAX_PATH);
     StripExtension(transferfile);
-    DefaultExtension(transferfile, ".inc");
+    DefaultExtension(transferfile, ".inc", sizeof(transferfile));
 #endif
 
     if (!g_incremental || !readtransfers(transferfile, g_num_patches))

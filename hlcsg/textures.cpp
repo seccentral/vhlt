@@ -410,7 +410,7 @@ bool TEX_InitFromWad()
         SafeRead(texfile, &wadinfo, sizeof(wadinfo));
 
         // make sure its a valid format
-        if (strncmp(wadinfo.identification, "WAD2", 4) && strncmp(wadinfo.identification, "WAD3", 4))
+        if (strncmp(wadinfo.identification, "WAD2", 4) != 0 && strncmp(wadinfo.identification, "WAD3", 4) != 0)
         {
             Log(" - ");
             Error("%s isn't a Wadfile!", pszWadFile);

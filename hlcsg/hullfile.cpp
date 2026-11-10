@@ -55,7 +55,7 @@ void LoadHullfile(const char* filename)
 
         for (i = 0; i < NUM_HULLS; i++)
         {
-            // NOLINTNEXTLINE(clang-analyzer-unix.Errno): return value checked; errno is not used
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion, clang-analyzer-unix.Errno): lenient hull-file parsing; return value checked, errno unused
             count = fscanf(file, "( %f %f %f ) ( %f %f %f )\n", &x1, &y1, &z1, &x2, &y2, &z2);
             if (count != 6)
             {
@@ -76,7 +76,7 @@ void LoadHullfile(const char* filename)
         // Skip hull 0 (visibile polygons)
         for (i = 1; i < NUM_HULLS; i++)
         {
-            // NOLINTNEXTLINE(clang-analyzer-unix.Errno): return value checked; errno is not used
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion, clang-analyzer-unix.Errno): lenient hull-file parsing; return value checked, errno unused
             count = fscanf(file, "%f %f %f\n", &x1, &y1, &z1);
             if (count != 3)
             {

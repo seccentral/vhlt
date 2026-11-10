@@ -946,13 +946,13 @@ void LoadLangFile(const char* name, const char* programpath)
     FILE* f = NULL;
     if (!f)
     {
-        strcpy(filepath, name);
+        safe_strncpy(filepath, name, sizeof(filepath));
         f = fopen(filepath, "r");
     }
     if (!f)
     {
         ExtractFilePath(programpath, filepath);
-        strcat(filepath, name);
+        safe_strncat(filepath, name, sizeof(filepath));
         f = fopen(filepath, "r");
     }
     if (!f)

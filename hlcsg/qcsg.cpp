@@ -556,9 +556,9 @@ static void SaveOutside(const brush_t* const b, const int hull, bface_t* outside
         backnull = false;
         if (mirrorcontents == CONTENTS_TOEMPTY)
         {
-            if (strncasecmp(texname, "SKIP", 4) && strncasecmp(texname, "HINT", 4)
+            if (strncasecmp(texname, "SKIP", 4) != 0 && strncasecmp(texname, "HINT", 4) != 0
 #ifdef HLCSG_HLBSP_SOLIDHINT
-                && strncasecmp(texname, "SOLIDHINT", 9)
+                && strncasecmp(texname, "SOLIDHINT", 9) != 0
 #endif
             )
             // SKIP and HINT are special textures for hlbsp
@@ -629,10 +629,10 @@ static void SaveOutside(const brush_t* const b, const int hull, bface_t* outside
                 texinfo_t* tex = &g_texinfo[texinfo];
 
                 if (!(tex->flags & TEX_SPECIAL) // sky
-                    && strncasecmp(texname, "SKIP", 4) &&
-                    strncasecmp(texname, "HINT", 4) // HINT and SKIP will be nullified only after hlbsp
+                    && strncasecmp(texname, "SKIP", 4) != 0 &&
+                    strncasecmp(texname, "HINT", 4) != 0 // HINT and SKIP will be nullified only after hlbsp
 #ifdef HLCSG_HLBSP_SOLIDHINT
-                    && strncasecmp(texname, "SOLIDHINT", 9)
+                    && strncasecmp(texname, "SOLIDHINT", 9) != 0
 #endif
                 )
                 {
@@ -1186,7 +1186,7 @@ static void CSGBrush(int brushnum)
                             f->backcontents = b2->contents;
                         if (f->contents == CONTENTS_SOLID && f->backcontents == CONTENTS_SOLID
 #ifdef HLCSG_HLBSP_SOLIDHINT
-                            && strncasecmp(GetTextureByNumber_CSG(f->texinfo), "SOLIDHINT", 9)
+                            && strncasecmp(GetTextureByNumber_CSG(f->texinfo), "SOLIDHINT", 9) != 0
 #endif
                         )
                         {
@@ -1382,12 +1382,13 @@ static void SetLightStyles()
         e = &g_entities[i];
 
         t = ValueForKey(e, "classname");
-        if (strncasecmp(t, "light", 5))
+        if (strncasecmp(t, "light", 5) != 0)
         {
 #ifdef ZHLT_TEXLIGHT
             //LRC:
             // if it's not a normal light entity, allocate it a new style if necessary.
             t = ValueForKey(e, "style");
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
             switch (atoi(t))
             {
             case 0: // not a light, no style, generally pretty boring
@@ -1481,7 +1482,7 @@ void LoadWadValue()
     }
     else
     {
-        if (strcmp(g_token, "{"))
+        if (strcmp(g_token, "{") != 0)
         {
             Error("ParseEntity: { not found");
         }
@@ -1529,7 +1530,7 @@ void WriteBSP(const char* const name)
     safe_snprintf(path, _MAX_PATH, "%s.bsp", name);
 #else
     safe_strncpy(path, name, _MAX_PATH);
-    DefaultExtension(path, ".bsp");
+    DefaultExtension(path, ".bsp", sizeof(path));
 #endif
 
     SetModelNumbers();
@@ -1662,6 +1663,7 @@ static void CheckForNoClip()
         ent = &g_entities[i];
 
         safe_strncpy(entclassname, ValueForKey(ent, "classname"), sizeof(entclassname));
+        // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
         spawnflags = atoi(ValueForKey(ent, "spawnflags"));
         int skin = IntForKey(ent, "skin"); //vluzacn
 
@@ -2233,7 +2235,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_numthreads = atoi(argv[++i]);
+                        g_numthreads = ParseIntArgOrError(argv[++i], "-threads");
                         if (g_numthreads < 1)
                         {
                             Log("Expected value of at least 1 for '-threads'\n");
@@ -2276,7 +2278,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_developer = (developer_level_t)atoi(argv[++i]);
+                        g_developer = (developer_level_t)ParseIntArgOrError(argv[++i], "-dev");
                     }
                     else
                     {
@@ -2479,7 +2481,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        int x = atoi(argv[++i]) * 1024;
+                        int x = ParseIntArgOrError(argv[++i], "-texdata") * 1024;
 
                         if (x <= 0)
                         {
@@ -2499,7 +2501,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        int x = atoi(argv[++i]) * 1024;
+                        int x = ParseIntArgOrError(argv[++i], "-lightdata") * 1024;
 
                         //if (x > g_max_map_lightdata) //--vluzacn
                         {
@@ -2515,7 +2517,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_BrushUnionThreshold = (float)atof(argv[++i]);
+                        g_BrushUnionThreshold = (float)ParseFloatArgOrError(argv[++i], "-brushunion");
                     }
                     else
                     {
@@ -2526,7 +2528,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_tiny_threshold = (float)atof(argv[++i]);
+                        g_tiny_threshold = (float)ParseFloatArgOrError(argv[++i], "-tiny");
                     }
                     else
                     {
@@ -2573,7 +2575,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc)
                     {
-                        g_scalesize = atof(argv[++i]);
+                        g_scalesize = ParseFloatArgOrError(argv[++i], "-scale");
                     }
                     else
                     {
@@ -2799,7 +2801,7 @@ int main(const int argc, char** argv)
 #ifdef ZHLT_DEFAULTEXTENSION_FIX
             FlipSlashes(name);
 #endif
-            DefaultExtension(name, ".map"); // might be .reg
+            DefaultExtension(name, ".map", sizeof(name)); // might be .reg
 
             LoadMapFile(name);
             ThreadSetDefault();
@@ -2819,7 +2821,7 @@ int main(const int argc, char** argv)
                     const char* value;
                     char* newvalue;
 
-                    if (strcmp(ValueForKey(ent, "classname"), "game_text"))
+                    if (strcmp(ValueForKey(ent, "classname"), "game_text") != 0)
                     {
                         continue;
                     }
@@ -2828,7 +2830,7 @@ int main(const int argc, char** argv)
                     if (*value)
                     {
                         newvalue = ANSItoUTF8(value);
-                        if (strcmp(newvalue, value))
+                        if (strcmp(newvalue, value) != 0)
                         {
                             SetKeyValue(ent, "message", newvalue);
                             count++;

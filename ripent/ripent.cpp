@@ -407,7 +407,7 @@ static void ReadBSP(const char* const name)
 #else
     safe_strncpy(filename, name, _MAX_PATH);
     StripExtension(filename);
-    DefaultExtension(filename, ".bsp");
+    DefaultExtension(filename, ".bsp", sizeof(filename));
 
     LoadBSPFile(name);
 #endif
@@ -437,7 +437,7 @@ static void WriteBSP(const char* const name)
 #else
     safe_strncpy(filename, name, _MAX_PATH);
     StripExtension(filename);
-    DefaultExtension(filename, ".bsp");
+    DefaultExtension(filename, ".bsp", sizeof(filename));
 #endif
 
     Log("\nUpdating %s.\n", filename); //--vluzacn
@@ -524,7 +524,7 @@ static void WriteTextures(const char* const name)
 #else
     safe_strncpy(wadfilename, name, _MAX_PATH);
     StripExtension(wadfilename);
-    DefaultExtension(wadfilename, ".wad");
+    DefaultExtension(wadfilename, ".wad", sizeof(wadfilename));
 #endif
     _unlink(wadfilename);
     wadfile = SafeOpenWrite(wadfilename);
@@ -537,7 +537,7 @@ static void WriteTextures(const char* const name)
 #else
     safe_strncpy(texfilename, name, _MAX_PATH);
     StripExtension(texfilename);
-    DefaultExtension(texfilename, ".tex");
+    DefaultExtension(texfilename, ".tex", sizeof(texfilename));
 #endif
     _unlink(texfilename);
     if (!g_textureparse)
@@ -675,7 +675,7 @@ static void ReadTextures(const char* name)
 #else
     safe_strncpy(wadfilename, name, _MAX_PATH);
     StripExtension(wadfilename);
-    DefaultExtension(wadfilename, ".wad");
+    DefaultExtension(wadfilename, ".wad", sizeof(wadfilename));
 #endif
     wadfile = SafeOpenRead(wadfilename);
     Log("\nReading %s.\n", wadfilename);
@@ -687,7 +687,7 @@ static void ReadTextures(const char* name)
 #else
     safe_strncpy(texfilename, name, _MAX_PATH);
     StripExtension(texfilename);
-    DefaultExtension(texfilename, ".tex");
+    DefaultExtension(texfilename, ".tex", sizeof(texfilename));
 #endif
     if (!g_textureparse)
     {
@@ -746,6 +746,7 @@ static void ReadTextures(const char* name)
         SafeRead(wadfile, info, header.numlumps * sizeof(lumpinfo_t));
 
         int nummiptex = 0;
+        // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): .tex file parsing; return value checked
         if (skipspace(texfile), fscanf(texfile, "%d", &nummiptex) != 1)
             Error("File read failure");
         if (nummiptex < 0 || nummiptex > (g_max_map_miptex - 4) / 4)
@@ -756,6 +757,7 @@ static void ReadTextures(const char* name)
         for (int itex = 0; itex < nummiptex; ++itex)
         {
             int len;
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): .tex file parsing; return value checked
             if (skipspace(texfile), fscanf(texfile, "[%d]", &len) != 1)
                 Error("File read failure");
             if (len < 0)
@@ -778,8 +780,10 @@ static void ReadTextures(const char* name)
                 if (j == header.numlumps)
                 {
                     int w, h;
+                    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): .tex file parsing; return value checked
                     if (skipspace(texfile), fscanf(texfile, "%d", &w) != 1)
                         Error("File read failure");
+                    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): .tex file parsing; return value checked
                     if (skipspace(texfile), fscanf(texfile, "%d", &h) != 1)
                         Error("File read failure");
                     g_texdatasize += sizeof(miptex_t);
@@ -826,7 +830,7 @@ static void WriteEntities(const char* const name)
 #else
     safe_strncpy(filename, name, _MAX_PATH);
     StripExtension(filename);
-    DefaultExtension(filename, ".ent");
+    DefaultExtension(filename, ".ent", sizeof(filename));
 #endif
     _unlink(filename);
 
@@ -870,7 +874,7 @@ static void ReadEntities(const char* const name)
 #else
     safe_strncpy(filename, name, _MAX_PATH);
     StripExtension(filename);
-    DefaultExtension(filename, ".ent");
+    DefaultExtension(filename, ".ent", sizeof(filename));
 #endif
 
     {
@@ -1119,7 +1123,7 @@ int main(int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        int x = atoi(argv[++i]) * 1024;
+                        int x = ParseIntArgOrError(argv[++i], "-texdata") * 1024;
 
                         //if (x > g_max_map_miptex) //--vluzacn
                         {
@@ -1135,7 +1139,7 @@ int main(int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        int x = atoi(argv[++i]) * 1024;
+                        int x = ParseIntArgOrError(argv[++i], "-lightdata") * 1024;
 
                         //if (x > g_max_map_lightdata) //--vluzacn
                         {
@@ -1221,7 +1225,7 @@ int main(int argc, char** argv)
 #endif
                     StripExtension(g_Mapname);
 #ifndef ZHLT_DEFAULTEXTENSION_FIX
-                    DefaultExtension(g_Mapname, ".bsp");
+                    DefaultExtension(g_Mapname, ".bsp", sizeof(g_Mapname));
 #endif
                 }
             }

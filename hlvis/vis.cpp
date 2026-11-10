@@ -867,7 +867,7 @@ static void InitVisBlock(void)
     safe_snprintf(visfile, _MAX_PATH, "%s.vis", g_Mapname);
 #else
     strcpy(visfile, g_Mapname);
-    DefaultExtension(visfile, ".vis");
+    DefaultExtension(visfile, ".vis", sizeof(visfile));
 #endif
 
     if (!q_exists(visfile))
@@ -1020,7 +1020,7 @@ static void CalcVis()
     safe_snprintf(visdatafile, _MAX_PATH, "%s.vdt", g_Mapname);
 #else
     strcpy(visdatafile, g_Mapname);
-    DefaultExtension(visdatafile, ".vdt");
+    DefaultExtension(visdatafile, ".vdt", sizeof(visdatafile));
 #endif
 
     // Remove this file
@@ -1134,6 +1134,7 @@ static void LoadPortals(char* portal_image)
 
     token = strtok(portal_image, seperators);
     CheckNullToken(token);
+    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): portal file parsing; values are range-checked
     if (!sscanf(token, "%u", &g_portalleafs) || g_portalleafs == 0 || g_portalleafs > MAX_MAP_LEAFS)
     {
         Error("LoadPortals: failed to read header: number of leafs");
@@ -1141,6 +1142,7 @@ static void LoadPortals(char* portal_image)
 
     token = strtok(NULL, seperators);
     CheckNullToken(token);
+    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): portal file parsing; values are range-checked
     if (!sscanf(token, "%i", &g_numportals) || g_numportals < 0 || g_numportals > MAX_PORTALS)
     {
         Error("LoadPortals: failed to read header: number of portals");
@@ -1190,6 +1192,7 @@ static void LoadPortals(char* portal_image)
         unsigned rval = 0;
         token = strtok(NULL, seperators);
         CheckNullToken(token);
+        // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): portal file parsing; values are range-checked
         rval += sscanf(token, "%i", &g_leafcounts[i]);
         if (rval != 1)
         {
@@ -1238,12 +1241,15 @@ static void LoadPortals(char* portal_image)
 
         token = strtok(NULL, seperators);
         CheckNullToken(token);
+        // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): portal file parsing; values are range-checked
         rval += sscanf(token, "%i", &numpoints);
         token = strtok(NULL, seperators);
         CheckNullToken(token);
+        // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): portal file parsing; values are range-checked
         rval += sscanf(token, "%i", &leafnums[0]);
         token = strtok(NULL, seperators);
         CheckNullToken(token);
+        // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): portal file parsing; values are range-checked
         rval += sscanf(token, "%i", &leafnums[1]);
 
         if (rval != 3)
@@ -1271,12 +1277,15 @@ static void LoadPortals(char* portal_image)
 
             token = strtok(NULL, seperators);
             CheckNullToken(token);
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): portal file parsing; values are range-checked
             rval += sscanf(token, "%lf", &v[0]);
             token = strtok(NULL, seperators);
             CheckNullToken(token);
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): portal file parsing; values are range-checked
             rval += sscanf(token, "%lf", &v[1]);
             token = strtok(NULL, seperators);
             CheckNullToken(token);
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): portal file parsing; values are range-checked
             rval += sscanf(token, "%lf", &v[2]);
 
             // scanf into double, then assign to vec_t
@@ -1588,7 +1597,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_numthreads = atoi(argv[++i]);
+                        g_numthreads = ParseIntArgOrError(argv[++i], "-threads");
                         if (g_numthreads < 1)
                         {
                             Log("Expected value of at least 1 for '-threads'\n");
@@ -1646,7 +1655,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_port = atoi(argv[++i]);
+                        g_port = ParseIntArgOrError(argv[++i], "-port");
                     }
                     else
                     {
@@ -1657,7 +1666,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_rate = atoi(argv[++i]);
+                        g_rate = ParseIntArgOrError(argv[++i], "-rate");
                     }
                     else
                     {
@@ -1690,7 +1699,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_developer = (developer_level_t)atoi(argv[++i]);
+                        g_developer = (developer_level_t)ParseIntArgOrError(argv[++i], "-dev");
                     }
                     else
                     {
@@ -1726,7 +1735,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        int x = atoi(argv[++i]) * 1024;
+                        int x = ParseIntArgOrError(argv[++i], "-texdata") * 1024;
 
                         //if (x > g_max_map_miptex) //--vluzacn
                         {
@@ -1742,7 +1751,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //--vluzacn
                     {
-                        int x = atoi(argv[++i]) * 1024;
+                        int x = ParseIntArgOrError(argv[++i], "-lightdata") * 1024;
 
                         //if (x > g_max_map_lightdata) //--vluzacn
                         {
@@ -1776,7 +1785,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_maxdistance = abs(atoi(argv[++i]));
+                        g_maxdistance = abs(ParseIntArgOrError(argv[++i], "-maxdistance"));
                     }
                     else
                     {

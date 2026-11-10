@@ -125,7 +125,7 @@ void OpenWadFile(const char* name
     SafeRead(wad->file, &wadinfo, sizeof(wadinfo));
     wadinfo.numlumps = LittleLong(wadinfo.numlumps);
     wadinfo.infotableofs = LittleLong(wadinfo.infotableofs);
-    if (strncmp(wadinfo.identification, "WAD2", 4) && strncmp(wadinfo.identification, "WAD3", 4))
+    if (strncmp(wadinfo.identification, "WAD2", 4) != 0 && strncmp(wadinfo.identification, "WAD3", 4) != 0)
         Error("%s isn't a Wadfile!", wad->path);
     wad->numlumps = wadinfo.numlumps;
     if (wad->numlumps < 0 || wadinfo.infotableofs < 0 ||
@@ -193,7 +193,7 @@ void TryOpenWadFiles()
                     {
                         char name[MAX_VAL];
                         ExtractFile(path, name);
-                        DefaultExtension(name, ".wad");
+                        DefaultExtension(name, ".wad", sizeof(name));
                         OpenWadFile(name);
                     }
                     j = 0;
@@ -331,7 +331,7 @@ void LoadTextureFromWad(radtexture_t* tex, const miptex_t* header)
             }
             Developer(DEVELOPER_LEVEL_MESSAGE, "Texture '%s': name '%s', width %d, height %d.\n", tex->name, mt->name,
                       mt->width, mt->height);
-            if (strcasecmp(mt->name, tex->name))
+            if (strcasecmp(mt->name, tex->name) != 0)
             {
                 Warning("Texture '%s': texture name '%s' differs from its reference name '%s' in '%s'.", tex->name,
                         mt->name, tex->name, wad->path);
@@ -1010,7 +1010,7 @@ static bool GetValidTextureName(int miptex, char name[16])
     mt = (miptex_t*)&g_dtexdata[offset];
     safe_strncpy(name, mt->name, 16);
 
-    if (strcmp(name, mt->name))
+    if (strcmp(name, mt->name) != 0)
     {
         return false;
     }

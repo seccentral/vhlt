@@ -690,7 +690,12 @@ extern double I_FloatTime();
 
 extern int CheckParm(char* check);
 
-extern void DefaultExtension(char* path, const char* extension);
+extern void DefaultExtension(char* path, const char* extension, size_t path_size);
+
+/** Parse a strict command-line integer; exits with an error on invalid input. */
+extern int ParseIntArgOrError(const char* value, const char* option);
+/** Parse a strict command-line floating-point value; exits with an error on invalid input. */
+extern double ParseFloatArgOrError(const char* value, const char* option);
 extern void DefaultPath(char* path, char* basepath);
 extern void StripFilename(char* path);
 extern void StripExtension(char* path);

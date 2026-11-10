@@ -892,7 +892,7 @@ bool CheckFaceForNull(const face_t* const f)
     if (f->contents == CONTENTS_SKY)
     {
         const char* name = GetTextureByNumber(f->texturenum);
-        if (strncasecmp(name, "sky", 3)) // for env_rain
+        if (strncasecmp(name, "sky", 3) != 0) // for env_rain
             return true;
     }
 #endif
@@ -1126,6 +1126,7 @@ static surfchain_t* ReadSurfs(FILE* file)
 #endif
         line++;
 #ifdef ZHLT_DETAILBRUSH
+        // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): generated intermediate file; return value checked
         r = fscanf(file, "%i %i %i %i %i\n", &detaillevel, &planenum, &g_texinfo, &contents, &numpoints);
 #else
         r = fscanf(file, "%i %i %i %i\n", &planenum, &g_texinfo, &contents, &numpoints);
@@ -1179,6 +1180,7 @@ static surfchain_t* ReadSurfs(FILE* file)
             {
                 line++;
                 //Verbose("skipping line %d", line);
+                // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): generated intermediate file; return value checked
                 r = fscanf(file, "%lf %lf %lf\n", &v[0], &v[1], &v[2]);
                 if (r != 3)
                 {
@@ -1205,6 +1207,7 @@ static surfchain_t* ReadSurfs(FILE* file)
         for (i = 0; i < f->numpoints; i++)
         {
             line++;
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): generated intermediate file; return value checked
             r = fscanf(file, "%lf %lf %lf\n", &v[0], &v[1], &v[2]);
             if (r != 3)
             {
@@ -1239,6 +1242,7 @@ static brush_t* ReadBrushes(FILE* file)
 #endif
         int r;
         int brushinfo;
+        // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): generated intermediate file; return value checked
         r = fscanf(file, "%i\n", &brushinfo);
         if (r == 0 || r == -1)
         {
@@ -1265,6 +1269,7 @@ static brush_t* ReadBrushes(FILE* file)
         {
             int planenum;
             int numpoints;
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): generated intermediate file; return value checked
             r = fscanf(file, "%i %u\n", &planenum, &numpoints);
             if (r != 2)
             {
@@ -1282,6 +1287,7 @@ static brush_t* ReadBrushes(FILE* file)
             for (x = 0; x < numpoints; x++)
             {
                 double v[3];
+                // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): generated intermediate file; return value checked
                 r = fscanf(file, "%lf %lf %lf\n", &v[0], &v[1], &v[2]);
                 if (r != 3)
                 {
@@ -1545,7 +1551,9 @@ skipclip:
         {
             double origin[3], mins[3], maxs[3];
             VectorClear(origin);
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient entity key parsing is intentional
             sscanf(ValueForKey(ent, "origin"), "%lf %lf %lf", &origin[0], &origin[1], &origin[2]);
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient entity key parsing is intentional
             if (sscanf(ValueForKey(ent, "zhlt_minsmaxs"), "%lf %lf %lf %lf %lf %lf", &mins[0], &mins[1], &mins[2],
                        &maxs[0], &maxs[1], &maxs[2]) == 6)
             {
@@ -1791,6 +1799,7 @@ static void ProcessFile(const char* const filename)
             for (i = 0; i < NUM_HULLS; i++)
             {
                 int count;
+                // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient hull-size file parsing; return value checked
                 count = fscanf(f, "%f %f %f %f %f %f\n", &x1, &y1, &z1, &x2, &y2, &z2);
                 if (count != 6)
                 {
@@ -1918,7 +1927,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        int g_numthreads = atoi(argv[++i]);
+                        int g_numthreads = ParseIntArgOrError(argv[++i], "-threads");
 
                         if (g_numthreads < 1)
                         {
@@ -1987,7 +1996,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_clientid = atoi(argv[++i]);
+                        g_clientid = ParseIntArgOrError(argv[++i], "-client");
                     }
                     else
                     {
@@ -2015,7 +2024,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_developer = (developer_level_t)atoi(argv[++i]);
+                        g_developer = (developer_level_t)ParseIntArgOrError(argv[++i], "-dev");
                     }
                     else
                     {
@@ -2086,7 +2095,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_subdivide_size = atoi(argv[++i]);
+                        g_subdivide_size = ParseIntArgOrError(argv[++i], "-subdivide");
                         if (g_subdivide_size > MAX_SUBDIVIDE_SIZE)
                         {
                             Warning("Maximum value for subdivide size is %i, '-subdivide %i' ignored",
@@ -2109,7 +2118,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_maxnode_size = atoi(argv[++i]);
+                        g_maxnode_size = ParseIntArgOrError(argv[++i], "-maxnodesize");
                         if (g_maxnode_size > MAX_MAXNODE_SIZE)
                         {
                             Warning("Maximum value for max node size is %i, '-maxnodesize %i' ignored",
@@ -2138,7 +2147,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        int x = atoi(argv[++i]) * 1024;
+                        int x = ParseIntArgOrError(argv[++i], "-texdata") * 1024;
 
                         //if (x > g_max_map_miptex) //--vluzacn
                         {
@@ -2154,7 +2163,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        int x = atoi(argv[++i]) * 1024;
+                        int x = ParseIntArgOrError(argv[++i], "-lightdata") * 1024;
 
                         //if (x > g_max_map_lightdata) //--vluzacn
                         {
@@ -2288,7 +2297,7 @@ int main(const int argc, char** argv)
                 safe_snprintf(strMapEntitiesVoidFile, _MAX_PATH, "%s" ENTITIES_VOID_EXT, g_Mapname);
 #else
         safe_strncpy(strMapEntitiesVoidFile, g_source, _MAX_PATH);
-        DefaultExtension(strMapEntitiesVoidFile, ENTITIES_VOID_EXT);
+        DefaultExtension(strMapEntitiesVoidFile, ENTITIES_VOID_EXT, sizeof(strMapEntitiesVoidFile));
 #endif
 
                 LoadAllowableOutsideList(strSystemEntitiesVoidFile); // default entities.void

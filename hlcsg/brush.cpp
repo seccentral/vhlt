@@ -1638,7 +1638,7 @@ contents_t CheckBrushContents(const brush_t* const b)
 #ifdef HLCSG_CUSTOMCONTENT
     // Difference between SKIP, ContentEmpty:
     // SKIP doesn't split space in bsp process, ContentEmpty splits space normally.
-    if (!(strncasecmp(s->td.name, "content", 7) && strncasecmp(s->td.name, "skip", 4)))
+    if (!(strncasecmp(s->td.name, "content", 7) != 0 && strncasecmp(s->td.name, "skip", 4) != 0))
         assigned = true;
 #endif
     s++;
@@ -1648,7 +1648,7 @@ contents_t CheckBrushContents(const brush_t* const b)
 #ifdef HLCSG_CUSTOMCONTENT
         if (assigned)
             continue;
-        if (!(strncasecmp(s->td.name, "content", 7) && strncasecmp(s->td.name, "skip", 4)))
+        if (!(strncasecmp(s->td.name, "content", 7) != 0 && strncasecmp(s->td.name, "skip", 4) != 0))
         {
             best_i = i;
             best_contents = contents_consider;
@@ -1677,7 +1677,7 @@ contents_t CheckBrushContents(const brush_t* const b)
     {
         contents_t contents2 = TextureContents(s->td.name);
 #ifdef HLCSG_CUSTOMCONTENT
-        if (assigned && strncasecmp(s->td.name, "content", 7) && strncasecmp(s->td.name, "skip", 4) &&
+        if (assigned && strncasecmp(s->td.name, "content", 7) != 0 && strncasecmp(s->td.name, "skip", 4) != 0 &&
             contents2 != CONTENTS_ORIGIN && contents2 != CONTENTS_HINT
 #ifdef HLCSG_HLBSP_CUSTOMBOUNDINGBOX
             && contents2 != CONTENTS_BOUNDINGBOX

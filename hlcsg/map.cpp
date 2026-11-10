@@ -2,6 +2,20 @@
 
 #include "csg.h"
 
+// Map files are parsed leniently on purpose: atof/atoi semantics (parse the
+// longest prefix, return 0 on failure) are part of the format's behaviour.
+static double ParseMapFloat(const char* s)
+{
+    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient map parsing is intentional
+    return strtod(s, NULL);
+}
+
+static int ParseMapInt(const char* s)
+{
+    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient map parsing is intentional
+    return (int)strtol(s, NULL, 10);
+}
+
 int g_nummapbrushes;
 brush_t g_mapbrushes[MAX_MAP_BRUSHES];
 
@@ -250,7 +264,7 @@ static bool CheckForInvisible(entity_t* mapent)
     }
 
     keyval.assign(ValueForKey(mapent, "zhlt_invisible"));
-    if (!keyval.empty() && strcmp(keyval.c_str(), "0"))
+    if (!keyval.empty() && strcmp(keyval.c_str(), "0") != 0)
     {
         return true;
     }
@@ -395,7 +409,7 @@ static contents_t ParseBrush(entity_t* mapent)
             {
                 GetToken(true);
             }
-            if (strcmp(g_token, "("))
+            if (strcmp(g_token, "(") != 0)
             {
                 Error("Parsing Entity %i, Brush %i, Side %i : Expecting '(' got '%s'",
 #ifdef HLCSG_COUNT_NEW
@@ -409,11 +423,11 @@ static contents_t ParseBrush(entity_t* mapent)
             for (j = 0; j < 3; j++)
             {
                 GetToken(false);
-                side->planepts[i][j] = atof(g_token);
+                side->planepts[i][j] = ParseMapFloat(g_token);
             }
 
             GetToken(false);
-            if (strcmp(g_token, ")"))
+            if (strcmp(g_token, ")") != 0)
             {
                 Error("Parsing	Entity %i, Brush %i, Side %i : Expecting ')' got '%s'",
 #ifdef HLCSG_COUNT_NEW
@@ -474,58 +488,58 @@ static contents_t ParseBrush(entity_t* mapent)
         if (g_nMapFileVersion < 220) // Worldcraft 2.1-, Radiant
         {
             GetToken(false);
-            side->td.vects.valve.shift[0] = atof(g_token);
+            side->td.vects.valve.shift[0] = ParseMapFloat(g_token);
             GetToken(false);
-            side->td.vects.valve.shift[1] = atof(g_token);
+            side->td.vects.valve.shift[1] = ParseMapFloat(g_token);
             GetToken(false);
-            side->td.vects.valve.rotate = atof(g_token);
+            side->td.vects.valve.rotate = ParseMapFloat(g_token);
             GetToken(false);
-            side->td.vects.valve.scale[0] = atof(g_token);
+            side->td.vects.valve.scale[0] = ParseMapFloat(g_token);
             GetToken(false);
-            side->td.vects.valve.scale[1] = atof(g_token);
+            side->td.vects.valve.scale[1] = ParseMapFloat(g_token);
         }
         else // Worldcraft 2.2+
         {
             // texture U axis
             GetToken(false);
-            if (strcmp(g_token, "["))
+            if (strcmp(g_token, "[") != 0)
             {
                 hlassume(false, assume_MISSING_BRACKET_IN_TEXTUREDEF);
             }
 
             GetToken(false);
-            side->td.vects.valve.UAxis[0] = atof(g_token);
+            side->td.vects.valve.UAxis[0] = ParseMapFloat(g_token);
             GetToken(false);
-            side->td.vects.valve.UAxis[1] = atof(g_token);
+            side->td.vects.valve.UAxis[1] = ParseMapFloat(g_token);
             GetToken(false);
-            side->td.vects.valve.UAxis[2] = atof(g_token);
+            side->td.vects.valve.UAxis[2] = ParseMapFloat(g_token);
             GetToken(false);
-            side->td.vects.valve.shift[0] = atof(g_token);
+            side->td.vects.valve.shift[0] = ParseMapFloat(g_token);
 
             GetToken(false);
-            if (strcmp(g_token, "]"))
+            if (strcmp(g_token, "]") != 0)
             {
                 Error("missing ']' in texturedef (U)");
             }
 
             // texture V axis
             GetToken(false);
-            if (strcmp(g_token, "["))
+            if (strcmp(g_token, "[") != 0)
             {
                 Error("missing '[' in texturedef (V)");
             }
 
             GetToken(false);
-            side->td.vects.valve.VAxis[0] = atof(g_token);
+            side->td.vects.valve.VAxis[0] = ParseMapFloat(g_token);
             GetToken(false);
-            side->td.vects.valve.VAxis[1] = atof(g_token);
+            side->td.vects.valve.VAxis[1] = ParseMapFloat(g_token);
             GetToken(false);
-            side->td.vects.valve.VAxis[2] = atof(g_token);
+            side->td.vects.valve.VAxis[2] = ParseMapFloat(g_token);
             GetToken(false);
-            side->td.vects.valve.shift[1] = atof(g_token);
+            side->td.vects.valve.shift[1] = ParseMapFloat(g_token);
 
             GetToken(false);
-            if (strcmp(g_token, "]"))
+            if (strcmp(g_token, "]") != 0)
             {
                 Error("missing ']' in texturedef (V)");
             }
@@ -536,9 +550,9 @@ static contents_t ParseBrush(entity_t* mapent)
 
             // texure scale
             GetToken(false);
-            side->td.vects.valve.scale[0] = atof(g_token);
+            side->td.vects.valve.scale[0] = ParseMapFloat(g_token);
             GetToken(false);
-            side->td.vects.valve.scale[1] = atof(g_token);
+            side->td.vects.valve.scale[1] = ParseMapFloat(g_token);
         }
 
         ok = GetToken(true); // Done with line, this reads the first item from the next line
@@ -620,21 +634,21 @@ static contents_t ParseBrush(entity_t* mapent)
     for (j = 0; j < b->numsides; j++)
     {
         side = &g_brushsides[b->firstside + j];
-        if (nullify && strncasecmp(side->td.name, "BEVEL", 5) && strncasecmp(side->td.name, "ORIGIN", 6)
+        if (nullify && strncasecmp(side->td.name, "BEVEL", 5) != 0 && strncasecmp(side->td.name, "ORIGIN", 6) != 0
 #ifdef HLCSG_ALLOWHINTINENTITY
-            && strncasecmp(side->td.name, "HINT", 4) && strncasecmp(side->td.name, "SKIP", 4)
+            && strncasecmp(side->td.name, "HINT", 4) != 0 && strncasecmp(side->td.name, "SKIP", 4) != 0
 #endif
 #ifdef HLCSG_HLBSP_SOLIDHINT
-            && strncasecmp(side->td.name, "SOLIDHINT", 9)
+            && strncasecmp(side->td.name, "SOLIDHINT", 9) != 0
 #endif
 #ifdef HLCSG_NOSPLITBYHINT
-            && strncasecmp(side->td.name, "SPLITFACE", 9)
+            && strncasecmp(side->td.name, "SPLITFACE", 9) != 0
 #endif
 #ifdef HLCSG_HLBSP_CUSTOMBOUNDINGBOX
-            && strncasecmp(side->td.name, "BOUNDINGBOX", 11)
+            && strncasecmp(side->td.name, "BOUNDINGBOX", 11) != 0
 #endif
 #ifdef HLCSG_CUSTOMCONTENT
-            && strncasecmp(side->td.name, "CONTENT", 7) && strncasecmp(side->td.name, "SKY", 3)
+            && strncasecmp(side->td.name, "CONTENT", 7) != 0 && strncasecmp(side->td.name, "SKY", 3) != 0
 #endif
         )
         {
@@ -818,7 +832,7 @@ static contents_t ParseBrush(entity_t* mapent)
             { // this is not supposed to be a HINT brush, so remove all invisible faces from hull 0.
                 strcpy(side->td.name, "SKIP");
             }
-            if (strncasecmp(side->td.name, "SKIP", 4))
+            if (strncasecmp(side->td.name, "SKIP", 4) != 0)
                 mixed = true;
         }
         if (mixed)
@@ -864,7 +878,7 @@ bool ParseMapEntity()
 
     this_entity = g_numentities;
 
-    if (strcmp(g_token, "{"))
+    if (strcmp(g_token, "{") != 0)
     {
         Error("Parsing Entity %i, expected '{' got '%s'",
 #ifdef HLCSG_COUNT_NEW
@@ -920,7 +934,7 @@ bool ParseMapEntity()
 
             if (!strcmp(e->key, "mapversion"))
             {
-                g_nMapFileVersion = atoi(e->value);
+                g_nMapFileVersion = ParseMapInt(e->value);
             }
 
 #ifdef HLCSG_NOREDUNDANTKEY
@@ -975,7 +989,7 @@ bool ParseMapEntity()
 #endif
 #ifdef HLCSG_SCALESIZE
 #ifdef HLCSG_HULLBRUSH
-    if (strcmp(ValueForKey(mapent, "classname"), "info_hullshape")) // info_hullshape is not affected by '-scale'
+    if (strcmp(ValueForKey(mapent, "classname"), "info_hullshape") != 0) // info_hullshape is not affected by '-scale'
 #endif
     {
         bool ent_move_b = false, ent_scale_b = false, ent_gscale_b = false;
@@ -990,6 +1004,7 @@ bool ParseMapEntity()
         double v[4] = {0, 0, 0, 0};
         if (*ValueForKey(mapent, "zhlt_transform"))
         {
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
             switch (sscanf(ValueForKey(mapent, "zhlt_transform"), "%lf %lf %lf %lf", v, v + 1, v + 2, v + 3))
             {
             case 1:
@@ -1195,6 +1210,7 @@ bool ParseMapEntity()
 #ifdef HLCSG_HLBSP_CUSTOMBOUNDINGBOX
                 {
                     double b[2][3];
+                    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
                     if (sscanf(ValueForKey(mapent, "zhlt_minsmaxs"), "%lf %lf %lf %lf %lf %lf", &b[0][0], &b[0][1],
                                &b[0][2], &b[1][0], &b[1][1], &b[1][2]) == 6)
                     {
@@ -1428,7 +1444,7 @@ bool ParseMapEntity()
         fabs(mapent->origin[2]) > ENGINE_ENTITY_RANGE + ON_EPSILON)
     {
         const char* classname = ValueForKey(mapent, "classname");
-        if (strncmp(classname, "light", 5))
+        if (strncmp(classname, "light", 5) != 0)
         {
             Warning("Entity %i (classname \"%s\"): origin outside +/-%.0f: (%.0f,%.0f,%.0f)",
 #ifdef HLCSG_COUNT_NEW
@@ -1467,7 +1483,7 @@ unsigned int CountEngineEntities()
                 const char* targetname = ValueForKey(mapent, "targetname");
 
                 // lightspots and lightenviroments dont have a targetname or style
-                if (!strlen(targetname) && !atoi(style))
+                if (!strlen(targetname) && !ParseMapInt(style))
                 {
                     continue;
                 }

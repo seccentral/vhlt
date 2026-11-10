@@ -353,6 +353,7 @@ void GetParamsFromEnt(entity_t* mapent)
     if (pszTmp)
     {
         float red = 0, green = 0, blue = 0;
+        // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
         if (sscanf(pszTmp, "%f %f %f", &red, &green, &blue))
         {
             if (red < 0 || red > 1 || green < 0 || green > 1 || blue < 0 || blue > 1)
@@ -577,6 +578,7 @@ static void ReadLightFile(const char* const filename)
             comment[1] = 0;
         }
 
+        // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
         argCnt = sscanf(scan, "%4095s %f %f %f %f", szTexlight, &r, &g, &b, &i);
 
         if (argCnt == 2)
@@ -673,6 +675,7 @@ static void BaseLightForFace(const dface_t* const f, vec3_t light)
     if (g_face_texlights[fn])
     {
         double r, g, b, scaler;
+        // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
         switch (sscanf(ValueForKey(g_face_texlights[fn], "_light"), "%lf %lf %lf %lf", &r, &g, &b, &scaler))
         {
         case -1:
@@ -1435,7 +1438,7 @@ void ReadCustomChopValue()
     for (k = 0; k < g_numentities; k++)
     {
         mapent = &g_entities[k];
-        if (strcmp(ValueForKey(mapent, "classname"), "info_chopscale"))
+        if (strcmp(ValueForKey(mapent, "classname"), "info_chopscale") != 0)
             continue;
         Developer(DEVELOPER_LEVEL_MESSAGE, "info_chopscale entity detected.\n");
         for (i = 0; i < num; i++)
@@ -1446,12 +1449,14 @@ void ReadCustomChopValue()
             const char* texname = ((miptex_t*)(g_dtexdata + texofs))->name;
             for (ep = mapent->epairs; ep; ep = ep->next)
             {
-                if (strcasecmp(ep->key, texname))
+                if (strcasecmp(ep->key, texname) != 0)
                     continue;
                 if (!strcasecmp(ep->key, "origin"))
                     continue;
+                // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
                 if (atof(ep->value) <= 0)
                     continue;
+                // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
                 chopscales[i] = atof(ep->value);
                 Developer(DEVELOPER_LEVEL_MESSAGE, "info_chopscale: %s = %f\n", texname, chopscales[i]);
             }
@@ -1482,7 +1487,7 @@ void ReadCustomSmoothValue()
     for (k = 0; k < g_numentities; k++)
     {
         mapent = &g_entities[k];
-        if (strcmp(ValueForKey(mapent, "classname"), "info_smoothvalue"))
+        if (strcmp(ValueForKey(mapent, "classname"), "info_smoothvalue") != 0)
             continue;
         Developer(DEVELOPER_LEVEL_MESSAGE, "info_smoothvalue entity detected.\n");
         for (i = 0; i < num; i++)
@@ -1493,11 +1498,13 @@ void ReadCustomSmoothValue()
             const char* texname = ((miptex_t*)(g_dtexdata + texofs))->name;
             for (ep = mapent->epairs; ep; ep = ep->next)
             {
-                if (strcasecmp(ep->key, texname))
+                if (strcasecmp(ep->key, texname) != 0)
                     continue;
                 if (!strcasecmp(ep->key, "origin"))
                     continue;
+                // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
                 g_smoothvalues[i] = cos(atof(ep->value) * (Q_PI / 180.0));
+                // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
                 Developer(DEVELOPER_LEVEL_MESSAGE, "info_smoothvalue: %s = %f\n", texname, atof(ep->value));
             }
         }
@@ -1522,7 +1529,7 @@ void ReadTranslucentTextures()
     for (k = 0; k < g_numentities; k++)
     {
         mapent = &g_entities[k];
-        if (strcmp(ValueForKey(mapent, "classname"), "info_translucent"))
+        if (strcmp(ValueForKey(mapent, "classname"), "info_translucent") != 0)
             continue;
         Developer(DEVELOPER_LEVEL_MESSAGE, "info_translucent entity detected.\n");
         for (i = 0; i < num; i++)
@@ -1533,12 +1540,13 @@ void ReadTranslucentTextures()
             const char* texname = ((miptex_t*)(g_dtexdata + texofs))->name;
             for (ep = mapent->epairs; ep; ep = ep->next)
             {
-                if (strcasecmp(ep->key, texname))
+                if (strcasecmp(ep->key, texname) != 0)
                     continue;
                 if (!strcasecmp(ep->key, "origin"))
                     continue;
                 double r, g, b;
                 int count;
+                // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
                 count = sscanf(ep->value, "%lf %lf %lf", &r, &g, &b);
                 if (count == 1)
                 {
@@ -1590,7 +1598,7 @@ void ReadLightingCone()
     for (k = 0; k < g_numentities; k++)
     {
         mapent = &g_entities[k];
-        if (strcmp(ValueForKey(mapent, "classname"), "info_angularfade"))
+        if (strcmp(ValueForKey(mapent, "classname"), "info_angularfade") != 0)
             continue;
         Developer(DEVELOPER_LEVEL_MESSAGE, "info_angularfade entity detected.\n");
         for (i = 0; i < num; i++)
@@ -1601,12 +1609,13 @@ void ReadLightingCone()
             const char* texname = ((miptex_t*)(g_dtexdata + texofs))->name;
             for (ep = mapent->epairs; ep; ep = ep->next)
             {
-                if (strcasecmp(ep->key, texname))
+                if (strcasecmp(ep->key, texname) != 0)
                     continue;
                 if (!strcasecmp(ep->key, "origin"))
                     continue;
                 double power, scale;
                 int count;
+                // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
                 count = sscanf(ep->value, "%lf %lf", &power, &scale);
                 if (count == 1)
                 {
@@ -2221,7 +2230,7 @@ static void LoadOpaqueEntities()
         for (entnum = 0; entnum < g_numentities; entnum++)
         {
             entity_t* ent = &g_entities[entnum];
-            if (strcmp(ValueForKey(ent, "model"), stringmodel))
+            if (strcmp(ValueForKey(ent, "model"), stringmodel) != 0)
                 continue;
             vec3_t origin;
             {
@@ -2252,6 +2261,7 @@ static void LoadOpaqueEntities()
                 if (*(s = ValueForKey(ent, "zhlt_customshadow")))
                 {
                     double r1 = 1.0, g1 = 1.0, b1 = 1.0, tmp = 1.0;
+                    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
                     if (sscanf(s, "%lf %lf %lf", &r1, &g1, &b1) == 3) //RGB version
                     {
                         if (r1 < 0.0)
@@ -2264,6 +2274,7 @@ static void LoadOpaqueEntities()
                         d_transparency[1] = g1;
                         d_transparency[2] = b1;
                     }
+                    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
                     else if (sscanf(s, "%lf", &tmp) == 1) //Greyscale version
                     {
                         if (tmp < 0.0)
@@ -2372,9 +2383,9 @@ static entity_t* FindTexlightEntity(int facenum)
     for (int i = 0; i < g_numentities; i++)
     {
         entity_t* ent = &g_entities[i];
-        if (strcmp(ValueForKey(ent, "classname"), "light_surface"))
+        if (strcmp(ValueForKey(ent, "classname"), "light_surface") != 0)
             continue;
-        if (strcasecmp(ValueForKey(ent, "_tex"), texname))
+        if (strcasecmp(ValueForKey(ent, "_tex"), texname) != 0)
             continue;
         vec3_t delta;
         GetVectorForKey(ent, "origin", delta);
@@ -2392,12 +2403,12 @@ static entity_t* FindTexlightEntity(int facenum)
         }
         if (*ValueForKey(ent, "_fclass"))
         {
-            if (strcmp(ValueForKey(faceent, "classname"), ValueForKey(ent, "_fclass")))
+            if (strcmp(ValueForKey(faceent, "classname"), ValueForKey(ent, "_fclass")) != 0)
                 continue;
         }
         if (*ValueForKey(ent, "_fname"))
         {
-            if (strcmp(ValueForKey(faceent, "targetname"), ValueForKey(ent, "_fname")))
+            if (strcmp(ValueForKey(faceent, "targetname"), ValueForKey(ent, "_fname")) != 0)
                 continue;
         }
         if (bestdist >= 0 && dist > bestdist)
@@ -2462,6 +2473,7 @@ static void MakePatches()
 
         if (*(s = ValueForKey(ent, "zhlt_lightflags")))
         {
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
             lightmode = (eModelLightmodes)atoi(s);
         }
 
@@ -2470,6 +2482,7 @@ static void MakePatches()
         {
             double v1, v2, v3;
 
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
             if (sscanf(s, "%lf %lf %lf", &v1, &v2, &v3) == 3)
             {
                 origin[0] = v1;
@@ -2489,6 +2502,7 @@ static void MakePatches()
                 {
                     double v1, v2, v3;
 
+                    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
                     if (sscanf(s, "%lf %lf %lf", &v1, &v2, &v3) == 3)
                     {
                         light_origin[0] = v1;
@@ -2506,6 +2520,7 @@ static void MakePatches()
         {
             double v1, v2, v3;
 
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
             if (sscanf(s, "%lf %lf %lf", &v1, &v2, &v3) == 3)
             {
                 model_center[0] = v1;
@@ -2560,6 +2575,7 @@ static void MakePatches()
         //LRC:
         if (*(s = ValueForKey(ent, "style")))
         {
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
             style = atoi(s);
             if (style < 0)
                 style = -style;
@@ -4740,7 +4756,7 @@ void ReadInfoTexlights()
     {
         mapent = &g_entities[k];
 
-        if (strcmp(ValueForKey(mapent, "classname"), "info_texlights"))
+        if (strcmp(ValueForKey(mapent, "classname"), "info_texlights") != 0)
             continue;
 
 #ifdef HLRAD_CUSTOMTEXLIGHT
@@ -4754,6 +4770,7 @@ void ReadInfoTexlights()
             if (!strcmp(ep->key, "classname") || !strcmp(ep->key, "origin"))
                 continue; // we dont care about these keyvalues
 
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient input parsing is intentional
             values = sscanf(ep->value, "%f %f %f %f", &r, &g, &b, &i);
 
             if (values == 1)
@@ -4859,7 +4876,7 @@ void LoadRadFiles(const char* const mapname, const char* const user_rad, const c
 #ifdef ZHLT_DEFAULTEXTENSION_FIX
     safe_strncat(mapname_lights, ext_rad, _MAX_PATH);
 #else
-    DefaultExtension(mapname_lights, ext_rad);
+    DefaultExtension(mapname_lights, ext_rad, sizeof(mapname_lights));
 #endif
     if (q_exists(mapname_lights))
     {
@@ -4883,7 +4900,7 @@ void LoadRadFiles(const char* const mapname, const char* const user_rad, const c
         else
         {
             // Try again with .rad enforced as extension
-            DefaultExtension(user_lights, ext_rad);
+            DefaultExtension(user_lights, ext_rad, sizeof(user_lights));
             if (q_exists(user_lights))
             {
                 ReadLightFile(user_lights);
@@ -4893,7 +4910,7 @@ void LoadRadFiles(const char* const mapname, const char* const user_rad, const c
                 // Look for user.rad in mapdir
                 safe_strncpy(user_lights, mapdir, _MAX_PATH);
                 safe_strncat(user_lights, userfile, _MAX_PATH);
-                DefaultExtension(user_lights, ext_rad);
+                DefaultExtension(user_lights, ext_rad, sizeof(user_lights));
                 if (q_exists(user_lights))
                 {
                     ReadLightFile(user_lights);
@@ -4903,7 +4920,7 @@ void LoadRadFiles(const char* const mapname, const char* const user_rad, const c
                     // Look for user.rad in appdir
                     safe_strncpy(user_lights, appdir, _MAX_PATH);
                     safe_strncat(user_lights, userfile, _MAX_PATH);
-                    DefaultExtension(user_lights, ext_rad);
+                    DefaultExtension(user_lights, ext_rad, sizeof(user_lights));
                     if (q_exists(user_lights))
                     {
                         ReadLightFile(user_lights);
@@ -4912,7 +4929,7 @@ void LoadRadFiles(const char* const mapname, const char* const user_rad, const c
                     {
                         // Look for user.rad in current working directory
                         safe_strncpy(user_lights, userfile, _MAX_PATH);
-                        DefaultExtension(user_lights, ext_rad);
+                        DefaultExtension(user_lights, ext_rad, sizeof(user_lights));
                         if (q_exists(user_lights))
                         {
                             ReadLightFile(user_lights);
@@ -5003,7 +5020,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_numbounce = atoi(argv[++i]);
+                        g_numbounce = ParseIntArgOrError(argv[++i], "-bounce");
                         if (g_numbounce > 1000)
                         {
                             Log("Unexpectedly large value (>1000) for '-bounce'\n");
@@ -5019,7 +5036,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_developer = (developer_level_t)atoi(argv[++i]);
+                        g_developer = (developer_level_t)ParseIntArgOrError(argv[++i], "-dev");
                     }
                     else
                     {
@@ -5038,7 +5055,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_numthreads = atoi(argv[++i]);
+                        g_numthreads = ParseIntArgOrError(argv[++i], "-threads");
                         if (g_numthreads < 1)
                         {
                             Log("Expected value of at least 1 for '-threads'\n");
@@ -5067,7 +5084,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_clientid = atoi(argv[++i]);
+                        g_clientid = ParseIntArgOrError(argv[++i], "-client");
                     }
                     else
                     {
@@ -5089,7 +5106,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_chop = atof(argv[++i]);
+                        g_chop = ParseFloatArgOrError(argv[++i], "-chop");
                         if (g_chop < 1)
                         {
                             Log("expected value greater than 1 for '-chop'\n");
@@ -5109,7 +5126,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_texchop = atof(argv[++i]);
+                        g_texchop = ParseFloatArgOrError(argv[++i], "-texchop");
                         if (g_texchop < 1)
                         {
                             Log("expected value greater than 1 for '-texchop'\n");
@@ -5149,11 +5166,11 @@ int main(const int argc, char** argv)
                         // Munge monochrome lightscale into colour one
 #ifdef HLRAD_WHOME
                         i++;
-                        g_colour_lightscale[0] = (float)atof(argv[i]);
-                        g_colour_lightscale[1] = (float)atof(argv[i]);
-                        g_colour_lightscale[2] = (float)atof(argv[i]);
+                        g_colour_lightscale[0] = (float)ParseFloatArgOrError(argv[i], "-scale");
+                        g_colour_lightscale[1] = (float)ParseFloatArgOrError(argv[i], "-scale");
+                        g_colour_lightscale[2] = (float)ParseFloatArgOrError(argv[i], "-scale");
 #else
-                g_lightscale = (float)atof(argv[++i]);
+                g_lightscale = (float)ParseFloatArgOrError(argv[++i], "-scale");
 #endif
                         // ------------------------------------------------------------------------
                     }
@@ -5167,7 +5184,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_falloff = (float)atoi(argv[++i]);
+                        g_falloff = (float)ParseIntArgOrError(argv[++i], "-falloff");
                         if ((g_falloff != 1) && (g_falloff != 2))
                         {
                             Log("-falloff must be 1 or 2\n");
@@ -5184,7 +5201,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_fade = (float)atof(argv[++i]);
+                        g_fade = (float)ParseFloatArgOrError(argv[++i], "-fade");
                         if (g_fade < 0.0)
                         {
                             Log("-fade must be a positive number\n");
@@ -5200,9 +5217,9 @@ int main(const int argc, char** argv)
                 {
                     if (i + 3 < argc)
                     {
-                        g_ambient[0] = (float)atof(argv[++i]) * 128;
-                        g_ambient[1] = (float)atof(argv[++i]) * 128;
-                        g_ambient[2] = (float)atof(argv[++i]) * 128;
+                        g_ambient[0] = (float)ParseFloatArgOrError(argv[++i], "-ambient") * 128;
+                        g_ambient[1] = (float)ParseFloatArgOrError(argv[++i], "-ambient") * 128;
+                        g_ambient[2] = (float)ParseFloatArgOrError(argv[++i], "-ambient") * 128;
                     }
                     else
                     {
@@ -5214,7 +5231,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_maxlight = (float)atof(argv[++i]) * 128;
+                        g_maxlight = (float)ParseFloatArgOrError(argv[++i], "-maxlight") * 128;
                         if (g_maxlight <= 0)
                         {
                             Log("expected positive value after '-maxlight'\n");
@@ -5232,7 +5249,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_limitthreshold = atof(argv[++i]);
+                        g_limitthreshold = ParseFloatArgOrError(argv[++i], "-limiter");
                     }
                     else
                     {
@@ -5292,11 +5309,11 @@ int main(const int argc, char** argv)
                         // Munge values from original, monochrome gamma into colour gamma
 #ifdef HLRAD_WHOME
                         i++;
-                        g_colour_qgamma[0] = (float)atof(argv[i]);
-                        g_colour_qgamma[1] = (float)atof(argv[i]);
-                        g_colour_qgamma[2] = (float)atof(argv[i]);
+                        g_colour_qgamma[0] = (float)ParseFloatArgOrError(argv[i], "-gamma");
+                        g_colour_qgamma[1] = (float)ParseFloatArgOrError(argv[i], "-gamma");
+                        g_colour_qgamma[2] = (float)ParseFloatArgOrError(argv[i], "-gamma");
 #else
-                g_qgamma = (float)atof(argv[++i]);
+                g_qgamma = (float)ParseFloatArgOrError(argv[++i], "-gamma");
 #endif
                         // ------------------------------------------------------------------------
                     }
@@ -5309,7 +5326,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_dlight_threshold = (float)atof(argv[++i]);
+                        g_dlight_threshold = (float)ParseFloatArgOrError(argv[++i], "-dlight");
                     }
                     else
                     {
@@ -5324,7 +5341,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_indirect_sun = (float)atof(argv[++i]);
+                        g_indirect_sun = (float)ParseFloatArgOrError(argv[++i], "-sky");
                     }
                     else
                     {
@@ -5335,7 +5352,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_smoothing_value = atof(argv[++i]);
+                        g_smoothing_value = ParseFloatArgOrError(argv[++i], "-smooth");
                     }
                     else
                     {
@@ -5347,7 +5364,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc)
                     {
-                        g_smoothing_value_2 = atof(argv[++i]);
+                        g_smoothing_value_2 = ParseFloatArgOrError(argv[++i], "-smooth2");
                     }
                     else
                     {
@@ -5359,7 +5376,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_coring = (float)atof(argv[++i]);
+                        g_coring = (float)ParseFloatArgOrError(argv[++i], "-coring");
                     }
                     else
                     {
@@ -5370,7 +5387,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        int x = atoi(argv[++i]) * 1024;
+                        int x = ParseIntArgOrError(argv[++i], "-texdata") * 1024;
 
                         //if (x > g_max_map_miptex) //--vluzacn
                         {
@@ -5386,7 +5403,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //--vluzacn
                     {
-                        int x = atoi(argv[++i]) * 1024;
+                        int x = ParseIntArgOrError(argv[++i], "-lightdata") * 1024;
 
                         //if (x > g_max_map_lightdata) //--vluzacn
                         {
@@ -5450,7 +5467,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc) //added "1" .--vluzacn
                     {
-                        g_direct_scale = (float)atof(argv[++i]);
+                        g_direct_scale = (float)ParseFloatArgOrError(argv[++i], "-dscale");
                     }
                     else
                     {
@@ -5465,9 +5482,9 @@ int main(const int argc, char** argv)
                 {
                     if (i + 3 < argc)
                     {
-                        g_colour_qgamma[0] = (float)atof(argv[++i]);
-                        g_colour_qgamma[1] = (float)atof(argv[++i]);
-                        g_colour_qgamma[2] = (float)atof(argv[++i]);
+                        g_colour_qgamma[0] = (float)ParseFloatArgOrError(argv[++i], "-colourgamma");
+                        g_colour_qgamma[1] = (float)ParseFloatArgOrError(argv[++i], "-colourgamma");
+                        g_colour_qgamma[2] = (float)ParseFloatArgOrError(argv[++i], "-colourgamma");
                     }
                     else
                     {
@@ -5478,9 +5495,9 @@ int main(const int argc, char** argv)
                 {
                     if (i + 3 < argc)
                     {
-                        g_colour_lightscale[0] = (float)atof(argv[++i]);
-                        g_colour_lightscale[1] = (float)atof(argv[++i]);
-                        g_colour_lightscale[2] = (float)atof(argv[++i]);
+                        g_colour_lightscale[0] = (float)ParseFloatArgOrError(argv[++i], "-colourscale");
+                        g_colour_lightscale[1] = (float)ParseFloatArgOrError(argv[++i], "-colourscale");
+                        g_colour_lightscale[2] = (float)ParseFloatArgOrError(argv[++i], "-colourscale");
                     }
                     else
                     {
@@ -5492,9 +5509,9 @@ int main(const int argc, char** argv)
                 {
                     if (i + 3 < argc)
                     {
-                        g_colour_jitter_hack[0] = (float)atof(argv[++i]);
-                        g_colour_jitter_hack[1] = (float)atof(argv[++i]);
-                        g_colour_jitter_hack[2] = (float)atof(argv[++i]);
+                        g_colour_jitter_hack[0] = (float)ParseFloatArgOrError(argv[++i], "-colourjitter");
+                        g_colour_jitter_hack[1] = (float)ParseFloatArgOrError(argv[++i], "-colourjitter");
+                        g_colour_jitter_hack[2] = (float)ParseFloatArgOrError(argv[++i], "-colourjitter");
                     }
                     else
                     {
@@ -5505,9 +5522,9 @@ int main(const int argc, char** argv)
                 {
                     if (i + 3 < argc)
                     {
-                        g_jitter_hack[0] = (float)atof(argv[++i]);
-                        g_jitter_hack[1] = (float)atof(argv[++i]);
-                        g_jitter_hack[2] = (float)atof(argv[++i]);
+                        g_jitter_hack[0] = (float)ParseFloatArgOrError(argv[++i], "-jitter");
+                        g_jitter_hack[1] = (float)ParseFloatArgOrError(argv[++i], "-jitter");
+                        g_jitter_hack[2] = (float)ParseFloatArgOrError(argv[++i], "-jitter");
                     }
                     else
                     {
@@ -5530,10 +5547,10 @@ int main(const int argc, char** argv)
                 {
                     if (i + 4 < argc)
                     {
-                        g_softlight_hack[0] = (float)atof(argv[++i]);
-                        g_softlight_hack[1] = (float)atof(argv[++i]);
-                        g_softlight_hack[2] = (float)atof(argv[++i]);
-                        g_softlight_hack_distance = (float)atof(argv[++i]);
+                        g_softlight_hack[0] = (float)ParseFloatArgOrError(argv[++i], "-softlight");
+                        g_softlight_hack[1] = (float)ParseFloatArgOrError(argv[++i], "-softlight");
+                        g_softlight_hack[2] = (float)ParseFloatArgOrError(argv[++i], "-softlight");
+                        g_softlight_hack_distance = (float)ParseFloatArgOrError(argv[++i], "-softlight");
                     }
                     else
                     {
@@ -5578,7 +5595,7 @@ int main(const int argc, char** argv)
 #endif
                     if (i + 1 < argc)
                     {
-                        g_transtotal_hack = (float)atof(argv[++i]);
+                        g_transtotal_hack = (float)ParseFloatArgOrError(argv[++i], "-bscale");
                     }
                     else
                     {
@@ -5592,7 +5609,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc)
                     {
-                        int v = atoi(argv[++i]);
+                        int v = ParseIntArgOrError(argv[++i], "-minlight");
                         v = qmax(0, qmin(v, 255));
                         g_minlight = (unsigned char)v;
                     }
@@ -5608,7 +5625,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc)
                     {
-                        g_softsky = (bool)atoi(argv[++i]);
+                        g_softsky = (bool)ParseIntArgOrError(argv[++i], "-softsky");
                     }
                     else
                     {
@@ -5627,10 +5644,10 @@ int main(const int argc, char** argv)
                     g_drawsample = true;
                     if (i + 4 < argc)
                     {
-                        g_drawsample_origin[0] = atof(argv[++i]);
-                        g_drawsample_origin[1] = atof(argv[++i]);
-                        g_drawsample_origin[2] = atof(argv[++i]);
-                        g_drawsample_radius = atof(argv[++i]);
+                        g_drawsample_origin[0] = ParseFloatArgOrError(argv[++i], "-drawsample");
+                        g_drawsample_origin[1] = ParseFloatArgOrError(argv[++i], "-drawsample");
+                        g_drawsample_origin[2] = ParseFloatArgOrError(argv[++i], "-drawsample");
+                        g_drawsample_radius = ParseFloatArgOrError(argv[++i], "-drawsample");
                     }
                     else
                     {
@@ -5664,7 +5681,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc)
                     {
-                        g_transfer_compress_type = (float_type)atoi(argv[++i]);
+                        g_transfer_compress_type = (float_type)ParseIntArgOrError(argv[++i], "-compress");
                         if (g_transfer_compress_type < 0 || g_transfer_compress_type >= float_type_count)
                             Usage();
                     }
@@ -5677,7 +5694,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc)
                     {
-                        g_rgbtransfer_compress_type = (vector_type)atoi(argv[++i]);
+                        g_rgbtransfer_compress_type = (vector_type)ParseIntArgOrError(argv[++i], "-rgbcompress");
                         if (g_rgbtransfer_compress_type < 0 || g_rgbtransfer_compress_type >= vector_type_count)
                             Usage();
                     }
@@ -5692,7 +5709,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc)
                     {
-                        g_translucentdepth = atof(argv[++i]);
+                        g_translucentdepth = ParseFloatArgOrError(argv[++i], "-depth");
                     }
                     else
                     {
@@ -5705,7 +5722,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc)
                     {
-                        g_blockopaque = atoi(argv[++i]);
+                        g_blockopaque = ParseIntArgOrError(argv[++i], "-blockopaque");
                     }
                     else
                     {
@@ -5735,7 +5752,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc)
                     {
-                        g_texreflectgamma = atof(argv[++i]);
+                        g_texreflectgamma = ParseFloatArgOrError(argv[++i], "-texreflectgamma");
                     }
                     else
                     {
@@ -5746,7 +5763,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc)
                     {
-                        g_texreflectscale = atof(argv[++i]);
+                        g_texreflectscale = ParseFloatArgOrError(argv[++i], "-texreflectscale");
                     }
                     else
                     {
@@ -5759,7 +5776,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc)
                     {
-                        g_blur = atof(argv[++i]);
+                        g_blur = ParseFloatArgOrError(argv[++i], "-blur");
                         if (g_blur > MAX_BLUR)
                         {
                             Warning("Blur value %g exceeds maximum %g, clamping.", g_blur, (vec_t)MAX_BLUR);
@@ -5789,7 +5806,7 @@ int main(const int argc, char** argv)
                 {
                     if (i + 1 < argc)
                     {
-                        g_texlightgap = atof(argv[++i]);
+                        g_texlightgap = ParseFloatArgOrError(argv[++i], "-texlightgap");
                     }
                     else
                     {
@@ -5904,7 +5921,7 @@ int main(const int argc, char** argv)
 #else
     strcpy(g_source, mapname_from_arg);
     StripExtension(g_source);
-    DefaultExtension(g_source, ".bsp");
+    DefaultExtension(g_source, ".bsp", sizeof(g_source));
 #endif
             LoadBSPFile(g_source);
 #ifdef ZHLT_64BIT_FIX

@@ -34,6 +34,8 @@ These options are accepted by most tools:
 | `-noinfo` | Do not show tool configuration information. |
 | `-dev #` | Developer message level. |
 
+Numeric command-line values must be valid numbers. An invalid value stops the tool with `invalid value '<value>' for <option>` instead of silently becoming 0. Numbers read from map files, entities and data files keep their historical lenient parsing.
+
 ## hlcsg Options
 
 | Option | Description |

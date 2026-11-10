@@ -10,6 +10,10 @@
 #include "log.h"
 #include "mathlib.h"
 
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
+
 #ifdef SYSTEM_POSIX
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
@@ -183,14 +187,38 @@ char* FlipSlashes(char* string)
     return string;
 }
 
-void DefaultExtension(char* path, const char* extension)
+void DefaultExtension(char* path, const char* extension, size_t path_size)
 {
     int extension_pos, directory_pos;
     getFilePositions(path, &extension_pos, &directory_pos);
     if (extension_pos == -1)
     {
-        strcat(path, extension);
+        safe_strncat(path, extension, path_size);
     }
+}
+
+int ParseIntArgOrError(const char* value, const char* option)
+{
+    char* end = NULL;
+    errno = 0;
+    long parsed = strtol(value, &end, 10);
+    if (value == end || *end != '\0' || errno == ERANGE || parsed < INT_MIN || parsed > INT_MAX)
+    {
+        Error("invalid value '%s' for %s", value, option);
+    }
+    return (int)parsed;
+}
+
+double ParseFloatArgOrError(const char* value, const char* option)
+{
+    char* end = NULL;
+    errno = 0;
+    double parsed = strtod(value, &end);
+    if (value == end || *end != '\0' || errno == ERANGE)
+    {
+        Error("invalid value '%s' for %s", value, option);
+    }
+    return parsed;
 }
 
 void StripFilename(char* path)
@@ -310,7 +338,7 @@ char* FlipSlashes(char* string)
     return string;
 }
 
-void DefaultExtension(char* path, const char* extension)
+void DefaultExtension(char* path, const char* extension, size_t path_size)
 {
     char* src;
 
@@ -327,7 +355,7 @@ void DefaultExtension(char* path, const char* extension)
         src--;
     }
 
-    strcat(path, extension);
+    safe_strncat(path, extension, path_size);
 }
 
 void StripFilename(char* path)

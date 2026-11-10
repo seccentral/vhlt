@@ -85,7 +85,7 @@ char* findparams(char* cmdlineparams, char* params)
 void addparams(char* cmdline, char* params, unsigned int n)
 {
     if (strlen(cmdline) + strlen(params) + 1 <= n)
-        strcat(cmdline, params);
+        safe_strncat(cmdline, params, n);
     else
         error = true;
 }
@@ -216,17 +216,17 @@ const char* nextword(const char* s, char* token, unsigned int n)
 void parsearg(int argc, char** argv, char* cmdline, unsigned int n)
 {
     int i;
-    strcpy(cmdline, "");
-    strcat(cmdline, "<");
-    strcat(cmdline, g_Program);
-    strcat(cmdline, ">");
-    strcat(cmdline, SEPSTR);
+    cmdline[0] = '\0';
+    safe_strncat(cmdline, "<", n);
+    safe_strncat(cmdline, g_Program, n);
+    safe_strncat(cmdline, ">", n);
+    safe_strncat(cmdline, SEPSTR, n);
     for (i = 1; i < argc; ++i)
     {
         if (strlen(cmdline) + strlen(argv[i]) + strlen(SEPSTR) + 1 <= n)
         {
-            strcat(cmdline, argv[i]);
-            strcat(cmdline, SEPSTR);
+            safe_strncat(cmdline, argv[i], n);
+            safe_strncat(cmdline, SEPSTR, n);
         }
         else
             error = true;
@@ -315,8 +315,8 @@ void ParseParamFile(const int argc, char** const argv, int& argcnew, char**& arg
                 break;
             if (strlen(token) + strlen(SEPSTR) + 1 <= MAXTOKEN)
             {
-                strcpy(words, token);
-                strcat(words, SEPSTR);
+                safe_strncpy(words, token, MAXTOKEN);
+                safe_strncat(words, SEPSTR, MAXTOKEN);
             }
             else
             {
@@ -334,8 +334,8 @@ void ParseParamFile(const int argc, char** const argv, int& argcnew, char**& arg
                 }
                 if (strlen(words) + strlen(token) + strlen(SEPSTR) + 1 <= MAXTOKEN)
                 {
-                    strcat(words, token);
-                    strcat(words, SEPSTR);
+                    safe_strncat(words, token, MAXTOKEN);
+                    safe_strncat(words, SEPSTR, MAXTOKEN);
                 }
                 else
                 {

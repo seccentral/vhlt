@@ -18,7 +18,7 @@ void LoadWadconfig(const char* filename, const char* configname)
             skip = false;
             found++;
         }
-        if (!GetToken(true) || strcasecmp(g_token, "{"))
+        if (!GetToken(true) || strcasecmp(g_token, "{") != 0)
         {
             Error("parsing '%s': missing '{'.", filename);
         }

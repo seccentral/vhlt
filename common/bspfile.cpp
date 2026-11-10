@@ -1448,6 +1448,7 @@ int ParseImplicitTexinfoFromTexture(int miptex)
         return -1;
     }
 
+    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient entity key parsing is intentional
     texinfo = atoi(&name[5]);
     if (texinfo < 0 || texinfo >= g_numtexinfo)
     {
@@ -1658,7 +1659,7 @@ bool ParseEntity()
         return false;
     }
 
-    if (strcmp(g_token, "{"))
+    if (strcmp(g_token, "{") != 0)
     {
         Error("ParseEntity: { not found");
     }
@@ -1824,6 +1825,7 @@ void UnparseEntities()
         {
             float vec[3] = {0, 0, 0};
             {
+                // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient entity key parsing is intentional
                 sscanf(ValueForKey(mapent, "angles"), "%f %f %f", &vec[0], &vec[1], &vec[2]);
                 float pitch = FloatForKey(mapent, "pitch");
                 if (pitch)
@@ -1836,7 +1838,9 @@ void UnparseEntities()
                     if (targetent)
                     {
                         float origin1[3] = {0, 0, 0}, origin2[3] = {0, 0, 0}, normal[3];
+                        // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient entity key parsing is intentional
                         sscanf(ValueForKey(mapent, "origin"), "%f %f %f", &origin1[0], &origin1[1], &origin1[2]);
+                        // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient entity key parsing is intentional
                         sscanf(ValueForKey(targetent, "origin"), "%f %f %f", &origin2[0], &origin2[1], &origin2[2]);
                         VectorSubtract(origin2, origin1, normal);
                         anglesforvector(vec, normal);
@@ -1896,7 +1900,7 @@ void UnparseEntities()
             {
                 SetKeyValue(mapent, "classname", "light");
             }
-            else if (strncmp(newclassname, "light", 5))
+            else if (strncmp(newclassname, "light", 5) != 0)
             {
                 Error("New classname for 'light_surface' should begin with 'light' not '%s'.\n", newclassname);
             }
@@ -1925,8 +1929,8 @@ void UnparseEntities()
             const char* classname = ValueForKey(ent, "classname");
             const char* targetname = ValueForKey(ent, "targetname");
             int style = IntForKey(ent, "style");
-            if (!targetname[0] || (strcmp(classname, "light") && strcmp(classname, "light_spot") &&
-                                   strcmp(classname, "light_environment")))
+            if (!targetname[0] || (strcmp(classname, "light") != 0 && strcmp(classname, "light_spot") != 0 &&
+                                   strcmp(classname, "light_environment") != 0))
                 continue;
             for (j = i + 1; j < g_numentities; j++)
             {
@@ -1969,7 +1973,7 @@ void UnparseEntities()
         {
             Error("Entity text too long");
         }
-        strcat(end, "{\n");
+        memcpy(end, "{\n", 3);
         end += 2;
 
         for (ep = g_entities[i].epairs; ep; ep = ep->next)
@@ -1989,7 +1993,7 @@ void UnparseEntities()
         {
             Error("Entity text too long");
         }
-        strcat(end, "}\n");
+        memcpy(end, "}\n", 3);
         end += 2;
 
         if (end + 1 > buf + MAX_MAP_ENTSTRING)
@@ -2078,6 +2082,7 @@ const char* ValueForKey(const entity_t* const ent, const char* const key)
 // =====================================================================================
 int IntForKey(const entity_t* const ent, const char* const key)
 {
+    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient entity key parsing is intentional
     return atoi(ValueForKey(ent, key));
 }
 
@@ -2086,6 +2091,7 @@ int IntForKey(const entity_t* const ent, const char* const key)
 // =====================================================================================
 vec_t FloatForKey(const entity_t* const ent, const char* const key)
 {
+    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient entity key parsing is intentional
     return atof(ValueForKey(ent, key));
 }
 
@@ -2101,6 +2107,7 @@ void GetVectorForKey(const entity_t* const ent, const char* const key, vec3_t ve
     k = ValueForKey(ent, key);
     // scanf into doubles, then assign, so it is vec_t size independent
     v1 = v2 = v3 = 0;
+    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): lenient entity key parsing is intentional
     sscanf(k, "%lf %lf %lf", &v1, &v2, &v3);
     vec[0] = v1;
     vec[1] = v2;

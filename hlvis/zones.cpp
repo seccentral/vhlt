@@ -84,6 +84,7 @@ Zones* MakeZones(void)
 
         if (!strcasecmp(ValueForKey(ent, "classname"), "func_vis"))
         {
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): ZHLT_ZONES is disabled; this path is unreachable
             UINT32 value = atoi(ValueForKey(ent, "node"));
             if (value)
             {
@@ -110,6 +111,7 @@ Zones* MakeZones(void)
 
         if (!strcasecmp(ValueForKey(ent, "classname"), "func_vis"))
         {
+            // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): ZHLT_ZONES is disabled; this path is unreachable
             UINT32 func_vis_id = atoi(ValueForKey(ent, "node"));
 
             {
@@ -117,6 +119,7 @@ Zones* MakeZones(void)
 
                 for (keyvalue = ent->epairs; keyvalue; keyvalue = keyvalue->next)
                 {
+                    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion): ZHLT_ZONES is disabled; this path is unreachable
                     UINT32 other_id = atoi(keyvalue->key);
                     if (other_id)
                     {
