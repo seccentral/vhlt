@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `MAX_MAP_PORTALS` is defined once in `common/bspfile.h` and shared by hlbsp and hlvis.
 
+### Documentation
+- README: links to the manual, developer guide and changelog; lists the package and lint targets, preset, install layout, CI and smoke behaviour; marks the Makefile as POSIX-only.
+- Developer guide: `Doxyfile.in`, CI and clangd notes, thread clamp, and shared input-validation helpers.
+- AGENTS.md: package gate, smoke exit code, CI version check in the release checklist.
+- Manual: `-threads` range.
+- Added `docs/llms.txt`, a complete agent reference linked from AGENTS.md and README.
+
 ## [3.5.2] - 2026-11-10
 
 ### Added

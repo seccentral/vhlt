@@ -15,17 +15,20 @@ VHLT is a set of command-line tools for compiling Half-Life maps (`.map`) into B
 - `common/`: shared code used by all tools (math, BSP I/O, logging, threading, file helpers).
 - `template/`: template math and reference-counting headers.
 - `hlcsg/`, `hlbsp/`, `hlvis/`, `hlrad/`, `ripent/`: tool-specific sources and headers.
-- `docs/`: user manual (`user/manual.md`), developer guide (`developer/developer.md`), and Doxygen configuration (`api/Doxyfile`).
+- `docs/`: user manual (`user/manual.md`), developer guide (`developer/developer.md`), and Doxygen template (`api/Doxyfile.in`, configured into the build directory by CMake).
 - `audits/`: audit reports and handling status.
-- `CMakeLists.txt`, `CMakePresets.json`: build configuration.
+- `CMakeLists.txt`, `CMakePresets.json`: build configuration. `Makefile`: legacy POSIX-only build.
+- `.clangd`: clangd configuration (uses `build/compile_commands.json`).
+- `.github/workflows/.github.yml`: CI (Linux, macOS, Windows; build, docs, smoke).
 
 ## Build
 
 ```sh
 cmake -S . -B build -G "MinGW Makefiles"   # Windows/MinGW
 cmake --build build
-cmake --build build --target docs
-cmake --build build --target package
+cmake --build build --target docs      # build/docs/html
+cmake --build build --target package   # build/vhlt-<version>-<platform>.zip
+cmake --build build --target lint      # cppcheck, if installed
 ```
 
 ## Entry Points
@@ -51,7 +54,19 @@ The codebase uses extensive global state (e.g., `g_entities`, `g_dmodels`, `g_nu
 
 ## Threading
 
-`RunThreadsOn` / `RunThreadsOnIndividual` in `common/threads.cpp` drive parallel loops. Worker functions share global state; locking is via `ThreadLock()` / `ThreadUnlock()`.
+`RunThreadsOn` / `RunThreadsOnIndividual` in `common/threads.cpp` drive parallel loops. Worker functions share global state; locking is via `ThreadLock()` / `ThreadUnlock()`. The thread count is clamped to `[1, MAX_THREADS]` (64) because per-thread arrays are fixed-size.
+
+## Input Validation
+
+Every reader of external data must validate counts, offsets and sizes before allocating or indexing. Reuse the shared checks instead of writing new ones:
+
+- `CopyLump` (`common/bspfile.cpp`): per-lump bounds against the file size and destination capacity.
+- `ValidateMiptexHeader` (`common/bspfile.h`): miptex dimensions, mip offsets and data size for BSP and WAD textures. Header-only miptex entries (`offsets[0] == 0`) reference an external WAD and carry no pixel data.
+- `MAX_MAP_PORTALS` (`common/bspfile.h`): shared `.prt` portal limit for hlbsp and hlvis.
+
+Use `safe_snprintf` / `safe_strncpy` / `safe_strncat`; the `strcpy_s` / `sprintf_s` compatibility macros have been removed.
+
+Before fixing a code path, confirm it is compiled in: the feature macros in `common/cmdlib.h` compile out large regions (for example `hlcsg/autowad.cpp` and `hlcsg/wadinclude.cpp`).
 
 ## Documentation
 
@@ -61,4 +76,4 @@ The codebase uses extensive global state (e.g., `g_entities`, `g_dmodels`, `g_nu
 
 ## Tests
 
-There are no automated tests. Verification is via build, docs, packaging, and smoke runs of each binary.
+There are no automated tests. Verification is via build, docs, packaging, and smoke runs of each binary. Running a tool with no arguments prints its version banner and exits with code 1; smoke checks must accept that exit code.

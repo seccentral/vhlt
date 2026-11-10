@@ -1,0 +1,165 @@
+# VHLT (Vluzacn's Zoner's Half-Life Tools)
+
+> Legacy C++11 command-line compilers that turn Half-Life `.map` source files into playable `.bsp` levels: `hlcsg` → `hlbsp` → `hlvis` → `hlrad`, plus `ripent` for editing compiled BSPs. About 67k lines across `common/` and one folder per tool. CMake is the primary build. The code uses heavy global state, threads, and fixed-size arrays, and it has no automated tests. This file gives an agent everything it needs to build, navigate, change and verify the code safely.
+
+Current version: 3.5.2 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `ZHLT_VERSIONSTRING`, `docs/api/Doxyfile.in` `PROJECT_NUMBER`, CI smoke check). Main branch: `master`. Primary platform: Windows with MinGW-w64 (64-bit). Linux and macOS are supported through POSIX code paths.
+
+## Docs
+
+- [AGENTS.md](../AGENTS.md): project rules, coding standards, gates, release lifecycle (authoritative).
+- [README.md](../README.md): build, targets, install, notes.
+- [docs/user/manual.md](user/manual.md): every command-line option of every tool. Keep it in sync with each tool's `Usage()` output.
+- [docs/developer/developer.md](developer/developer.md): layout, entry points, shared modules, validation helpers.
+- [CHANGELOG.md](../CHANGELOG.md): Keep a Changelog format. All user-visible changes go under `[Unreleased]`.
+- [audits/final-audit-2026-11-10.md](../audits/final-audit-2026-11-10.md): canonical audit, with prioritized defects and known risky areas.
+- [audits/2026-11-10/handling.md](../audits/2026-11-10/handling.md): status (Fixed/Mitigated/Accepted) of every audit finding.
+- [audits/fixer-handout-2026-11-10.md](../audits/fixer-handout-2026-11-10.md): batch fix plan with per-item fix guidance.
+
+## Build and verify
+
+```sh
+cmake -S . -B build -G "MinGW Makefiles"   # Windows/MinGW (omit -G on Linux/macOS)
+cmake --build build -j                     # all five tools -> build/bin/
+cmake --build build --target docs          # Doxygen -> build/docs/html/index.html
+cmake --build build --target package       # CPack ZIP -> build/vhlt-<version>-<platform>.zip
+cmake --build build --target lint          # cppcheck, if installed
+cmake --preset default && cmake --build --preset default   # Release preset into build/
+```
+
+- **Gates (must pass before committing):**
+  1. Configure.
+  2. Build all five tools.
+  3. `docs`.
+  4. Smoke test.
+  5. `package`.
+  6. `lint`, when cppcheck is installed.
+  7. Review the working tree for stray artifacts.
+- **Smoke test:** run each `build/bin/<tool>` with **no arguments**. It prints `<tool> v3.5.2 VL35 64-bit (<date>)` as its first line and then usage. **The exit code is 1 by design**; check the banner, not the exit code.
+- **Warning baseline:** about 333 GCC warnings on a clean MinGW build (sign-compare, unknown-pragmas, maybe-uninitialized, …). Don't add new warnings in lines you touch.
+- **Debug builds:** `CMAKE_BUILD_TYPE=Debug` enables `hlassert`/`assert`. `NDEBUG` comes only from CMake's Release flags.
+- **CI:** `.github/workflows/.github.yml` runs a matrix of ubuntu/macos/windows × g++/clang++, with configure, build, docs and smoke steps. The smoke step greps a hard-coded version string, so bump it on release.
+- **Makefile:** a legacy, POSIX-only build. It hard-codes `VERSION_LINUX`/`SYSTEM_POSIX`, doesn't build docs or packages, and always rebuilds. Prefer CMake.
+- **Code navigation:** `build/compile_commands.json` is generated (`CMAKE_EXPORT_COMPILE_COMMANDS`), and `.clangd` points clangd at it. Configure first if you need LSP.
+- **Never commit** `build/`, `*.o` or `buildwarn.txt`.
+
+## Compile pipeline and file flow
+
+| Step | Reads | Writes | Purpose |
+|---|---|---|---|
+| `hlcsg map` | `map.map`, WADs (`-wadautodetect`, `wad.cfg`), optional hull file | `map.p0..p3` (hull polygons), `map.b0..b3`, `map.pln` (planes), `map.hsz` (hull sizes), `map.wa_` (textures for hlrad), `map.bsp` (entities and textures) | CSG: brushes → clipped faces for 4 hulls |
+| `hlbsp map` | `.p0..p3`, `.pln`, `.hsz`, `.bsp` | `map.bsp` (geometry), `map.prt` (portals), `map.pts`/`map.lin` (leak pointfile), `map.ext` | BSP tree, portals, leak detection, surfaces |
+| `hlvis map` | `map.prt`, `map.bsp` | vis lump in `map.bsp` | PVS (potentially visible set) |
+| `hlrad map` | `map.bsp`, `map.wa_`/WADs, `lights.rad`, `map.rad` | lighting lump in `map.bsp`, `map.inc` (incremental transfers, with `-inc`), `map.dlit` (Xash only) | Radiosity lighting |
+| `ripent map` | `map.bsp`, `map.ent`, `map.wad`/`map.tex` | edits `map.bsp` **in place** | `-export`/`-import` of entities, `-textureexport`/`-textureimport` |
+
+- **Logs:** every tool appends to `map.log` and writes errors to `map.err`.
+- **Cleanup:** `common/log.cpp` (~line 76) lists the intermediate files that are deleted on a clean run.
+- **Engine limits** (`MAX_SURFACE_EXTENT`, `MAX_MAP_LEAFS_ENGINE` 8192) are stricter than tool limits.
+
+## Repository layout
+
+- `common/`: compiled into every tool (no library target; `VHLT_COMMON_SOURCES` in CMake).
+  - `cmdlib.{h,cpp}`: version strings, **feature macros**, platform macros, `safe_*` string helpers, path helpers (`DefaultExtension`, `StripExtension`, `ExtractFile*`, `FlipSlashes`), byte-swap helpers.
+  - `bspfile.{h,cpp}`: BSP structures (`dmodel_t`, `dface_t`, `miptex_t`, …), `MAX_MAP_*` limits, `LoadBSPFile`/`LoadBSPImage`/`WriteBSPFile`, `CopyLump`, `ValidateMiptexHeader`, the entity API (`ParseEntities`, `UnparseEntities`, `ValueForKey`, `SetKeyValue`, `IntForKey`, `FloatForKey`), and the `g_d*` lump globals.
+  - `threads.{h,cpp}`: thread pool (`RunThreadsOn`, `RunThreadsOnIndividual`, `NamedRunThreadsOn*`, `GetThreadWork`, `ThreadLock`/`ThreadUnlock`, `ThreadSetDefault`), Win32 and POSIX implementations.
+  - `log.{h,cpp}`: `Log`, `Verbose`, `Developer(level, …)`, `Warning`, `Error` (**never returns**; exits the process), `hlassume(cond, assume_X)`, `CheckFatal`, log file handling.
+  - `messages.{h,cpp}`: the `assume_msgs` table used by `hlassume`.
+  - `hlassert.h`: `hlassert`/`assume`. `hlassert` is a no-op unless `_DEBUG`.
+  - `blockmem.{h,cpp}`: `Alloc`/`Free` and `AllocBlock`/`FreeBlock`. Note: `AllocBlock(unsigned long)` is 32-bit on Win64. Don't mix allocator families.
+  - `filelib.{h,cpp}`: `SafeOpenRead`/`SafeOpenWrite`, `SafeRead`/`SafeWrite` (call `Error` on a short read or write), `LoadFile`, `q_filelength`, `q_exists`.
+  - `scriplib.{h,cpp}`: tokenizer (`g_token[MAXTOKEN]`, `GetToken`, `$include`) used by the map and `.rad` parsers.
+  - `winding.{h,cpp}`: `Winding` class (polygon clipping, `Clip`, `Divide`, `Chop`). Limit: `MAX_POINTS_ON_WINDING` 128.
+  - `mathlib.{h,cpp}`, `mathtypes.h`: `vec_t`/`vec3_t`, `DotProduct`, `VectorAdd`, …, `NORMAL_EPSILON` 1e-5, `DIST_EPSILON`.
+  - `cmdlinecfg.cpp`: settings-file options. `win32fix.h`: POSIX shims (`_MAX_PATH` is 4096 on POSIX and **260 on Windows**).
+- `template/`: reference-counting and math templates. **Not used by any build source** (dead).
+- `hlcsg/`: `qcsg.cpp` (`main`, options, hull processing, `info_compile_parameters`), `map.cpp` (map parsing, func_group/func_detail merge), `brush.cpp` (brush expansion, `FindIntPlane`, `AddBrushPlane`, hull shapes), `textures.cpp` (WAD loading, `WriteMiptex`, texture name lookups), `wadpath.cpp`, `wadcfg.cpp`, `hullfile.cpp`, `properties.cpp`, `ansitoutf8.cpp`, `brushunion.cpp`. Mostly **dead**: `autowad.cpp`, `wadinclude.cpp`, and `wadcfg.cpp` after ~line 133.
+- `hlbsp/`: `qbsp.cpp` (`main`, reads hlcsg output), `solidbsp.cpp`, `brink.cpp`, `surfaces.cpp`, `merge.cpp`, `tjunc.cpp`, `outside.cpp` (leaks), `portals.cpp` (`WritePortalfile`), `writebsp.cpp`.
+- `hlvis/`: `vis.cpp` (`main`, `LoadPortals` .prt parser), `flow.cpp` (`BasePortalVis`, `RecursiveLeafFlow`, `ChopWinding`, `MaxDistVis`). `zones.cpp` is compiled out (no `ZHLT_ZONES`).
+- `hlrad/`: `qrad.cpp` (`main`, options, `.rad` texlights, patches, `GatherLight`), `lightmap.cpp` (direct lighting, sample positions, blur cache, `FinalLightFace`, `GetPhongNormal`), `lerp.cpp` (interpolation triangulation), `vismatrix.cpp`/`sparse.cpp`/`nomatrix.cpp` (three visibility-matrix strategies), `vismatrixutil.cpp` (transfer creation), `transfers.cpp` (`.inc` read and write), `loadtextures.cpp` (`LoadTexture`, reflectivity), `trace.cpp` (opaque ray tracing), `transparency.cpp`, `compress.{h,cpp}` (float/vector packing for transfers), `mathutil.cpp`, `qradutil.cpp`.
+- `ripent/ripent.cpp`: entity and texture import/export (`-export`, `-import`, `-textureexport`, `-textureimport`, `-textureparse`, `-texdata`, `-lightdata`).
+- `docs/`: `user/manual.md`, `developer/developer.md`, `api/Doxyfile.in` (CMake `configure_file` → `build/Doxyfile`; output follows `CMAKE_BINARY_DIR`), and this `llms.txt`.
+- `audits/`: audit reports. The canonical record is the consolidated or final report.
+
+## Build configuration that changes semantics
+
+- **Per-tool definitions** (CMake `EXTRA_DEFINITIONS`):
+  - `HLCSG` + `DOUBLEVEC_T` (hlcsg), `HLBSP` + `DOUBLEVEC_T` (hlbsp), `HLVIS` (hlvis), `HLRAD` (hlrad), `RIPENT` (ripent).
+  - `DOUBLEVEC_T` (`common/mathtypes.h`) makes `vec_t` a `double` in hlcsg and hlbsp. hlvis, hlrad and ripent use `float`. Shared code compiles differently per tool.
+- **Platform definitions:**
+  - Windows: `SYSTEM_WIN32`, `VERSION_64BIT`/`VERSION_32BIT`, `WIN32`, `_CONSOLE`, `STDC_HEADERS`.
+  - POSIX: `SYSTEM_POSIX`, `VERSION_LINUX`, and `HAVE_*` headers.
+  - There is no `config.h`; `HAVE_CONFIG_H` is never set.
+- **Feature macros:** `common/cmdlib.h` defines about 240 `ZHLT_*`/`HLCSG_*`/`HLBSP_*`/`HLVIS_*`/`HLRAD_*`/`RIPENT_*` macros, each with `#ifdef`/`#else` alternatives. **Do not change them**; the code was validated under them. Important ones:
+  - `HLCSG_AUTOWAD_NEW` and `HLCSG_WADCFG_NEW`: the old autowad, wadinclude and wadcfg paths are dead.
+  - `HLVIS_MAXDIST_NEW`: the old `.vis` parser is dead.
+  - `HLRAD_SPARSEVISMATRIX_FAST`, `RIPENT_TEXTURE`, `ZHLT_64BIT_FIX`.
+  - Defined by default for hlrad: `HLRAD_GROWSAMPLE`, `HLRAD_BLUR`, `HLRAD_AUTOCORING`, `HLRAD_LOCALTRIANGULATION`, `HLRAD_AVOIDWALLBLEED`.
+  - **Not** defined: `ZHLT_XASH`, `ZHLT_XASH2` (Xash engine variants), `ZHLT_ZONES`.
+- **Before editing any `#ifdef` region, confirm it is compiled in.** Several earlier "fixes" landed in dead code.
+- **Compiler flags:** GCC/Clang use `-Wall -Wno-deprecated-declarations -fno-strict-aliasing` (**strict aliasing must stay off**) and `-pthread` on POSIX. MSVC uses `/W3`. The language standard is C++11 with GNU extensions.
+
+## Key limits (common/bspfile.h unless noted)
+
+`MAX_MAP_MODELS` 512 · `MAX_MAP_BRUSHES` 32768 · `MAX_MAP_ENTITIES` 16384 · `MAX_MAP_ENTSTRING` 2 MiB · `MAX_MAP_PLANES` 32768 · `MAX_MAP_NODES`/`CLIPNODES` 32767 · `MAX_MAP_LEAFS` 32760 (engine 8192) · `MAX_MAP_VERTS`/`FACES`/`MARKSURFACES` 65535 · `MAX_MAP_TEXTURES` 4096 · `MAX_MAP_TEXINFO` 32767 · `MAX_MAP_EDGES` 256000 · `MAX_MAP_SURFEDGES` 512000 · `MAX_MAP_VISIBILITY` 8 MiB · `MAX_MAP_PORTALS` 32768 (shared by hlbsp and hlvis) · `DEFAULT_MAX_MAP_MIPTEX` 32 MiB (`-texdata`) · `DEFAULT_MAX_MAP_LIGHTDATA` 48 MiB (`-lightdata`) · `MAX_KEY` 128 · `MAX_VAL` 4096 · `MIPLEVELS` 4 · `MAX_MIPTEX_DIMENSION` 4096 (multiples of 16) · `MAXLIGHTMAPS` 4 · `MAX_SURFACE_EXTENT` 64 · `BSPVERSION` 30 · `MAX_THREADS` 64 (`common/threads.h`; the thread count is clamped to [1, 64]) · `MAXTOKEN` 4096 (`common/scriplib.h`) · `MAX_POINTS_ON_WINDING` 128 (`common/winding.h`) · `ALLSTYLES` 64, `MAX_PATCHES` 65535×16 (`hlrad/qrad.h`) · `MAX_PORTALS_ON_LEAF` 256 (`hlvis/vis.h`).
+
+## Coding rules (from AGENTS.md plus lessons from the audits)
+
+**Strings and memory:**
+- Use `safe_snprintf`, `safe_strncpy` and `safe_strncat` (`common/cmdlib.h`). They return false on truncation.
+  - Never add `strcpy`, `sprintf`, `strcat` or `strcpy_s`; the `strcpy_s`/`sprintf_s` compatibility macros were removed.
+  - `safe_strncpy` does **not** zero-pad. Use `memset` first for fixed 16-byte texture names.
+- Avoid large or unbounded stack arrays and `alloca` in recursive or threaded code; use bounded fixed arrays or checked heap memory.
+- Check every `malloc`/`calloc`/`realloc`, using `hlassume(p != NULL, assume_NoMemory)`. Assign `realloc` to a temporary first.
+- Initialize all variables and capacity fields (`Winding::m_MaxPoints`, counts).
+
+**Validating input:**
+- **Validate before allocating or indexing.** Every count, offset and size read from a file (BSP, WAD, `.prt`, `.inc`, `.rad`, `.map`, `.tex`) must be range-checked, including **negative values**.
+  - The most common bug here is a negative `int` that passes a `<= max` check and then becomes a huge `size_t` in `fread`.
+  - Do size math in `size_t` or `long long`.
+- **Reuse the shared validators** (DRY):
+  - `CopyLump` for lumps.
+  - `ValidateMiptexHeader(width, height, offsets, available_bytes, strict_offsets)` for miptex.
+  - `MAX_MAP_PORTALS` for portals.
+- **Miptex entries with `offsets[0] == 0` are header-only** (40 bytes, texture lives in an external WAD) and are valid in a BSP.
+- **Watch off-by-one patterns:** `index >= count` (not `>`), and the `arr[n] = arr[0]` wrap-around writes in winding code (size arrays to `MAX + 1`).
+
+**Errors:**
+- Report bad input with `Error("…")`, which logs and exits. Use `Warning` for recoverable problems.
+- `hlassume` is always active. `hlassert` is debug-only, so don't rely on it for safety.
+
+**Change discipline:**
+- Keep changes minimal (YAGNI). Don't refactor global state or long functions as a side effect. Preserve output for valid inputs, because compiled maps must not change.
+- Update `docs/user/manual.md` **and** the tool's `Usage()` text together when options change. Add Doxygen comments for shared helpers.
+- Record user-visible changes in `CHANGELOG.md` `[Unreleased]` (Fixed / Security / Changed / Documentation).
+
+## Concurrency model
+
+- **How work is split:** `RunThreadsOn(workcnt, pacifier, func)` calls `func(int index)` for each work item across `g_numthreads` workers. `RunThreadsOnIndividual` gives each thread its own loop. `GetThreadWork()` hands out indices under the lock.
+- **Locking:** all shared state is global. Writes to shared globals inside worker functions must be wrapped in `ThreadLock()`/`ThreadUnlock()`, or must touch only the current work item's own slot (the pattern used in hlrad per-face arrays).
+- **Thread-unsafe code:** avoid function-level `static` variables and `rand()` in worker code. Known benign races are the hlrad warning counters and hlcsg `FindIntPlane` FASTFIND (accepted).
+- **Thread count:** `-threads N` sets `g_numthreads`. Auto-detection uses `ThreadSetDefault`, with affinity-aware counting on Linux. Win32 threads use the default stack size, so deep recursion in hlvis (`SimpleFlood`, `RecursiveLeafFlow`) needs a large stack. The README asks for at least 4 MB.
+
+## Gotchas
+
+- **`Error()` does not return.** Code after it is unreachable; GCC may still warn about misleading indentation there.
+- **`ValueForKey` never returns NULL; it returns `""`.** Test `*ValueForKey(...)`.
+- **`info_compile_parameters` keys are applied while the map is loading**, after some buffers are already allocated. Check the ordering in `qcsg.cpp` `main`, for example `dtexdata_init` vs `LoadMapFile`.
+- **Entity 0 must be `worldspawn`.** The hlcsg merge code assumes it.
+- **`ripent -import` rewrites the source `.bsp` in place** with no backup.
+- **Several options and keys once silently did nothing** (hlbsp `-threads` shadowed by a local variable, hlcsg `hullfile` key, hlrad `smooth` key). Verify that an option actually reaches the global it is meant to set.
+- **`long` is 32-bit on Win64.** Don't use `long`/`unsigned long` for sizes that can exceed 2 GB.
+- **WAD and BSP data are little-endian.** Use `LittleLong`/`LittleShort`/`LittleFloat`. Some WAD fields are not swapped, so big-endian hosts are unsupported in practice.
+- **Behaviour changes in geometry code** (`IPlaneEquiv`, `AddBrushPlane`, winding clipping, epsilons) alter compiled maps. Treat them as high-risk and don't "fix" apparent copy-paste code without proving intent.
+
+## Release checklist
+
+1. Move the `[Unreleased]` entries into `## [x.y.z] - YYYY-MM-DD`.
+2. Bump the version in `CMakeLists.txt` (`project VERSION`), `common/cmdlib.h` (both `ZHLT_VERSIONSTRING` lines: release and `dbg`), `docs/api/Doxyfile.in` (`PROJECT_NUMBER`), and `.github/workflows/.github.yml` (the smoke grep).
+3. Run all gates, then commit.
+4. Create an annotated tag `v<major>.<minor>.<patch>`. Only commit and tag after the gates pass.
+
+## Optional
+
+- **Upstream background:** derived from Zoner's Half-Life Compilation Tools 3.4, modified by vluzacn (the `--vluzacn` comments mark his changes). The GitHub fork is FreeSlave/vhlt (CI badge in the README).
+- **Terms of Use:** `Terms of Use.txt`, which is shipped in the ZIP and installed to `share/doc/vhlt`.
+- **Open audit items:** see `audits/final-audit-2026-11-10.md` §4 and `audits/2026-11-10/handling.md`. The remaining risk areas are hlrad numerical edge cases, threading globals, and the absence of tests or fuzzing.

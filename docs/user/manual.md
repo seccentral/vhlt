@@ -26,7 +26,7 @@ These options are accepted by most tools:
 | `-chart` | Display BSP statistics. |
 | `-low` / `-high` | Run at altered process priority. |
 | `-nolog` | Do not generate compile log files. |
-| `-threads #` | Manually specify thread count. |
+| `-threads #` | Manually specify thread count (1 to 64; larger values are clamped). |
 | `-estimate` | Display estimated time during compile. |
 | `-verbose` | Verbose messages. |
 | `-noinfo` | Do not show tool configuration information. |
