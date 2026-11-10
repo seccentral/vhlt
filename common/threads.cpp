@@ -309,10 +309,16 @@ void            ThreadSetDefault()
     if (g_numthreads == -1)                                // not set manually
     {
         GetSystemInfo(&info);
-        g_numthreads = info.dwNumberOfProcessors;
-        if (g_numthreads < 1 || g_numthreads > 32)
+        g_numthreads = (int)info.dwNumberOfProcessors;
+        if (g_numthreads < 1)
         {
+            Warning("ThreadSetDefault: invalid processor count, using 1");
             g_numthreads = 1;
+        }
+        else if (g_numthreads > MAX_THREADS)
+        {
+            Warning("ThreadSetDefault: processor count %d exceeds MAX_THREADS, clamping to %d", g_numthreads, MAX_THREADS);
+            g_numthreads = MAX_THREADS;
         }
     }
 }
@@ -398,6 +404,17 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
     threaded = true;
     q_entry = func;
 
+    if (g_numthreads < 1)
+    {
+        Warning("RunThreadsOn: thread count %d below 1, using 1", g_numthreads);
+        g_numthreads = 1;
+    }
+    else if (g_numthreads > MAX_THREADS)
+    {
+        Warning("RunThreadsOn: thread count %d exceeds MAX_THREADS, clamping to %d", g_numthreads, MAX_THREADS);
+        g_numthreads = MAX_THREADS;
+    }
+
     if (workcount < dispatch)
     {
         Developer(DEVELOPER_LEVEL_ERROR, "RunThreadsOn: Workcount(%i) < dispatch(%i)\n", workcount, dispatch);
@@ -458,7 +475,7 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
             // Process any inserts in lpMsgBuf.
             // ...
             // Display the string.
-            Developer(DEVELOPER_LEVEL_ERROR, "ResumeThread #%d [%08X] failed : %s\n", i, threadhandle[i], lpMsgBuf);
+            Developer(DEVELOPER_LEVEL_ERROR, "ResumeThread #%d [%p] failed : %s\n", i, (void*)threadhandle[i], lpMsgBuf);
             Fatal(assume_THREAD_ERROR, "Unable to start thread #%d", i);
             // Free the buffer.
             LocalFree(lpMsgBuf);
@@ -469,7 +486,7 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
     // Wait for threads to complete
     for (i = 0; i < g_numthreads; i++)
     {
-        Developer(DEVELOPER_LEVEL_MESSAGE, "WaitForSingleObject on thread #%d [%08X]\n", i, threadhandle[i]);
+        Developer(DEVELOPER_LEVEL_MESSAGE, "WaitForSingleObject on thread #%d [%p]\n", i, (void*)threadhandle[i]);
         WaitForSingleObject(threadhandle[i], INFINITE);
         CloseHandle(threadhandle[i]);
         threadhandle[i] = NULL;
@@ -539,7 +556,7 @@ void            ThreadSetPriority(q_threadpriority type)
 static int UnixThreadDefault()
 {
     long sysconfResult = sysconf(_SC_NPROCESSORS_ONLN);
-    if (sysconfResult) {
+    if (sysconfResult > 0) {
         return (int)sysconfResult;
     }
     return -1;
@@ -559,10 +576,14 @@ static int PlatformThreadDefault()
     } else {
         int i;
         int count = 0;
-        for (i = 0; i < CPU_COUNT(&cs); i++)
+        for (i = 0; i < CPU_SETSIZE; i++)
         {
             if (CPU_ISSET(i, &cs))
                 count++;
+        }
+        if (count < 1)
+        {
+            count = 1;
         }
         return count;
     }
@@ -583,9 +604,7 @@ static int PlatformThreadDefault()
 #endif
     unsigned int number;
     size_t len = sizeof(unsigned int);
-    sysctlbyname(name, &number, &len, NULL, 0);
-
-    if (number < 1) {
+    if (sysctlbyname(name, &number, &len, NULL, 0) != 0 || number < 1) {
         return UnixThreadDefault();
     } else {
         return (int)number;
@@ -608,8 +627,14 @@ void            ThreadSetDefault()
     if (g_numthreads == -1)
     {
         g_numthreads = PlatformThreadDefault();
-        if (g_numthreads == -1) {
+        if (g_numthreads < 1)
+        {
             g_numthreads = 1;
+        }
+        else if (g_numthreads > MAX_THREADS)
+        {
+            Warning("ThreadSetDefault: thread count %d exceeds MAX_THREADS, clamping to %d", g_numthreads, MAX_THREADS);
+            g_numthreads = MAX_THREADS;
         }
     }
 }
@@ -715,12 +740,12 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
 
     threads_InitCrit();
 
-    if (pthread_attr_init(&attrib) == -1)
+    if (pthread_attr_init(&attrib) != 0)
     {
         Error("pthread_attr_init failed");
     }
 #ifdef _POSIX_THREAD_ATTR_STACKSIZE
-    if (pthread_attr_setstacksize(&attrib, 0x400000) == -1)
+    if (pthread_attr_setstacksize(&attrib, 0x400000) != 0)
     {
         Error("pthread_attr_setstacksize failed");
     }
@@ -728,15 +753,17 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
 
     for (i = 0; i < g_numthreads; i++)
     {
-        if (pthread_create(&work_threads[i], &attrib, ThreadEntryStub, (void*)i) == -1)
+        if (pthread_create(&work_threads[i], &attrib, ThreadEntryStub, (void*)(intptr_t)i) != 0)
         {
             Error("pthread_create failed");
         }
     }
 
+    pthread_attr_destroy(&attrib);
+
     for (i = 0; i < g_numthreads; i++)
     {
-        if (pthread_join(work_threads[i], &status) == -1)
+        if (pthread_join(work_threads[i], &status) != 0)
         {
             Error("pthread_join failed");
         }

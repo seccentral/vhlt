@@ -60,7 +60,9 @@ Before committing, all of the following must pass:
 2. Build: `cmake --build build` (all five tools)
 3. Docs: `cmake --build build --target docs`
 4. Smoke test: each tool runs and prints its version banner
-5. Working tree reviewed for accidental artifacts
+5. Lint: `cmake --build build --target lint` (cppcheck, multicore)
+6. LSP: clangd supported via `.clangd` and `build/compile_commands.json`
+7. Working tree reviewed for accidental artifacts
 
 ## Outputs
 

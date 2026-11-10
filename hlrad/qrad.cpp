@@ -282,7 +282,7 @@ void            GetParamsFromEnt(entity_t* mapent)
     if (iTmp > g_max_map_lightdata) //--vluzacn
     {
         g_max_map_lightdata = iTmp;
-        sprintf_s(szTmp, "%i", g_max_map_lightdata);
+        safe_snprintf(szTmp, sizeof(szTmp), "%i", g_max_map_lightdata);
         Log("%30s [ %-9s ]\n", "Lighting Data Memory", szTmp);
     }
 
@@ -703,7 +703,15 @@ static void     BaseLightForFace(const dface_t* const f, vec3_t light)
     //
     tx = &g_texinfo[f->texinfo];
 
+    if (tx->miptex < 0 || tx->miptex >= ((dmiptexlump_t*)g_dtexdata)->nummiptex)
+    {
+        return;
+    }
     ofs = ((dmiptexlump_t*)g_dtexdata)->dataofs[tx->miptex];
+    if (ofs < 0 || ofs >= g_texdatasize)
+    {
+        return;
+    }
     mt = (miptex_t*)((byte*) g_dtexdata + ofs);
 
     LightForTexture(mt->name, light);
@@ -1418,7 +1426,10 @@ void ReadCustomChopValue()
 		Developer (DEVELOPER_LEVEL_MESSAGE, "info_chopscale entity detected.\n");
 		for (i = 0; i < num; i++)
 		{
-			const char *texname = ((miptex_t*)(g_dtexdata+((dmiptexlump_t*)g_dtexdata)->dataofs[i]))->name;
+			int texofs = ((dmiptexlump_t*)g_dtexdata)->dataofs[i];
+			if (texofs < 0 || texofs >= g_texdatasize)
+				continue;
+			const char *texname = ((miptex_t*)(g_dtexdata + texofs))->name;
 			for (ep = mapent->epairs; ep; ep = ep->next)
 			{
 				if (strcasecmp (ep->key, texname))
@@ -1461,7 +1472,10 @@ void ReadCustomSmoothValue()
 		Developer (DEVELOPER_LEVEL_MESSAGE, "info_smoothvalue entity detected.\n");
 		for (i = 0; i < num; i++)
 		{
-			const char *texname = ((miptex_t*)(g_dtexdata+((dmiptexlump_t*)g_dtexdata)->dataofs[i]))->name;
+			int texofs = ((dmiptexlump_t*)g_dtexdata)->dataofs[i];
+			if (texofs < 0 || texofs >= g_texdatasize)
+				continue;
+			const char *texname = ((miptex_t*)(g_dtexdata + texofs))->name;
 			for (ep = mapent->epairs; ep; ep = ep->next)
 			{
 				if (strcasecmp (ep->key, texname))
@@ -1497,7 +1511,10 @@ void ReadTranslucentTextures()
 		Developer (DEVELOPER_LEVEL_MESSAGE, "info_translucent entity detected.\n");
 		for (i = 0; i < num; i++)
 		{
-			const char *texname = ((miptex_t*)(g_dtexdata+((dmiptexlump_t*)g_dtexdata)->dataofs[i]))->name;
+			int texofs = ((dmiptexlump_t*)g_dtexdata)->dataofs[i];
+			if (texofs < 0 || texofs >= g_texdatasize)
+				continue;
+			const char *texname = ((miptex_t*)(g_dtexdata + texofs))->name;
 			for (ep = mapent->epairs; ep; ep = ep->next)
 			{
 				if (strcasecmp (ep->key, texname))
@@ -1561,7 +1578,10 @@ void ReadLightingCone ()
 		Developer (DEVELOPER_LEVEL_MESSAGE, "info_angularfade entity detected.\n");
 		for (i = 0; i < num; i++)
 		{
-			const char *texname = ((miptex_t*)(g_dtexdata+((dmiptexlump_t*)g_dtexdata)->dataofs[i]))->name;
+			int texofs = ((dmiptexlump_t*)g_dtexdata)->dataofs[i];
+			if (texofs < 0 || texofs >= g_texdatasize)
+				continue;
+			const char *texname = ((miptex_t*)(g_dtexdata + texofs))->name;
 			for (ep = mapent->epairs; ep; ep = ep->next)
 			{
 				if (strcasecmp (ep->key, texname))

@@ -414,6 +414,10 @@ Winding::Winding(const dface_t& face
     dvertex_t*      dv;
     int             v;
 
+    if (face.numedges < 3 || face.numedges > MAX_POINTS_ON_WINDING)
+    {
+        Error("Winding::Winding: invalid face numedges");
+    }
     m_NumPoints = face.numedges;
     m_MaxPoints = m_NumPoints;
     m_Points = new vec3_t[m_MaxPoints];
@@ -902,8 +906,8 @@ bool Winding::Clip(const dplane_t& split, bool keepon
 #endif
 				   )
 {
-    vec_t           dists[MAX_POINTS_ON_WINDING];
-    int             sides[MAX_POINTS_ON_WINDING];
+    vec_t           dists[MAX_POINTS_ON_WINDING + 1];
+    int             sides[MAX_POINTS_ON_WINDING + 1];
     int             counts[3];
     vec_t           dot;
     int             i, j;
@@ -1069,8 +1073,8 @@ void Winding::Divide(const dplane_t& split, Winding** front, Winding** back
 #endif
 					 )
 {
-    vec_t           dists[MAX_POINTS_ON_WINDING];
-    int             sides[MAX_POINTS_ON_WINDING];
+    vec_t           dists[MAX_POINTS_ON_WINDING + 1];
+    int             sides[MAX_POINTS_ON_WINDING + 1];
     int             counts[3];
     vec_t           dot;
     int             i, j;

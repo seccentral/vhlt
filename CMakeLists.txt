@@ -211,3 +211,23 @@ set(CPACK_GENERATOR "ZIP")
 set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY ON)
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/Terms of Use.txt")
 include(CPack)
+
+# ----------------------------------------------------------------------
+# Linting
+# ----------------------------------------------------------------------
+find_program(CPPCHECK_EXECUTABLE cppcheck)
+if(CPPCHECK_EXECUTABLE)
+    add_custom_target(lint
+        COMMAND "${CPPCHECK_EXECUTABLE}" -j 8 --enable=warning,performance,portability
+            --std=c++11 --quiet
+            "${CMAKE_CURRENT_SOURCE_DIR}/common"
+            "${CMAKE_CURRENT_SOURCE_DIR}/hlcsg"
+            "${CMAKE_CURRENT_SOURCE_DIR}/hlbsp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/hlvis"
+            "${CMAKE_CURRENT_SOURCE_DIR}/hlrad"
+            "${CMAKE_CURRENT_SOURCE_DIR}/ripent"
+            "${CMAKE_CURRENT_SOURCE_DIR}/template"
+        COMMENT "Running cppcheck (multicore)"
+        VERBATIM
+    )
+endif()

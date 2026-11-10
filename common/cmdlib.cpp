@@ -405,7 +405,7 @@ void            ExtractFileExtension(const char* const path, char* dest)
         return;
     }
 
-    strcpy_s(dest, src);
+    safe_strncpy(dest, src, _MAX_PATH);
 }
 
 #endif

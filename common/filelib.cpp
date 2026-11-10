@@ -200,6 +200,11 @@ int             LoadFile(const char* const filename, char** bufferptr)
 
     f = SafeOpenRead(filename);
     length = q_filelength(f);
+    if (length < 0)
+    {
+        fclose(f);
+        Error("LoadFile: invalid file length");
+    }
     buffer = (char*)Alloc(length + 1);
     SafeRead(f, buffer, length);
     fclose(f);

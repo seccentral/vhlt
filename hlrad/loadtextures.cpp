@@ -231,8 +231,11 @@ void DefaultTexture (radtexture_t *tex, const char *name)
 	int i;
 	tex->width = 16;
 	tex->height = 16;
-	strncpy (tex->name, name, 16); tex->name[16 - 1] = '\0';
-	tex->name[16 - 1] = '\0';
+	{
+		char tmpname[16];
+		strncpy (tmpname, name, 16); tmpname[16 - 1] = '\0';
+		strncpy (tex->name, tmpname, 16); tex->name[16 - 1] = '\0';
+	}
 	tex->canvas = (byte *)malloc (tex->width * tex->height);
 	hlassume (tex->canvas != NULL, assume_NoMemory);
 	for (i = 0; i < 256; i++)
@@ -254,7 +257,7 @@ void LoadTexture (radtexture_t *tex, const miptex_t *mt, int size)
 	tex->height = header->height;
 	strncpy (tex->name, header->name, 16); tex->name[16 - 1] = '\0';
 	tex->name[16 - 1] = '\0';
-	if (tex->width <= 0 || tex->height <= 0 ||
+	if (tex->width <= 0 || tex->height <= 0 || tex->width > 4096 || tex->height > 4096 ||
 		tex->width % (2 * 1 << (MIPLEVELS - 1)) != 0 || tex->height % (2 * (1 << (MIPLEVELS - 1))) != 0)
 	{
 		Error ("Texture '%s': dimension (%dx%d) is not multiple of %d.", tex->name, tex->width, tex->height, 2 * (1 << (MIPLEVELS - 1)));

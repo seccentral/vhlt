@@ -48,7 +48,7 @@ static void     AddScriptToStack(const char* const filename)
     if (s_script == &s_scriptstack[MAX_INCLUDES])
         Error("s_script file exceeded MAX_INCLUDES");
 
-	strcpy_s(s_script->filename, filename);
+	safe_strncpy(s_script->filename, filename, sizeof(s_script->filename));
 
     size = LoadFile(s_script->filename, (char**)&s_script->buffer);
 
@@ -82,7 +82,7 @@ void            ParseFromMemory(char* buffer, const int size)
     if (s_script == &s_scriptstack[MAX_INCLUDES])
         Error("s_script file exceeded MAX_INCLUDES");
 
-	strcpy_s(s_script->filename, "memory buffer");
+		safe_strncpy(s_script->filename, "memory buffer", sizeof(s_script->filename));
 
     s_script->buffer = buffer;
     s_script->line = 1;
@@ -218,7 +218,7 @@ skipspace:
             if (s_script->script_p == s_script->end_p)
                 break;
 
-            if (token_p == &g_token[MAXTOKEN])
+            if (token_p >= &g_token[MAXTOKEN - 1])
                 Error("Token too large on line %i\n", s_scriptline);
         }
         s_script->script_p++;
@@ -237,7 +237,7 @@ skipspace:
             if (s_script->script_p == s_script->end_p)
                 break;
 
-            if (token_p == &g_token[MAXTOKEN])
+            if (token_p >= &g_token[MAXTOKEN - 1])
                 Error("Token too large on line %i\n", s_scriptline);
         }
     }

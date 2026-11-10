@@ -155,7 +155,7 @@ void ParseEntityData(const char *cTab, int iTabLength, const char *cNewLine, int
 				}
 				else
 				{
-					sprintf_s(cError, "expected token %s on line %d.", "{", iLine);
+					safe_snprintf(cError, sizeof(cError), "expected token %s on line %d.", "{", iLine);
 					throw cError;
 				}
 			}
@@ -172,7 +172,7 @@ void ParseEntityData(const char *cTab, int iTabLength, const char *cNewLine, int
 					// Parse the start of a string.
 					if(!ScanForToken('\"', iIndex, iLine, false, false, &iStart))
 					{
-						sprintf_s(cError, "expected token %s on line %d.", "\"", iLine);
+						safe_snprintf(cError, sizeof(cError), "expected token %c on line %d.", '"', iLine);
 						throw cError;
 					}
 
@@ -180,7 +180,7 @@ void ParseEntityData(const char *cTab, int iTabLength, const char *cNewLine, int
 					// Parse the end of a string.
 					if(!ScanForToken('\"', iIndex, iLine, true, true, &iEnd))
 					{
-						sprintf_s(cError, "expected token %s on line %d.", "\"", iLine);
+						safe_snprintf(cError, sizeof(cError), "expected token %c on line %d.", '"', iLine);
 						throw cError;
 					}
 
@@ -204,7 +204,7 @@ void ParseEntityData(const char *cTab, int iTabLength, const char *cNewLine, int
 					}
 					else
 					{
-						sprintf_s(cError, "expected token %s on line %d.", "}", iLine);
+						safe_snprintf(cError, sizeof(cError), "expected token %s on line %d.", "}", iLine);
 						throw cError;
 					}
 				}
@@ -674,6 +674,8 @@ static void		ReadTextures(const char *name)
 		SafeRead (wadfile, (byte *)g_dtexdata + dataofs, g_texdatasize - dataofs);
 
 		lumpinfo_t *info;
+		if (header.numlumps < 0 || header.numlumps > 65536)
+			Error ("Invalid numlumps");
 		info = (lumpinfo_t *)malloc (header.numlumps * sizeof (lumpinfo_t));
 		hlassume (info != NULL, assume_NoMemory);
 		SafeRead (wadfile, info, header.numlumps * sizeof(lumpinfo_t));
@@ -695,6 +697,8 @@ static void		ReadTextures(const char *name)
 		fseek (wadfile, header.infotableofs, SEEK_SET);
 
 		lumpinfo_t *info;
+		if (header.numlumps < 0 || header.numlumps > 65536)
+			Error ("Invalid numlumps");
 		info = (lumpinfo_t *)malloc (header.numlumps * sizeof (lumpinfo_t));
 		hlassume (info != NULL, assume_NoMemory);
 		SafeRead (wadfile, info, header.numlumps * sizeof(lumpinfo_t));
@@ -745,6 +749,8 @@ static void		ReadTextures(const char *name)
 				}
 				else
 				{
+					if (info[j].disksize < 0 || info[j].filepos < 0)
+						Error ("Invalid texture lump");
 					fseek (wadfile, info[j].filepos, SEEK_SET);
 					g_texdatasize += info[j].disksize;
 					hlassume(g_texdatasize < g_max_map_miptex, assume_MAX_MAP_MIPTEX);

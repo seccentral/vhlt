@@ -406,27 +406,57 @@ static void     SwapBSPFile(const bool todisk)
 //  CopyLump
 //      balh
 // =====================================================================================
-static int      CopyLump(int lump, void* dest, int size, const dheader_t* const header)
+static int      CopyLump(int lump, void* dest, int size, const dheader_t* const header, int filesize)
 {
     int             length, ofs;
+    int             count;
+    int             destmax = 0;
 
     length = header->lumps[lump].filelen;
     ofs = header->lumps[lump].fileofs;
 
-    if (length % size)
+    if (ofs < 0 || length < 0)
+    {
+        Error("LoadBSPFile: invalid lump offset or length");
+    }
+    if (filesize > 0 && ofs + length > filesize)
+    {
+        Error("LoadBSPFile: lump extends past end of file");
+    }
+    if (size <= 0 || length % size)
     {
         Error("LoadBSPFile: odd lump size");
     }
 
-	//special handling for tex and lightdata to keep things from exploding - KGP
-	if(lump == LUMP_TEXTURES && dest == (void*)g_dtexdata)
-	{ hlassume(g_max_map_miptex > length,assume_MAX_MAP_MIPTEX); }
-	else if(lump == LUMP_LIGHTING && dest == (void*)g_dlightdata)
-	{ hlassume(g_max_map_lightdata > length,assume_MAX_MAP_LIGHTING); }
+    count = length / size;
+
+    switch (lump)
+    {
+        case LUMP_MODELS: destmax = MAX_MAP_MODELS; break;
+        case LUMP_VERTEXES: destmax = MAX_MAP_VERTS; break;
+        case LUMP_PLANES: destmax = MAX_MAP_PLANES; break;
+        case LUMP_LEAFS: destmax = MAX_MAP_LEAFS; break;
+        case LUMP_NODES: destmax = MAX_MAP_NODES; break;
+        case LUMP_TEXINFO: destmax = MAX_MAP_TEXINFO; break;
+        case LUMP_FACES: destmax = MAX_MAP_FACES; break;
+        case LUMP_MARKSURFACES: destmax = MAX_MAP_MARKSURFACES; break;
+        case LUMP_SURFEDGES: destmax = MAX_MAP_SURFEDGES; break;
+        case LUMP_EDGES: destmax = MAX_MAP_EDGES; break;
+        case LUMP_TEXTURES: destmax = g_max_map_miptex; break;
+        case LUMP_VISIBILITY: destmax = MAX_MAP_VISIBILITY; break;
+        case LUMP_LIGHTING: destmax = g_max_map_lightdata; break;
+        case LUMP_ENTITIES: destmax = MAX_MAP_ENTSTRING; break;
+        default: destmax = 0; break;
+    }
+
+    if (destmax > 0 && count > destmax)
+    {
+        Error("LoadBSPFile: lump exceeds destination capacity");
+    }
 
     memcpy(dest, (byte*) header + ofs, length);
 
-    return length / size;
+    return count;
 }
 
 
@@ -437,15 +467,15 @@ static int      CopyLump(int lump, void* dest, int size, const dheader_t* const 
 void            LoadBSPFile(const char* const filename)
 {
     dheader_t* header;
-    LoadFile(filename, (char**)&header);
-    LoadBSPImage(header);
+    int filesize = LoadFile(filename, (char**)&header);
+    LoadBSPImage(header, filesize);
 }
 
 // =====================================================================================
 //  LoadBSPImage
 //      balh
 // =====================================================================================
-void            LoadBSPImage(dheader_t* const header)
+void            LoadBSPImage(dheader_t* const header, int filesize)
 {
     unsigned int     i;
 
@@ -460,12 +490,12 @@ void            LoadBSPImage(dheader_t* const header)
         Error("BSP is version %i, not %i", header->version, BSPVERSION);
     }
 
-    g_nummodels = CopyLump(LUMP_MODELS, g_dmodels, sizeof(dmodel_t), header);
-    g_numvertexes = CopyLump(LUMP_VERTEXES, g_dvertexes, sizeof(dvertex_t), header);
-    g_numplanes = CopyLump(LUMP_PLANES, g_dplanes, sizeof(dplane_t), header);
-    g_numleafs = CopyLump(LUMP_LEAFS, g_dleafs, sizeof(dleaf_t), header);
-    g_numnodes = CopyLump(LUMP_NODES, g_dnodes, sizeof(dnode_t), header);
-    g_numtexinfo = CopyLump(LUMP_TEXINFO, g_texinfo, sizeof(texinfo_t), header);
+    g_nummodels = CopyLump(LUMP_MODELS, g_dmodels, sizeof(dmodel_t), header, filesize);
+    g_numvertexes = CopyLump(LUMP_VERTEXES, g_dvertexes, sizeof(dvertex_t), header, filesize);
+    g_numplanes = CopyLump(LUMP_PLANES, g_dplanes, sizeof(dplane_t), header, filesize);
+    g_numleafs = CopyLump(LUMP_LEAFS, g_dleafs, sizeof(dleaf_t), header, filesize);
+    g_numnodes = CopyLump(LUMP_NODES, g_dnodes, sizeof(dnode_t), header, filesize);
+    g_numtexinfo = CopyLump(LUMP_TEXINFO, g_texinfo, sizeof(texinfo_t), header, filesize);
 #ifdef ZHLT_XASH2
 	for (int hull = 1; hull < MAX_MAP_HULLS; hull++)
 	{
@@ -479,19 +509,19 @@ void            LoadBSPImage(dheader_t* const header)
 			Error ("bad hull number %d", hull);
 			break;
 		}
-		g_numclipnodes[hull - 1] = CopyLump(lump, g_dclipnodes[hull - 1], sizeof(dclipnode_t), header);
+		g_numclipnodes[hull - 1] = CopyLump(lump, g_dclipnodes[hull - 1], sizeof(dclipnode_t), header, filesize);
 	}
 #else
-    g_numclipnodes = CopyLump(LUMP_CLIPNODES, g_dclipnodes, sizeof(dclipnode_t), header);
+    g_numclipnodes = CopyLump(LUMP_CLIPNODES, g_dclipnodes, sizeof(dclipnode_t), header, filesize);
 #endif
-    g_numfaces = CopyLump(LUMP_FACES, g_dfaces, sizeof(dface_t), header);
-    g_nummarksurfaces = CopyLump(LUMP_MARKSURFACES, g_dmarksurfaces, sizeof(g_dmarksurfaces[0]), header);
-    g_numsurfedges = CopyLump(LUMP_SURFEDGES, g_dsurfedges, sizeof(g_dsurfedges[0]), header);
-    g_numedges = CopyLump(LUMP_EDGES, g_dedges, sizeof(dedge_t), header);
-    g_texdatasize = CopyLump(LUMP_TEXTURES, g_dtexdata, 1, header);
-    g_visdatasize = CopyLump(LUMP_VISIBILITY, g_dvisdata, 1, header);
-    g_lightdatasize = CopyLump(LUMP_LIGHTING, g_dlightdata, 1, header);
-    g_entdatasize = CopyLump(LUMP_ENTITIES, g_dentdata, 1, header);
+    g_numfaces = CopyLump(LUMP_FACES, g_dfaces, sizeof(dface_t), header, filesize);
+    g_nummarksurfaces = CopyLump(LUMP_MARKSURFACES, g_dmarksurfaces, sizeof(g_dmarksurfaces[0]), header, filesize);
+    g_numsurfedges = CopyLump(LUMP_SURFEDGES, g_dsurfedges, sizeof(g_dsurfedges[0]), header, filesize);
+    g_numedges = CopyLump(LUMP_EDGES, g_dedges, sizeof(dedge_t), header, filesize);
+    g_texdatasize = CopyLump(LUMP_TEXTURES, g_dtexdata, 1, header, filesize);
+    g_visdatasize = CopyLump(LUMP_VISIBILITY, g_dvisdata, 1, header, filesize);
+    g_lightdatasize = CopyLump(LUMP_LIGHTING, g_dlightdata, 1, header, filesize);
+    g_entdatasize = CopyLump(LUMP_ENTITIES, g_dentdata, 1, header, filesize);
 
     Free(header);                                          // everything has been copied out
 
@@ -518,7 +548,7 @@ void            LoadBSPImage(dheader_t* const header)
     g_dmarksurfaces_checksum = FastChecksum(g_dmarksurfaces, g_nummarksurfaces * sizeof(g_dmarksurfaces[0]));
     g_dsurfedges_checksum = FastChecksum(g_dsurfedges, g_numsurfedges * sizeof(g_dsurfedges[0]));
     g_dedges_checksum = FastChecksum(g_dedges, g_numedges * sizeof(g_dedges[0]));
-    g_dtexdata_checksum = FastChecksum(g_dtexdata, g_numedges * sizeof(g_dtexdata[0]));
+    g_dtexdata_checksum = FastChecksum(g_dtexdata, g_texdatasize);
     g_dvisdata_checksum = FastChecksum(g_dvisdata, g_visdatasize * sizeof(g_dvisdata[0]));
     g_dlightdata_checksum = FastChecksum(g_dlightdata, g_lightdatasize * sizeof(g_dlightdata[0]));
     g_dentdata_checksum = FastChecksum(g_dentdata, g_entdatasize * sizeof(g_dentdata[0]));
@@ -535,9 +565,19 @@ void            LoadBSPImage(dheader_t* const header)
 static void     AddLump(int lumpnum, void* data, int len, dheader_t* header, FILE* bspfile)
 {
     lump_t* lump =&header->lumps[lumpnum];
+    int padded = (len + 3) & ~3;
+    char pad[4] = { 0, 0, 0, 0 };
+
     lump->fileofs = LittleLong(ftell(bspfile));
     lump->filelen = LittleLong(len);
-    SafeWrite(bspfile, data, (len + 3) & ~3);
+    if (len > 0 && data)
+    {
+        SafeWrite(bspfile, data, len);
+    }
+    if (padded > len)
+    {
+        SafeWrite(bspfile, pad, padded - len);
+    }
 }
 
 // =====================================================================================
@@ -1660,7 +1700,7 @@ void            UnparseEntities()
     char*           buf;
     char*           end;
     epair_t*        ep;
-    char            line[MAXTOKEN];
+    char            line[MAX_KEY + MAX_VAL + 6];
     int             i;
 
     buf = g_dentdata;
@@ -1813,6 +1853,10 @@ void            UnparseEntities()
             continue;                                      // ent got removed
         }
 
+        if (end + 2 > buf + MAX_MAP_ENTSTRING)
+        {
+            Error("Entity text too long");
+        }
         strcat(end, "{\n");
         end += 2;
 
@@ -1828,6 +1872,10 @@ void            UnparseEntities()
             }
             memcpy(end, line, strlen(line) + 1);
             end += strlen(line);
+        }
+        if (end + 2 > buf + MAX_MAP_ENTSTRING)
+        {
+            Error("Entity text too long");
         }
         strcat(end, "}\n");
         end += 2;
@@ -1995,6 +2043,8 @@ static char emptystring[1] = {'\0'};
 #endif
 char*           GetTextureByNumber(int texturenumber)
 {
+    static char     safeempty[1] = { '\0' };
+
 #ifdef HLCSG_HLBSP_VOIDTEXINFO
 	if (texturenumber == -1)
 		return emptystring;
@@ -2002,9 +2052,27 @@ char*           GetTextureByNumber(int texturenumber)
     texinfo_t*      info;
     miptex_t*       miptex;
     int             ofs;
+    dmiptexlump_t*  lump;
 
+    if (texturenumber < 0 || texturenumber >= g_numtexinfo)
+    {
+        return safeempty;
+    }
     info = &g_texinfo[texturenumber];
-    ofs = ((dmiptexlump_t*)g_dtexdata)->dataofs[info->miptex];
+    if (!g_dtexdata)
+    {
+        return safeempty;
+    }
+    lump = (dmiptexlump_t*)g_dtexdata;
+    if (info->miptex < 0 || info->miptex >= lump->nummiptex)
+    {
+        return safeempty;
+    }
+    ofs = lump->dataofs[info->miptex];
+    if (ofs < 0 || ofs >= g_texdatasize)
+    {
+        return safeempty;
+    }
     miptex = (miptex_t*)(&g_dtexdata[ofs]);
 
     return miptex->name;

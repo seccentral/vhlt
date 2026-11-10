@@ -419,12 +419,27 @@ bool            TEX_InitFromWad()
         wadinfo.numlumps        = LittleLong(wadinfo.numlumps);
         wadinfo.infotableofs    = LittleLong(wadinfo.infotableofs);
 
+        if (wadinfo.numlumps < 0 || wadinfo.numlumps > 65536)
+        {
+            Error("Invalid numlumps in wadfile %s", pszWadFile);
+        }
+
         // read in lump
         if (fseek(texfile, wadinfo.infotableofs, SEEK_SET))
-            Warning("fseek to %d in wadfile %s failed\n", wadinfo.infotableofs, pszWadFile);
+        {
+            Error("fseek to %d in wadfile %s failed\n", wadinfo.infotableofs, pszWadFile);
+        }
 
         // memalloc for this lump
-        lumpinfo = (lumpinfo_t*)realloc(lumpinfo, (nTexLumps + wadinfo.numlumps) * sizeof(lumpinfo_t));
+        {
+            size_t newcount = (size_t)nTexLumps + (size_t)wadinfo.numlumps;
+            lumpinfo_t* newlumpinfo = (lumpinfo_t*)realloc(lumpinfo, newcount * sizeof(lumpinfo_t));
+            if (!newlumpinfo)
+            {
+                Error("Out of memory reading wadfile %s", pszWadFile);
+            }
+            lumpinfo = newlumpinfo;
+        }
 
         // for each texlump
         for (j = 0; j < wadinfo.numlumps; j++, nTexLumps++)
@@ -619,6 +634,10 @@ int             LoadLump(const lumpinfo_t* const source, byte* dest, int* texsiz
 #endif
         }
         *texsize = source->disksize;
+        if (*texsize < 0)
+        {
+            Error("Invalid texture size");
+        }
 
 #ifdef HLCSG_AUTOWAD_NEW
 		if (texwadpathes[source->iTexFile]->usedbymap)

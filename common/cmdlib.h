@@ -604,13 +604,7 @@
 #include <io.h>
 #endif
 
-#if (defined(_MSC_VER) && _MSC_VER <1400) || defined(__MINGW32__)
-#ifdef strcpy_s
-#undef strcpy_s
-#endif
-#ifdef sprintf_s
-#undef sprintf_s
-#endif
+#if defined(_MSC_VER) && _MSC_VER <1400
 #define strcpy_s strcpy //--vluzacn
 #define sprintf_s sprintf //--vluzacn
 #endif

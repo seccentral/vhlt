@@ -136,7 +136,7 @@ bool            FreeBlock(void* pointer)
 {
     if (!pointer)
     {
-        Warning("Freeing a null pointer");
+        return true;
     }
     free(pointer);
     return true;

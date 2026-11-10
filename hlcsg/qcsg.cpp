@@ -159,7 +159,7 @@ void            GetParamsFromEnt(entity_t* mapent)
     {
         g_max_map_miptex = iTmp;
     }
-	sprintf_s(szTmp, "%i", g_max_map_miptex);
+		safe_snprintf(szTmp, sizeof(szTmp), "%i", g_max_map_miptex);
     Log("%30s [ %-9s ]\n", "Texture Data Memory", szTmp);
 
     // hullfile(string) : "Custom Hullfile"
@@ -1655,7 +1655,7 @@ static void     CheckForNoClip()
 
         ent = &g_entities[i];
 
-        strcpy_s(entclassname, ValueForKey(ent, "classname"));
+        safe_strncpy(entclassname, ValueForKey(ent, "classname"), sizeof(entclassname));
         spawnflags = atoi(ValueForKey(ent, "spawnflags"));
 		int skin = IntForKey(ent, "skin"); //vluzacn
 
