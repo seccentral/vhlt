@@ -192,9 +192,14 @@ inline void vector_compress
 		{
 			max = *p1>*p2? (*p1>*p3? *p1: *p3): (*p2>*p3? *p2: *p3);
 			max = float_istoobig (max)? 0x7F : float_istoosmall (max)? 0x60 : bitget (max, 23, 31);
-			i1 = float_istoobig (*p1)? ~0u : (bitget (*p1, 0, 23) | bitput (1, 23, 24)) >> (1 + max - bitget (*p1, 23, 31));
-			i2 = float_istoobig (*p2)? ~0u : (bitget (*p2, 0, 23) | bitput (1, 23, 24)) >> (1 + max - bitget (*p2, 23, 31));
-			i3 = float_istoobig (*p3)? ~0u : (bitget (*p3, 0, 23) | bitput (1, 23, 24)) >> (1 + max - bitget (*p3, 23, 31));
+			{
+				unsigned int shift1 = 1 + max - bitget (*p1, 23, 31);
+				unsigned int shift2 = 1 + max - bitget (*p2, 23, 31);
+				unsigned int shift3 = 1 + max - bitget (*p3, 23, 31);
+				i1 = float_istoobig (*p1)? ~0u : shift1 > 31? 0u : (bitget (*p1, 0, 23) | bitput (1, 23, 24)) >> shift1;
+				i2 = float_istoobig (*p2)? ~0u : shift2 > 31? 0u : (bitget (*p2, 0, 23) | bitput (1, 23, 24)) >> shift2;
+				i3 = float_istoobig (*p3)? ~0u : shift3 > 31? 0u : (bitget (*p3, 0, 23) | bitput (1, 23, 24)) >> shift3;
+			}
 		}
 		if (t == VECTOR32)
 			m[0] = 0

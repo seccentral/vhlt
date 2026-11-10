@@ -745,6 +745,7 @@ void BuildFaceEdges (opaqueface_t *f)
 		return;
 	f->numedges = f->winding->m_NumPoints;
 	f->edges = (dplane_t *)calloc (f->numedges, sizeof (dplane_t));
+	hlassume (f->edges != NULL, assume_NoMemory);
 	const vec_t *p1, *p2;
 	const vec_t *n = f->plane.normal;
 	vec3_t e;
@@ -774,6 +775,7 @@ void CreateOpaqueNodes ()
 	opaquemodels = (opaquemodel_t *)calloc (g_nummodels, sizeof (opaquemodel_t));
 	opaquenodes = (opaquenode_t *)calloc (g_numnodes, sizeof (opaquenode_t));
 	opaquefaces = (opaqueface_t *)calloc (g_numfaces, sizeof (opaqueface_t));
+	hlassume (opaquemodels != NULL && opaquenodes != NULL && opaquefaces != NULL, assume_NoMemory);
 	for (i = 0; i < g_numfaces; i++)
 	{
 		opaqueface_t *of = &opaquefaces[i];

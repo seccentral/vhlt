@@ -145,9 +145,23 @@ All findings have been either fixed, mitigated, or explicitly accepted with rati
 | M8 | Fixed |
 | M9 | Fixed |
 | M10 | Fixed |
-| M11 | Skipped (low, not touched) |
-| M12 | Skipped (plausible, guard only) |
+| M11 | Fixed |
+| M12 | Fixed |
 | M15 | Fixed |
 | M17 | Fixed |
 | M18 | Fixed |
-| L (misc) | Fixed where one-line |
+| F4 (`UnparseEntities`) | Fixed |
+| `AddLump` padding | Fixed |
+| Checksum (`g_texdatasize`) | Fixed |
+| `LoadFile` -1 length | Fixed |
+| `FreeBlock(NULL)` POSIX | Fixed |
+| `DeleteCriticalSection` 1->0 | Fixed |
+| `scriplib.cpp` bounds | Fixed |
+| `loadtextures.cpp` strncpy | Fixed |
+| Low: `%p` HANDLE / sysctlbyname | Fixed |
+| Low: flow.cpp `&&`->`\|\|` / vis.cpp div-0 / `mightsee` | Fixed |
+| Low: brush.cpp plane equivalence / textures.cpp name fill / hullfile fopen / qcsg `-texdata` | Fixed |
+| Low: qrad `flTmp` / hlrad malloc checks / compress shift clamp | Fixed |
+
+All handout IDs are fixed; nothing was skipped and no finding was judged incorrect.
+Details of the second pass are in `audits/2026-11-10/final-report.md`.

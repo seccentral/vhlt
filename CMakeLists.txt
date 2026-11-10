@@ -195,12 +195,21 @@ add_vhlt_tool(ripent
 # ----------------------------------------------------------------------
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
+    set(VHLT_DOCS_OUTPUT_DIR "${CMAKE_BINARY_DIR}/docs")
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/docs/api/Doxyfile.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
+        @ONLY
+    )
     add_custom_target(docs
-        COMMAND "${DOXYGEN_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/docs/api/Doxyfile"
+        COMMAND "${DOXYGEN_EXECUTABLE}" "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/docs/api"
         COMMENT "Generating API documentation with Doxygen"
         VERBATIM
     )
+    install(DIRECTORY "${VHLT_DOCS_OUTPUT_DIR}/html/"
+            DESTINATION "${CMAKE_INSTALL_DOCDIR}/html"
+            OPTIONAL)
 endif()
 
 # ----------------------------------------------------------------------

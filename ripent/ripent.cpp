@@ -551,7 +551,16 @@ static void		WriteTextures(const char* const name)
 		{
 			int ofs = ((dmiptexlump_t*)g_dtexdata)->dataofs[i];
 			int size = 0;
-			if (ofs >= 0)
+			bool validtex = false;
+			if (ofs >= 0 && ofs + (int)sizeof(miptex_t) <= g_texdatasize)
+			{
+				miptex_t* tex = (miptex_t*)(g_dtexdata + ofs);
+				if (ValidateMiptexHeader (tex->width, tex->height, tex->offsets, g_texdatasize - ofs, false))
+				{
+					validtex = true;
+				}
+			}
+			if (validtex)
 			{
 				size = g_texdatasize - ofs;
 				for (int j = 0; j < ((dmiptexlump_t*)g_dtexdata)->nummiptex; ++j)
@@ -562,9 +571,9 @@ static void		WriteTextures(const char* const name)
 			info[i].filepos = ofs - dataofs + wadofs;
 			info[i].disksize = size;
 			info[i].size = size;
-			info[i].type = (ofs >= 0 && ((miptex_t*)(g_dtexdata+ofs))->offsets[0] > 0)? 67: 0; // prevent invalid texture from being processed by Wally
+			info[i].type = (validtex && ((miptex_t*)(g_dtexdata+ofs))->offsets[0] > 0)? 67: 0; // prevent invalid texture from being processed by Wally
 			info[i].compression = 0;
-			strncpy (info[i].name, ofs >= 0? ((miptex_t*)(g_dtexdata+ofs))->name: "\rTEXTUREMISSING", 16); info[i].name[16 - 1] = '\0';
+			strncpy (info[i].name, validtex? ((miptex_t*)(g_dtexdata+ofs))->name: "\rTEXTUREMISSING", 16); info[i].name[16 - 1] = '\0';
 		}
 		SafeWrite (wadfile, info, header.numlumps * sizeof(lumpinfo_t));
 		free (info);
@@ -591,8 +600,8 @@ static void		WriteTextures(const char* const name)
 		for (int itex = 0; itex < ((dmiptexlump_t*)g_dtexdata)->nummiptex; ++itex)
 		{
 			int ofs = ((dmiptexlump_t*)g_dtexdata)->dataofs[itex];
-			miptex_t *tex = (miptex_t*)(g_dtexdata+ofs);
-			if (ofs < 0)
+			miptex_t *tex = (ofs >= 0 && ofs + (int)sizeof(miptex_t) <= g_texdatasize)? (miptex_t*)(g_dtexdata + ofs): NULL;
+			if (!tex || !ValidateMiptexHeader (tex->width, tex->height, tex->offsets, g_texdatasize - ofs, false))
 			{
 				fprintf (texfile, "[-1]\r\n");
 			}
@@ -667,25 +676,37 @@ static void		ReadTextures(const char *name)
 		wadinfo_t header;
 		int wadofs = sizeof(wadinfo_t);
 		SafeRead (wadfile, &header, wadofs);
-		((dmiptexlump_t*)g_dtexdata)->nummiptex = header.numlumps;
-		int dataofs = (int)(intptr_t)&((dmiptexlump_t*)NULL)->dataofs[((dmiptexlump_t*)g_dtexdata)->nummiptex];
-		g_texdatasize = header.infotableofs - wadofs + dataofs;
-
-		SafeRead (wadfile, (byte *)g_dtexdata + dataofs, g_texdatasize - dataofs);
-
-		lumpinfo_t *info;
 		if (header.numlumps < 0 || header.numlumps > 65536)
 			Error ("Invalid numlumps");
-		info = (lumpinfo_t *)malloc (header.numlumps * sizeof (lumpinfo_t));
-		hlassume (info != NULL, assume_NoMemory);
-		SafeRead (wadfile, info, header.numlumps * sizeof(lumpinfo_t));
-
-		for (int i = 0; i < header.numlumps; i++)
 		{
-			((dmiptexlump_t*)g_dtexdata)->dataofs[i] = info[i].filepos - wadofs + dataofs;
-		}
+			long wadfilesize = q_filelength (wadfile);
+			int dataofs = (int)(intptr_t)&((dmiptexlump_t*)NULL)->dataofs[header.numlumps];
+			int texdatasize = header.infotableofs - wadofs + dataofs;
+			if (wadfilesize < 0 ||
+				header.infotableofs < wadofs || header.infotableofs > g_max_map_miptex ||
+				texdatasize < dataofs || texdatasize > g_max_map_miptex ||
+				wadfilesize < (long)header.infotableofs + (long)header.numlumps * (long)sizeof(lumpinfo_t))
+			{
+				Error ("Invalid wad file %s", wadfilename);
+			}
+			((dmiptexlump_t*)g_dtexdata)->nummiptex = header.numlumps;
+			g_texdatasize = texdatasize;
+			SafeRead (wadfile, (byte *)g_dtexdata + dataofs, g_texdatasize - dataofs);
 
-		free (info);
+			lumpinfo_t *info;
+			info = (lumpinfo_t *)malloc (header.numlumps * sizeof (lumpinfo_t));
+			hlassume (info != NULL, assume_NoMemory);
+			SafeRead (wadfile, info, header.numlumps * sizeof(lumpinfo_t));
+
+			for (int i = 0; i < header.numlumps; i++)
+			{
+				if (info[i].filepos < wadofs || info[i].filepos >= header.infotableofs)
+					Error ("Invalid texture lump offset");
+				((dmiptexlump_t*)g_dtexdata)->dataofs[i] = info[i].filepos - wadofs + dataofs;
+			}
+
+			free (info);
+		}
 	}
 	else
 	{
@@ -706,6 +727,8 @@ static void		ReadTextures(const char *name)
 		int nummiptex = 0;
 		if (skipspace (texfile), fscanf (texfile, "%d", &nummiptex) != 1)
 			Error ("File read failure");
+		if (nummiptex < 0 || nummiptex > (g_max_map_miptex - 4) / 4)
+			Error ("Invalid nummiptex");
 		((dmiptexlump_t*)g_dtexdata)->nummiptex = nummiptex;
 		g_texdatasize = (byte *)(&((dmiptexlump_t*)g_dtexdata)->dataofs[nummiptex]) - g_dtexdata;
 
@@ -749,7 +772,8 @@ static void		ReadTextures(const char *name)
 				}
 				else
 				{
-					if (info[j].disksize < 0 || info[j].filepos < 0)
+					if (info[j].disksize < 0 || info[j].filepos < 0 ||
+						info[j].disksize > g_max_map_miptex - g_texdatasize - (int)sizeof(miptex_t))
 						Error ("Invalid texture lump");
 					fseek (wadfile, info[j].filepos, SEEK_SET);
 					g_texdatasize += info[j].disksize;

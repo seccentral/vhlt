@@ -149,7 +149,7 @@ hlvis -full mymap
 | `-notextures` | Do not load textures. |
 | `-texreflectgamma #` | Reflectivity gamma. |
 | `-texreflectscale #` | Reflectivity scale. |
-| `-blur #` | Enlarge lightmap sample. |
+| `-blur #` | Enlarge lightmap sample (blur the lightmap). Valid range 1.0 to 16.0; larger values are clamped. |
 | `-noemitterrange` | Do not fix pointy texlights. |
 | `-nobleedfix` | Do not fix wall bleeding. |
 | `-drawpatch` | Export light patch positions. |

@@ -733,6 +733,17 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
     threaded = true;
     q_entry = func;
 
+    if (g_numthreads < 1)
+    {
+        Warning("RunThreadsOn: thread count %d below 1, using 1", g_numthreads);
+        g_numthreads = 1;
+    }
+    else if (g_numthreads > MAX_THREADS)
+    {
+        Warning("RunThreadsOn: thread count %d exceeds MAX_THREADS, clamping to %d", g_numthreads, MAX_THREADS);
+        g_numthreads = MAX_THREADS;
+    }
+
     if (pacifier)
     {
         setbuf(stdout, NULL);

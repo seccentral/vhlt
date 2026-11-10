@@ -73,7 +73,7 @@ Before committing, all of the following must pass:
 ## Changelog Lifecycle
 
 - Every user-visible change must be recorded in `CHANGELOG.md` under `[Unreleased]`.
-- On release, move `[Unreleased]` entries into a new version section and update the version in `CMakeLists.txt`, `common/cmdlib.h`, and `docs/Doxyfile`.
+- On release, move `[Unreleased]` entries into a new version section and update the version in `CMakeLists.txt`, `common/cmdlib.h`, and `docs/api/Doxyfile.in`.
 - Create an annotated git tag `v<major>.<minor>.<patch>`.
 - Commit and tag only after all gates pass.
 

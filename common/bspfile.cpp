@@ -403,6 +403,43 @@ static void     SwapBSPFile(const bool todisk)
 }
 
 // =====================================================================================
+//  ValidateMiptexHeader
+//      Shared validation for miptex headers (BSP textures / WAD lumps).
+// =====================================================================================
+bool            ValidateMiptexHeader(int width, int height, const unsigned offsets[MIPLEVELS], int available_bytes, bool strict_offsets)
+{
+    int             i;
+    size_t          mipsize;
+
+    if (width <= 0 || height <= 0 || width > MAX_MIPTEX_DIMENSION || height > MAX_MIPTEX_DIMENSION)
+    {
+        return false;
+    }
+    if (width % 16 || height % 16)
+    {
+        return false;
+    }
+
+    mipsize = 0;
+    for (i = 0; i < MIPLEVELS; i++)
+    {
+        if (strict_offsets && (size_t)offsets[i] != sizeof(miptex_t) + mipsize)
+        {
+            return false;
+        }
+        mipsize += (size_t)(width >> i) * (size_t)(height >> i);
+    }
+
+    // header + mip data + palette (2-byte count + 256 * 3)
+    if (available_bytes < 0 || mipsize + sizeof(miptex_t) + 2 + 256 * 3 > (size_t)available_bytes)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+// =====================================================================================
 //  CopyLump
 //      balh
 // =====================================================================================
@@ -419,7 +456,7 @@ static int      CopyLump(int lump, void* dest, int size, const dheader_t* const 
     {
         Error("LoadBSPFile: invalid lump offset or length");
     }
-    if (filesize > 0 && ofs + length > filesize)
+    if (filesize > 0 && (long long)ofs + length > filesize)
     {
         Error("LoadBSPFile: lump extends past end of file");
     }
@@ -439,6 +476,11 @@ static int      CopyLump(int lump, void* dest, int size, const dheader_t* const 
         case LUMP_NODES: destmax = MAX_MAP_NODES; break;
         case LUMP_TEXINFO: destmax = MAX_MAP_TEXINFO; break;
         case LUMP_FACES: destmax = MAX_MAP_FACES; break;
+        case LUMP_CLIPNODES: destmax = MAX_MAP_CLIPNODES; break;
+#ifdef ZHLT_XASH2
+        case LUMP_CLIPNODES2: destmax = MAX_MAP_CLIPNODES; break;
+        case LUMP_CLIPNODES3: destmax = MAX_MAP_CLIPNODES; break;
+#endif
         case LUMP_MARKSURFACES: destmax = MAX_MAP_MARKSURFACES; break;
         case LUMP_SURFEDGES: destmax = MAX_MAP_SURFEDGES; break;
         case LUMP_EDGES: destmax = MAX_MAP_EDGES; break;
@@ -1853,7 +1895,7 @@ void            UnparseEntities()
             continue;                                      // ent got removed
         }
 
-        if (end + 2 > buf + MAX_MAP_ENTSTRING)
+        if (end + 3 > buf + MAX_MAP_ENTSTRING)
         {
             Error("Entity text too long");
         }
@@ -1866,21 +1908,21 @@ void            UnparseEntities()
             {
                 Error("Entity text too long");
             }
-            if (end + strlen(line) > buf + MAX_MAP_ENTSTRING)
+            if (end + strlen(line) + 1 > buf + MAX_MAP_ENTSTRING)
             {
                 Error("Entity text too long");
             }
             memcpy(end, line, strlen(line) + 1);
             end += strlen(line);
         }
-        if (end + 2 > buf + MAX_MAP_ENTSTRING)
+        if (end + 3 > buf + MAX_MAP_ENTSTRING)
         {
             Error("Entity text too long");
         }
         strcat(end, "}\n");
         end += 2;
 
-        if (end > buf + MAX_MAP_ENTSTRING)
+        if (end + 1 > buf + MAX_MAP_ENTSTRING)
         {
             Error("Entity text too long");
         }

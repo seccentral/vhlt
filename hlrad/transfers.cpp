@@ -134,15 +134,26 @@ bool            readtransfers(const char* const transferfile, const long numpatc
             goto FailedRead;
         }
 
+        long filesize;
+        fseek(file, 0, SEEK_END);
+        filesize = ftell(file);
+        fseek(file, sizeof(total_patches), SEEK_SET);
+
         long patchcount = total_patches;
         for (patch = g_patches; patchcount-- > 0; patch++)
         {
+            unsigned long runsum = 0;
+
             amtread = fread(&patch->iIndex, sizeof(patch->iIndex), 1, file);
             if (amtread != 1)
             {
                 goto FailedRead;
             }
             if (patch->iIndex < 0 || patch->iIndex > g_num_patches)
+            {
+                goto FailedRead;
+            }
+            if (filesize >= 0 && (long)patch->iIndex > filesize / (long)sizeof(transfer_index_t))
             {
                 goto FailedRead;
             }
@@ -155,6 +166,16 @@ bool            readtransfers(const char* const transferfile, const long numpatc
                 {
                     goto FailedRead;
                 }
+                for (unsigned x = 0; x < patch->iIndex; x++)
+                {
+                    unsigned idx = patch->tIndex[x].index;
+                    unsigned sz = (unsigned)patch->tIndex[x].size + 1;
+                    if (idx >= (unsigned)g_num_patches || idx + sz > (unsigned)g_num_patches)
+                    {
+                        goto FailedRead;
+                    }
+                    runsum += sz;
+                }
             }
 
             amtread = fread(&patch->iData, sizeof(patch->iData), 1, file);
@@ -162,7 +183,7 @@ bool            readtransfers(const char* const transferfile, const long numpatc
             {
                 goto FailedRead;
             }
-            if (patch->iData < 0)
+            if (patch->iData < 0 || patch->iData != runsum)
             {
                 goto FailedRead;
             }

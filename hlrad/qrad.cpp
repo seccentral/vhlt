@@ -241,6 +241,7 @@ vec_t			g_translucentdepth = DEFAULT_TRANSLUCENTDEPTH;
 #endif
 #ifdef HLRAD_BLUR
 vec_t			g_blur = DEFAULT_BLUR;
+#define MAX_BLUR 16.0
 #endif
 #ifdef HLRAD_ACCURATEBOUNCE
 bool			g_noemitterrange = DEFAULT_NOEMITTERRANGE;
@@ -386,8 +387,7 @@ void            GetParamsFromEnt(entity_t* mapent)
     flTmp = FloatForKey(mapent, "smooth");
     if (flTmp)
     {
-        /*g_smoothing_threshold = flTmp;*/
-		g_smoothing_threshold = cos(g_smoothing_value * (Q_PI / 180.0)); // --vluzacn
+        g_smoothing_threshold = cos(flTmp * (Q_PI / 180.0)); // --vluzacn
         Log("%30s [ %-9s ]\n", "Smoothing threshold", ValueForKey(mapent, "smooth"));
     }
 
@@ -1414,6 +1414,7 @@ void ReadCustomChopValue()
 
 	num = ((dmiptexlump_t *)g_dtexdata)->nummiptex;
 	chopscales = (vec_t *)malloc (num * sizeof(vec_t));
+	hlassume (chopscales != NULL, assume_NoMemory);
 	for (i = 0; i < num; i++)
 	{
 		chopscales[i] = 1.0;
@@ -1460,6 +1461,7 @@ void ReadCustomSmoothValue()
 
 	num = ((dmiptexlump_t *)g_dtexdata)->nummiptex;
 	g_smoothvalues = (vec_t *)malloc (num * sizeof(vec_t));
+	hlassume (g_smoothvalues != NULL, assume_NoMemory);
 	for (i = 0; i < num; i++)
 	{
 		g_smoothvalues[i] = g_smoothing_threshold;
@@ -1499,6 +1501,7 @@ void ReadTranslucentTextures()
 
 	num = ((dmiptexlump_t *)g_dtexdata)->nummiptex;
 	g_translucenttextures = (vec3_t *)malloc (num * sizeof(vec3_t));
+	hlassume (g_translucenttextures != NULL, assume_NoMemory);
 	for (i = 0; i < num; i++)
 	{
 		VectorClear (g_translucenttextures[i]);
@@ -1565,6 +1568,7 @@ void ReadLightingCone ()
 
 	num = ((dmiptexlump_t *)g_dtexdata)->nummiptex;
 	g_lightingconeinfo = (vec3_t *)malloc (num * sizeof(vec3_t));
+	hlassume (g_lightingconeinfo != NULL, assume_NoMemory);
 	for (i = 0; i < num; i++)
 	{
 		g_lightingconeinfo[i][0] = 1.0; // default power
@@ -4334,7 +4338,7 @@ static void     Usage()
 	Log("   -texreflectscale # : Reflectivity for 255-white texture.\n");
 #endif
 #ifdef HLRAD_BLUR
-	Log("   -blur #        : Enlarge lightmap sample to blur the lightmap.\n");
+	Log("   -blur #        : Enlarge lightmap sample to blur the lightmap (1.0 to 16.0).\n");
 #endif
 #ifdef HLRAD_ACCURATEBOUNCE
 	Log("   -noemitterrange: Don't fix pointy texlights.\n");
@@ -5670,6 +5674,11 @@ int             main(const int argc, char** argv)
 			if (i + 1 < argc)
 			{
 				g_blur = atof (argv[++i]);
+				if (g_blur > MAX_BLUR)
+				{
+					Warning ("Blur value %g exceeds maximum %g, clamping.", g_blur, (vec_t)MAX_BLUR);
+					g_blur = MAX_BLUR;
+				}
 			}
 			else
 			{

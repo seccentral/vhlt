@@ -195,7 +195,7 @@ void            SafeWrite(FILE* f, const void* const buffer, int count)
 int             LoadFile(const char* const filename, char** bufferptr)
 {
     FILE*           f;
-    int             length;
+    long            length;
     char*           buffer;
 
     f = SafeOpenRead(filename);
@@ -205,12 +205,17 @@ int             LoadFile(const char* const filename, char** bufferptr)
         fclose(f);
         Error("LoadFile: invalid file length");
     }
-    buffer = (char*)Alloc(length + 1);
-    SafeRead(f, buffer, length);
+    if (length > INT_MAX)
+    {
+        fclose(f);
+        Error("LoadFile: file too large");
+    }
+    buffer = (char*)Alloc((unsigned long)length + 1);
+    SafeRead(f, buffer, (int)length);
     fclose(f);
 
     *bufferptr = buffer;
-    return length;
+    return (int)length;
 }
 
 /*

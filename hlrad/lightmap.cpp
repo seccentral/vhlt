@@ -849,12 +849,12 @@ static void     CalcFaceExtents(lightinfo_t* l)
 		l->lmcachewidth = l->texsize[0] * l->lmcache_density + 1 + 2 * l->lmcache_side;
 		l->lmcacheheight = l->texsize[1] * l->lmcache_density + 1 + 2 * l->lmcache_side;
 	#ifdef HLRAD_AUTOCORING
-		l->lmcache = (vec3_t (*)[ALLSTYLES])malloc (l->lmcachewidth * l->lmcacheheight * sizeof (vec3_t [ALLSTYLES]));
+		l->lmcache = (vec3_t (*)[ALLSTYLES])malloc ((size_t)l->lmcachewidth * (size_t)l->lmcacheheight * sizeof (vec3_t [ALLSTYLES]));
 #ifdef ZHLT_XASH
-		l->lmcache_direction = (vec3_t (*)[ALLSTYLES])malloc (l->lmcachewidth * l->lmcacheheight * sizeof (vec3_t [ALLSTYLES]));
+		l->lmcache_direction = (vec3_t (*)[ALLSTYLES])malloc ((size_t)l->lmcachewidth * (size_t)l->lmcacheheight * sizeof (vec3_t [ALLSTYLES]));
 #endif
 	#else
-		l->lmcache = (vec3_t (*)[MAXLIGHTMAPS])malloc (l->lmcachewidth * l->lmcacheheight * sizeof (vec3_t [MAXLIGHTMAPS]));
+		l->lmcache = (vec3_t (*)[MAXLIGHTMAPS])malloc ((size_t)l->lmcachewidth * (size_t)l->lmcacheheight * sizeof (vec3_t [MAXLIGHTMAPS]));
 	#endif
 		hlassume (l->lmcache != NULL, assume_NoMemory);
 #ifdef ZHLT_XASH
@@ -5433,6 +5433,11 @@ void            GetPhongNormal(int facenum, const vec3_t spot, vec3_t phongnorma
             aa = DotProduct(v1, v1);
             bb = DotProduct(v2, v2);
             ab = DotProduct(v1, v2);
+            if (bb <= NORMAL_EPSILON || aa * bb - ab * ab <= NORMAL_EPSILON * NORMAL_EPSILON)
+            {
+                // Degenerate edge geometry: fall back to the face normal.
+                continue;
+            }
             a1 = (bb * DotProduct(v1, vspot) - ab * DotProduct(vspot, v2)) / (aa * bb - ab * ab);
             a2 = (DotProduct(vspot, v2) - a1 * ab) / bb;
 
@@ -6175,6 +6180,7 @@ void            BuildFacelights(const int facenum)
 
 #ifdef HLRAD_AVOIDWALLBLEED
 	sample_wallflags = (int *)malloc ((2 * l.lmcache_side + 1) * (2 * l.lmcache_side + 1) * sizeof (int));
+	hlassume (sample_wallflags != NULL, assume_NoMemory);
 #endif
     spot = l.surfpt[0];
     for (i = 0; i < l.numsurfpt; i++, spot += 3)

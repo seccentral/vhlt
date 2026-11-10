@@ -243,6 +243,10 @@ static winding_t* NewWinding(const int points)
     size = (int)((winding_t*)0)->points[points];
 #endif
     w = (winding_t*)calloc(1, size);
+    if (!w)
+    {
+        Error("NewWinding: out of memory");
+    }
 
     return w;
 }
@@ -1087,7 +1091,7 @@ static void     CalcVis()
 			ResetPortalStatus();
 #endif
 
-			Log("average maxdistance leafs visible: %i\n", totalvis / g_portalleafs);
+			Log("average maxdistance leafs visible: %i\n", g_portalleafs ? totalvis / g_portalleafs : 0);
 		}
 //	}
 }
@@ -1152,6 +1156,17 @@ static void     LoadPortals(char* portal_image)
 	g_leafcounts = (int*)calloc(g_portalleafs, sizeof(int));
 	g_leafstarts = (int*)calloc(g_portalleafs, sizeof(int));
 #endif
+    if (!g_portals || !g_leafs
+#ifdef HLVIS_OVERVIEW
+        || !g_leafinfos
+#endif
+#ifdef ZHLT_DETAILBRUSH
+        || !g_leafcounts || !g_leafstarts
+#endif
+        )
+    {
+        Error("LoadPortals: out of memory");
+    }
 
     originalvismapsize = g_portalleafs * ((g_portalleafs + 7) / 8);
 

@@ -59,8 +59,8 @@ inline static void     FreeStackWinding(const winding_t* const w, pstack_t* cons
 // =====================================================================================
 inline winding_t*      ChopWinding(winding_t* const in, pstack_t* const stack, const plane_t* const split)
 {
-    vec_t           dists[128];
-    int             sides[128];
+    vec_t           dists[MAX_POINTS_ON_WINDING + 1];
+    int             sides[MAX_POINTS_ON_WINDING + 1];
     int             counts[3];
     vec_t           dot;
     int             i;
@@ -69,7 +69,7 @@ inline winding_t*      ChopWinding(winding_t* const in, pstack_t* const stack, c
 
     counts[0] = counts[1] = counts[2] = 0;
 
-    if (in->numpoints > (sizeof(sides) / sizeof(*sides)))
+    if (in->numpoints > MAX_POINTS_ON_WINDING)
     {
         Error("Winding with too many sides!");
     }

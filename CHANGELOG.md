@@ -7,27 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.2] - 2026-11-10
+
 ### Added
 - CMake build system (`CMakeLists.txt`, `CMakePresets.json`) as the primary build.
 - Doxygen configuration and `docs` build target.
 - CPack ZIP packaging (`cmake --build build --target package`).
 - `AGENTS.md` with coding standards, gates, and lifecycle rules.
 - `audits/` consolidated audit report.
-- `docs/user/manual.md` and `docs/developer/developer.md`.
+- `docs/user/manual.md` and `docs/developer/developer.md` (docs reorganisation).
 - Multicore cppcheck lint target and clangd support.
 
 ### Fixed
-- Thread pool clamping, POSIX affinity counting, and thread lifecycle handling.
-- BSP lump validation, checksum, `AddLump` padding, and `GetTextureByNumber` bounds.
+- Thread pool clamping on all platforms, POSIX affinity counting, and thread lifecycle handling.
+- BSP lump validation (incl. clipnodes capacity), checksum, `AddLump` padding, and `GetTextureByNumber` bounds.
+- Entity lump writer NUL-termination bounds checks.
+- Shared miptex header validation used by hlrad and ripent texture readers.
 - WAD/miptex validation and hlrad/ripent texture loading hardening.
-- hlvis portal validation and winding bounds.
-- hlcsg texdata handling, worldspawn checks, and hull file handling.
-- hlrad transfer and vismatrix integer safety.
+- ripent WAD/.tex readers validate headers before allocating or reading.
+- hlvis portal validation, allocation checks, and winding bounds.
+- hlcsg texdata handling, worldspawn checks, plane equivalence, and hull file handling.
+- hlrad transfer file validation (indices, run sums, allocation bounds).
+- hlrad `-blur` clamped to a documented maximum; lmcache sizes computed in `size_t`.
+- Phong normal degenerate-edge guard.
+- Allocation checks and float-compression shift clamp in hlrad.
 - Removed unconditional `NDEBUG` from CMake platform definitions.
+- `strcpy_s`/`sprintf_s` compatibility macros removed; callers use safe helpers.
 
 ### Changed
 - Tidied codebase and removed Visual Studio-era project files.
-- Improved MinGW/64-bit compatibility.
+- Doxygen output follows the build directory via `configure_file`.
+- CI matrix includes Windows and smokes the release version.
+- `docs/api/Doxyfile` moved to `docs/api/Doxyfile.in`.
 
 ## [3.5.1] - 2026-11-10
 
@@ -38,22 +49,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unbounded `.vis` parsing and hull filename construction.
 - Thread-pool critical section and POSIX mutex lifecycle issues.
 - Various string-safety and parser hardening fixes.
-
-### Added
-- Audit handling status document.
-
-## [3.5.0] - 2026-11-10
-
-### Added
-- Port to CMake.
-- Documentation generation via Doxygen.
-- `CMakePresets.json`.
-
-### Changed
-- Removed Visual Studio solution/project files.
-- Tidied source formatting and removed dead files.
-
-## [3.4.0] - original
-
-### Notes
-- Original Vluzacn ZHLT v3.4 codebase with POSIX threading support.

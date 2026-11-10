@@ -257,23 +257,14 @@ void LoadTexture (radtexture_t *tex, const miptex_t *mt, int size)
 	tex->height = header->height;
 	strncpy (tex->name, header->name, 16); tex->name[16 - 1] = '\0';
 	tex->name[16 - 1] = '\0';
-	if (tex->width <= 0 || tex->height <= 0 || tex->width > 4096 || tex->height > 4096 ||
-		tex->width % (2 * 1 << (MIPLEVELS - 1)) != 0 || tex->height % (2 * (1 << (MIPLEVELS - 1))) != 0)
+	if (!ValidateMiptexHeader (tex->width, tex->height, mt->offsets, size, true))
 	{
-		Error ("Texture '%s': dimension (%dx%d) is not multiple of %d.", tex->name, tex->width, tex->height, 2 * (1 << (MIPLEVELS - 1)));
+		Error ("Texture '%s': invalid miptex header (size %dx%d).", tex->name, tex->width, tex->height);
 	}
-	int mipsize;
-	for (mipsize = 0, i = 0; i < MIPLEVELS; i++)
+	size_t mipsize = 0;
+	for (i = 0; i < MIPLEVELS; i++)
 	{
-		if ((int)mt->offsets[i] != (int)sizeof (miptex_t) + mipsize)
-		{
-			Error ("Texture '%s': unexpected miptex offset.", tex->name);
-		}
-		mipsize += (tex->width >> i) * (tex->height >> i);
-	}
-	if (size < (int)sizeof (miptex_t) + mipsize + 2 + 256 * 3)
-	{
-		Error ("Texture '%s': no enough data.", tex->name);
+		mipsize += (size_t)(tex->width >> i) * (size_t)(tex->height >> i);
 	}
 	if (*(unsigned short *)&data[sizeof (miptex_t) + mipsize] != 256)
 	{

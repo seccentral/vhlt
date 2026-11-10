@@ -713,7 +713,9 @@ void            AddAnimatingTextures()
             continue;
         }
 
-        safe_strncpy(name, miptex[i].name, MAXWADNAME);
+        memset(name, 0, MAXWADNAME);
+        memcpy(name, miptex[i].name, MAXWADNAME);
+        name[MAXWADNAME - 1] = '\0';
 
         for (j = 0; j < 20; j++)
         {

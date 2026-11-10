@@ -353,6 +353,11 @@ static void WriteLeafCount_r (node_t *node)
  * WritePortalfile
  * ================
  */
+
+// Must match MAX_PORTALS in hlvis (vis.h): the .prt reader rejects files
+// with more portals than this, so report the error here at bsp time.
+#define MAX_PORTALS 32768
+
 void            WritePortalfile(node_t* headnode)
 {
     // set the visleafnum field in every leaf and count the total number of portals
@@ -360,7 +365,7 @@ void            WritePortalfile(node_t* headnode)
     num_visportals = 0;
     NumberLeafs_r(headnode);
 
-    if (num_visportals > 32768)
+    if (num_visportals > MAX_PORTALS)
     {
         Error("Too many portals");
     }

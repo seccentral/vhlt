@@ -183,6 +183,16 @@ typedef struct miptex_s
 }
 miptex_t;
 
+// Maximum width/height accepted for a miptex texture.
+#define MAX_MIPTEX_DIMENSION 4096
+
+// Validates a miptex header read from a BSP/WAD against its available byte
+// count. Width/height must be in [1, MAX_MIPTEX_DIMENSION] and multiples of
+// 16. When strict_offsets is true, the mip offsets must match the sequential
+// layout (mip 0 immediately after the header). Returns true when valid.
+// Safe to call on any buffer: nothing is read before checking size.
+bool ValidateMiptexHeader(int width, int height, const unsigned offsets[MIPLEVELS], int available_bytes, bool strict_offsets);
+
 typedef struct
 {
     float           point[3];
