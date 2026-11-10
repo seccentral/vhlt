@@ -623,24 +623,27 @@ static void SaveOutside(const brush_t* const b, const int hull, bface_t* outside
         {
             int texinfo = f->texinfo;
             const char* texname = GetTextureByNumber_CSG(texinfo);
-            texinfo_t* tex = &g_texinfo[texinfo];
 
-            if (texinfo != -1                  // nullified textures (NULL, BEVEL, aaatrigger, etc.)
-                && !(tex->flags & TEX_SPECIAL) // sky
-                && strncasecmp(texname, "SKIP", 4) &&
-                strncasecmp(texname, "HINT", 4) // HINT and SKIP will be nullified only after hlbsp
-#ifdef HLCSG_HLBSP_SOLIDHINT
-                && strncasecmp(texname, "SOLIDHINT", 9)
-#endif
-            )
+            if (texinfo != -1) // nullified textures (NULL, BEVEL, aaatrigger, etc.)
             {
-                // check for "Malformed face (%d) normal"
-                vec3_t texnormal;
-                CrossProduct(tex->vecs[1], tex->vecs[0], texnormal);
-                VectorNormalize(texnormal);
-                if (fabs(DotProduct(texnormal, f->plane->normal)) <= NORMAL_EPSILON)
+                texinfo_t* tex = &g_texinfo[texinfo];
+
+                if (!(tex->flags & TEX_SPECIAL) // sky
+                    && strncasecmp(texname, "SKIP", 4) &&
+                    strncasecmp(texname, "HINT", 4) // HINT and SKIP will be nullified only after hlbsp
+#ifdef HLCSG_HLBSP_SOLIDHINT
+                    && strncasecmp(texname, "SOLIDHINT", 9)
+#endif
+                )
                 {
-                    Warning("Entity %i, Brush %i: Malformed texture alignment (texture %s): Texture axis perpendicular "
+                    // check for "Malformed face (%d) normal"
+                    vec3_t texnormal;
+                    CrossProduct(tex->vecs[1], tex->vecs[0], texnormal);
+                    VectorNormalize(texnormal);
+                    if (fabs(DotProduct(texnormal, f->plane->normal)) <= NORMAL_EPSILON)
+                    {
+                        Warning(
+                            "Entity %i, Brush %i: Malformed texture alignment (texture %s): Texture axis perpendicular "
                             "to face.",
 #ifdef HLCSG_COUNT_NEW
                             b->originalentitynum, b->originalbrushnum,
@@ -648,35 +651,36 @@ static void SaveOutside(const brush_t* const b, const int hull, bface_t* outside
                             b->entitynum, b->brushnum,
 #endif
                             texname);
-                }
+                    }
 
-                // check for "Bad surface extents"
-                bool bad;
-                int i;
-                int j;
-                vec_t val;
+                    // check for "Bad surface extents"
+                    bool bad;
+                    int i;
+                    int j;
+                    vec_t val;
 
-                bad = false;
-                for (i = 0; i < f->w->m_NumPoints; i++)
-                {
-                    for (j = 0; j < 2; j++)
+                    bad = false;
+                    for (i = 0; i < f->w->m_NumPoints; i++)
                     {
-                        val = DotProduct(f->w->m_Points[i], tex->vecs[j]) + tex->vecs[j][3];
-                        if (val < -99999 || val > 999999)
+                        for (j = 0; j < 2; j++)
                         {
-                            bad = true;
+                            val = DotProduct(f->w->m_Points[i], tex->vecs[j]) + tex->vecs[j][3];
+                            if (val < -99999 || val > 999999)
+                            {
+                                bad = true;
+                            }
                         }
                     }
-                }
-                if (bad)
-                {
-                    Warning("Entity %i, Brush %i: Malformed texture alignment (texture %s): Bad surface extents.",
+                    if (bad)
+                    {
+                        Warning("Entity %i, Brush %i: Malformed texture alignment (texture %s): Bad surface extents.",
 #ifdef HLCSG_COUNT_NEW
-                            b->originalentitynum, b->originalbrushnum,
+                                b->originalentitynum, b->originalbrushnum,
 #else
-                            b->entitynum, b->brushnum,
+                                b->entitynum, b->brushnum,
 #endif
-                            texname);
+                                texname);
+                    }
                 }
             }
         }
@@ -1312,6 +1316,7 @@ void ReuseModel()
     for (i = g_numentities - 1; i >= 1;
          i--) // so it won't affect the remaining entities in the loop when we move this entity backward
     {
+        // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): g_numentities is bounded by MAX_MAP_ENTITIES
         const char* name = ValueForKey(&g_entities[i], "zhlt_usemodel");
         if (!*name)
         {

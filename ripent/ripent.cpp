@@ -574,6 +574,7 @@ static void WriteTextures(const char* const name)
                         ofs + size > ((dmiptexlump_t*)g_dtexdata)->dataofs[j])
                         size = ((dmiptexlump_t*)g_dtexdata)->dataofs[j] - ofs;
             }
+            // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): info has header.numlumps entries
             info[i].filepos = ofs - dataofs + wadofs;
             info[i].disksize = size;
             info[i].size = size;
@@ -815,8 +816,8 @@ static void ReadTextures(const char* name)
 static void WriteEntities(const char* const name)
 {
 #ifdef RIPENT_TEXTURE
-    char* bak_dentdata;
-    int bak_entdatasize;
+    char* bak_dentdata = NULL;
+    int bak_entdatasize = 0;
 #endif
     char filename[_MAX_PATH];
 
@@ -851,9 +852,13 @@ static void WriteEntities(const char* const name)
             g_entdatasize = bak_entdatasize;
             memcpy(g_dentdata, bak_dentdata, bak_entdatasize);
             free(bak_dentdata);
+            bak_dentdata = NULL;
         }
 #endif
     }
+#ifdef RIPENT_TEXTURE
+    free(bak_dentdata);
+#endif
 }
 
 static void ReadEntities(const char* const name)

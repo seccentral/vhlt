@@ -131,6 +131,10 @@ static int WriteClipNodes_r(node_t* node
         }
         else
         {
+            if (!portalleaf)
+            {
+                Error("WriteClipNodes_r: missing portalleaf");
+            }
             num = portalleaf->contents;
         }
         free(node->markfaces);
@@ -203,6 +207,7 @@ static int WriteClipNodes_r(node_t* node
 #ifdef ZHLT_XASH2
         g_dclipnodes[g_hullnum - 1][c] = *cn;
 #else
+        // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): hlassume above checks c < MAX_MAP_CLIPNODES
         g_dclipnodes[c] = *cn;
 #endif
         (*outputmap)[MakeKey(*cn)] = c;
@@ -278,6 +283,10 @@ static void WriteDrawLeaf(const node_t* const node)
     g_numleafs++;
 
 #ifdef ZHLT_DETAILBRUSH
+    if (!portalleaf)
+    {
+        Error("WriteDrawLeaf: missing portalleaf");
+    }
     leaf_p->contents = portalleaf->contents;
 #else
     leaf_p->contents = node->contents;
@@ -526,6 +535,10 @@ static void WriteDrawNodes_r(const node_t* const node)
 #endif
     if (node->isdetail)
     {
+        if (!portalleaf)
+        {
+            Error("WriteDrawNodes_r: missing portalleaf");
+        }
 #ifdef HLBSP_DETAILBRUSH_CULL
         // intersect its loose bounds with the strict bounds of its parent portalleaf
         VectorCompareMaximum(portalleaf->mins, node->loosemins, mins);
@@ -1029,6 +1042,7 @@ void FinishBSPFile()
         hlassume(brinkinfo != NULL, assume_NoMemory);
         headnode = (int (*)[NUM_HULLS])malloc(MAX_MAP_MODELS * sizeof(int[NUM_HULLS]));
         hlassume(headnode != NULL, assume_NoMemory);
+        memset(headnode, 0, MAX_MAP_MODELS * sizeof(int[NUM_HULLS]));
 
         int i, j, level;
         for (i = 0; i < g_nummodels; i++)

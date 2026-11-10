@@ -248,6 +248,10 @@ static winding_t* NewWinding(const int points)
 #else
     size = (int)((winding_t*)0)->points[points];
 #endif
+    if (size < 1)
+    {
+        size = 1;
+    }
     w = (winding_t*)calloc(1, size);
     if (!w)
     {
@@ -1059,7 +1063,10 @@ static void CalcVis()
         LeafFlow(i);
     }
 
-    Log("average leafs visible: %i\n", totalvis / g_portalleafs);
+    if (g_portalleafs > 0)
+    {
+        Log("average leafs visible: %i\n", totalvis / g_portalleafs);
+    }
 
     if (g_maxdistance)
     {

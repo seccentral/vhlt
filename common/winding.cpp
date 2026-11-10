@@ -687,8 +687,11 @@ void Winding::Clip(const vec3_t normal, const vec_t dist, Winding** front, Windi
         }
         counts[sides[i]]++;
     }
-    sides[i] = sides[0];
-    dists[i] = dists[0];
+    if (i > 0)
+    {
+        sides[i] = sides[0];
+        dists[i] = dists[0];
+    }
 
     if (!counts[0])
     {
@@ -949,8 +952,11 @@ bool Winding::Clip(const dplane_t& split, bool keepon
         }
         counts[sides[i]]++;
     }
-    sides[i] = sides[0];
-    dists[i] = dists[0];
+    if (i > 0)
+    {
+        sides[i] = sides[0];
+        dists[i] = dists[0];
+    }
 
     if (keepon && !counts[0] && !counts[1])
     {
@@ -1113,8 +1119,11 @@ void Winding::Divide(const dplane_t& split, Winding** front, Winding** back
         }
         counts[sides[i]]++;
     }
-    sides[i] = sides[0];
-    dists[i] = dists[0];
+    if (i > 0)
+    {
+        sides[i] = sides[0];
+        dists[i] = dists[0];
+    }
 
     *front = *back = NULL;
 
@@ -1276,6 +1285,7 @@ void Winding::addPoint(const vec3_t newpoint)
     {
         resize(m_NumPoints + 1);
     }
+    // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): resize() guarantees m_MaxPoints > m_NumPoints
     VectorCopy(newpoint, m_Points[m_NumPoints]);
     m_NumPoints++;
 }
@@ -1297,8 +1307,10 @@ void Winding::insertPoint(const vec3_t newpoint, const unsigned int offset)
         unsigned x;
         for (x = m_NumPoints; x > offset; x--)
         {
+            // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): resize() guarantees room for one more point
             VectorCopy(m_Points[x - 1], m_Points[x]);
         }
+        // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): resize() guarantees room for one more point
         VectorCopy(newpoint, m_Points[x]);
 
         m_NumPoints++;

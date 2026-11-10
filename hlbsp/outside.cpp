@@ -453,9 +453,10 @@ void LoadAllowableOutsideList(const char* const filename)
                         if (g_nAllowableOutside == g_maxAllowableOutside)
                         {
                             g_maxAllowableOutside += MAX_ALLOWABLE_OUTSIDE_GROWTH_SIZE;
-                            g_strAllowableOutsideList =
-
+                            char** newlist =
                                 (char**)realloc(g_strAllowableOutsideList, sizeof(char*) * g_maxAllowableOutside);
+                            hlassume(newlist != NULL, assume_NoMemory);
+                            g_strAllowableOutsideList = newlist;
                         }
 
                         g_strAllowableOutsideList[y++] = pszData;

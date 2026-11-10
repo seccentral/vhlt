@@ -36,7 +36,8 @@ extern const size_t vector_size[];
 
 inline unsigned int bitget(unsigned int i, unsigned int start, unsigned int end)
 {
-    return (i & ~(~0u << end)) >> start;
+    const unsigned int mask = end >= 32 ? ~0u : ~(~0u << end);
+    return (i & mask) >> start;
 }
 
 inline unsigned int bitput(unsigned int i, unsigned int start, unsigned int end)

@@ -933,7 +933,8 @@ void WriteMiptex()
         safe_snprintf(writewad_name, _MAX_PATH, "%s.wa_", g_Mapname);
         writewad_file = SafeOpenWrite(writewad_name);
         writewad_maxlumpinfos = nummiptex;
-        writewad_lumpinfos = (dlumpinfo_t*)malloc(writewad_maxlumpinfos * sizeof(dlumpinfo_t));
+        writewad_lumpinfos =
+            (dlumpinfo_t*)malloc((writewad_maxlumpinfos > 0 ? writewad_maxlumpinfos : 1) * sizeof(dlumpinfo_t));
         hlassume(writewad_lumpinfos != NULL, assume_NoMemory);
         writewad_header.identification[0] = 'W';
         writewad_header.identification[1] = 'A';
@@ -1001,6 +1002,7 @@ void WriteMiptex()
         SafeWrite(writewad_file, &writewad_header, sizeof(wadinfo_t));
         if (fclose(writewad_file))
             Error("File write failure");
+        free(writewad_lumpinfos);
 #endif
     }
     end = I_FloatTime();

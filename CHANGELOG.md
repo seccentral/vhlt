@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Lint: `VHLT_CLANG_TIDY=ON` now passes Zig's system include paths and libc++ macros to clang-tidy, so system headers resolve. clang-tidy is pinned to 22.1.8 to match Zig 0.17.1's clang.
+- hlrad: free face windings that do not become patches, clear the luxel flag array before use, initialize transfer decompression temporaries, and fix a 32-bit shift in the transfer bit helpers.
+- hlbsp: do not read children of leaf clipnodes, free the surface-chain wrapper after `SolidBSP`, and stop with a clear error if a detail node has no `portalleaf`.
+- hlcsg: stop after a plane-with-no-normal `Fatal`, avoid forming `g_texinfo[-1]`, free the `writewad` lump-info array, and guard zero-size allocations.
+- hlvis: avoid division by zero when a map has no portal leaves.
+- common/winding: do not read `sides[0]` for empty windings.
+- Memory handling: commit `realloc` results through temporaries and guard zero-size allocations in bspfile, cmdlinecfg, brush, lightmap, loadtextures and vis.
 
 ## [3.5.3] - 2026-11-10
 

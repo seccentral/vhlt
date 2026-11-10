@@ -286,8 +286,11 @@ static void SplitFaceTmp(face_t* in, const dplane_t* const split, face_t** front
         }
         counts[sides[i]]++;
     }
-    sides[i] = sides[0];
-    dists[i] = dists[0];
+    if (i > 0)
+    {
+        sides[i] = sides[0];
+        dists[i] = dists[0];
+    }
 
 #ifdef HLBSP_SPLITFACE_FIX
     if (!counts[0] && !counts[1])
@@ -1369,6 +1372,8 @@ static bool ProcessModel()
                      detailbrushes,
 #endif
                      modnum == 0);
+    free(surfs);
+    surfs = NULL;
 
     // build all the portals in the bsp tree
     // some portals are solid polygons, and some are paths to other leafs
@@ -1501,6 +1506,8 @@ static bool ProcessModel()
                          detailbrushes,
 #endif
                          modnum == 0);
+        free(surfs);
+        surfs = NULL;
         if (g_nummodels == 1 && !g_nofill) // assume non-world bmodels are simple
         {
             nodes = FillOutside(nodes, (g_bLeaked != true), g_hullnum);

@@ -240,7 +240,7 @@ void unparsearg(int& argc, char**& argv, char* cmdline)
     for (c = cmdline; pvalid(c); c = pnext(c))
         i++;
     argc = i;
-    argv = (char**)malloc(argc * sizeof(char*));
+    argv = (char**)malloc((argc > 0 ? argc : 1) * sizeof(char*));
     if (!argv)
     {
         error = true;
@@ -248,6 +248,7 @@ void unparsearg(int& argc, char**& argv, char* cmdline)
     }
     for (c = cmdline, i = 0; pvalid(c); c = pnext(c), i++)
     {
+        // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): argv has argc entries from the same pvalid() loop
         argv[i] = (char*)malloc(plen(c) + 1);
         if (!argv[i])
         {

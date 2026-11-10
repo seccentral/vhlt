@@ -356,7 +356,7 @@ void LoadTextures()
         Log("Load Textures:\n");
     }
     g_numtextures = g_texdatasize ? ((dmiptexlump_t*)g_dtexdata)->nummiptex : 0;
-    g_textures = (radtexture_t*)malloc(g_numtextures * sizeof(radtexture_t));
+    g_textures = (radtexture_t*)malloc((g_numtextures > 0 ? g_numtextures : 1) * sizeof(radtexture_t));
     hlassume(g_textures != NULL, assume_NoMemory);
     int i;
     for (i = 0; i < g_numtextures; i++)
@@ -1151,8 +1151,12 @@ void EmbedLightmapInTextures()
         hlassume(texture != NULL, assume_NoMemory);
         for (miplevel = 0; miplevel < MIPLEVELS; miplevel++)
         {
-            texturemips[miplevel] =
-                (byte(*)[4])malloc((texturesize[0] >> miplevel) * (texturesize[1] >> miplevel) * sizeof(byte[4]));
+            int mipsize = (texturesize[0] >> miplevel) * (texturesize[1] >> miplevel) * (int)sizeof(byte[4]);
+            if (mipsize < 1)
+            {
+                mipsize = 1;
+            }
+            texturemips[miplevel] = (byte(*)[4])malloc(mipsize);
             hlassume(texturemips[miplevel] != NULL, assume_NoMemory);
         }
 

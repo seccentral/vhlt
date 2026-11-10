@@ -1528,6 +1528,7 @@ void DeleteEmbeddedLightmaps()
         }
         for (i = g_numtexinfo - 1; i > -1; i--)
         {
+            // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): g_numtexinfo is bounded by MAX_MAP_TEXINFO in CopyLump
             texinfo_t* info = &g_texinfo[i];
 
             if (texinfoused[i])
@@ -1551,7 +1552,7 @@ void DeleteEmbeddedLightmaps()
     // Step 3: remove redundant textures
     {
         int numremaining; // number of remaining textures
-        bool* textureused = (bool*)malloc(numtextures * sizeof(bool));
+        bool* textureused = (bool*)malloc((numtextures > 0 ? numtextures : 1) * sizeof(bool));
         hlassume(textureused != NULL, assume_NoMemory);
 
         for (i = 0; i < numtextures; i++)
@@ -1566,10 +1567,12 @@ void DeleteEmbeddedLightmaps()
             {
                 continue;
             }
+            // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): indexed after the explicit miptex bounds check above
             textureused[info->miptex] = true;
         }
         for (i = numtextures - 1; i > -1; i--)
         {
+            // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): textureused has numtextures entries
             if (textureused[i] || ParseImplicitTexinfoFromTexture(i) == -1)
             {
                 break; // should not remove this texture
@@ -1917,6 +1920,7 @@ void UnparseEntities()
         memset(lightneedcompare, 0, g_numentities * sizeof(bool));
         for (i = g_numentities - 1; i > -1; i--)
         {
+            // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): g_numentities is bounded by MAX_MAP_ENTITIES
             entity_t* ent = &g_entities[i];
             const char* classname = ValueForKey(ent, "classname");
             const char* targetname = ValueForKey(ent, "targetname");
@@ -1926,6 +1930,7 @@ void UnparseEntities()
                 continue;
             for (j = i + 1; j < g_numentities; j++)
             {
+                // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound): lightneedcompare has g_numentities entries
                 if (!lightneedcompare[j])
                     continue;
                 entity_t* ent2 = &g_entities[j];

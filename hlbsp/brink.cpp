@@ -1203,6 +1203,10 @@ void ExpandClipnodes(bbrinkinfo_t* info, const dclipnode_t* clipnodes, int headn
     memcpy(info->clipnodes, bclipnodes, info->numclipnodes * sizeof(bclipnode_t));
     for (int i = 0; i < info->numclipnodes; i++)
     {
+        if (bclipnodes[i].isleaf)
+        {
+            continue;
+        }
         for (int k = 0; k < 2; k++)
         {
             info->clipnodes[i].children[k] = info->clipnodes + (bclipnodes[i].children[k] - bclipnodes);

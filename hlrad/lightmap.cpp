@@ -2264,6 +2264,7 @@ static void CalcPoints(lightinfo_t* l)
     const vec_t starts = l->texmins[0] * TEXTURE_STEP;
     const vec_t startt = l->texmins[1] * TEXTURE_STEP;
     light_flag_t LuxelFlags[MAX_SINGLEMAP];
+    memset(LuxelFlags, 0, sizeof(LuxelFlags));
     light_flag_t* pLuxelFlags;
     vec_t us, ut;
     vec_t* surf;
@@ -5189,7 +5190,7 @@ static void AddSamplesToPatches(const sample_t** samples, const unsigned char* s
     {
         numtexwindings++;
     }
-    texwindings = (Winding**)malloc(numtexwindings * sizeof(Winding*));
+    texwindings = (Winding**)malloc((numtexwindings > 0 ? numtexwindings : 1) * sizeof(Winding*));
     hlassume(texwindings != NULL, assume_NoMemory);
 
     // translate world winding into winding in s,t plane

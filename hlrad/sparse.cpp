@@ -650,6 +650,7 @@ static void BuildVisLeafs(int threadnum)
 #ifdef HLRAD_SPARSEVISMATRIX_FAST
     bool* uncompressedcolumn = (bool*)malloc(MAX_SPARSE_VISMATRIX_PATCHES * sizeof(bool));
     hlassume(uncompressedcolumn != NULL, assume_NoMemory);
+    memset(uncompressedcolumn, 0, MAX_SPARSE_VISMATRIX_PATCHES * sizeof(bool));
 #endif
 
     while (1)

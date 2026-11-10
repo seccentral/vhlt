@@ -858,6 +858,7 @@ int loadlangfileline(char* line, int n, FILE* f)
     bool special = false;
     while (1)
     {
+        // NOLINTNEXTLINE(clang-analyzer-unix.Stream): fgetc at EOF is the loop terminator
         c = fgetc(f);
         if (c == '\r')
             continue;

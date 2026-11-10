@@ -434,7 +434,7 @@ void ExpandBrushWithHullBrush(const brush_t* brush, const brushhull_t* hull0, co
         }
 
         // find the impact point
-        vec3_t bestvertex;
+        vec3_t bestvertex = {0, 0, 0};
         vec_t bestdist;
         bestdist = BOGUS_RANGE;
         hlassume(hb->numvertexes >= 1, assume_first);
@@ -550,7 +550,7 @@ void ExpandBrushWithHullBrush(const brush_t* brush, const brushhull_t* hull0, co
     for (hbf = hb->faces; hbf < hb->faces + hb->numfaces; hbf++)
     {
         // find the impact point
-        vec3_t bestvertex;
+        vec3_t bestvertex = {0, 0, 0};
         vec_t bestdist;
         bestdist = BOGUS_RANGE;
         if (!hull0->faces)
@@ -1190,6 +1190,10 @@ void SortSides(brushhull_t* h)
     {
         numsides++;
     }
+    if (numsides == 0)
+    {
+        return;
+    }
     sides = (bface_t**)malloc(numsides * sizeof(bface_t*));
     hlassume(sides != NULL, assume_NoMemory);
     normals = (vec3_t*)malloc(numsides * sizeof(vec3_t));
@@ -1207,7 +1211,7 @@ void SortSides(brushhull_t* h)
     }
     for (i = 0; i < numsides; i++)
     {
-        int bestside;
+        int bestside = 0;
         int bestaxial = -1;
         for (j = 0; j < numsides; j++)
         {
@@ -1378,6 +1382,7 @@ bool MakeBrushPlanes(brush_t* b)
 #endif
                   ,
                   i);
+            return false;
         }
 
         //
@@ -2126,7 +2131,7 @@ hullbrush_t* CreateHullBrush(const brush_t* b)
         hlassume(hb != NULL, assume_NoMemory);
 
         hb->numfaces = numplanes;
-        hb->faces = (hullbrushface_t*)malloc(hb->numfaces * sizeof(hullbrushface_t));
+        hb->faces = (hullbrushface_t*)malloc((hb->numfaces > 0 ? hb->numfaces : 1) * sizeof(hullbrushface_t));
         hlassume(hb->faces != NULL, assume_NoMemory);
         for (i = 0; i < numplanes; i++)
         {
@@ -2143,12 +2148,13 @@ hullbrush_t* CreateHullBrush(const brush_t* b)
         }
 
         hb->numedges = numedges;
-        hb->edges = (hullbrushedge_t*)malloc(hb->numedges * sizeof(hullbrushedge_t));
+        hb->edges = (hullbrushedge_t*)malloc((hb->numedges > 0 ? hb->numedges : 1) * sizeof(hullbrushedge_t));
         hlassume(hb->edges != NULL, assume_NoMemory);
         memcpy(hb->edges, edges, hb->numedges * sizeof(hullbrushedge_t));
 
         hb->numvertexes = numvertexes;
-        hb->vertexes = (hullbrushvertex_t*)malloc(hb->numvertexes * sizeof(hullbrushvertex_t));
+        hb->vertexes =
+            (hullbrushvertex_t*)malloc((hb->numvertexes > 0 ? hb->numvertexes : 1) * sizeof(hullbrushvertex_t));
         hlassume(hb->vertexes != NULL, assume_NoMemory);
         memcpy(hb->vertexes, vertexes, hb->numvertexes * sizeof(hullbrushvertex_t));
 
@@ -2224,7 +2230,7 @@ void InitDefaultHulls()
         hs->id = _strdup("");
         hs->disabled = true;
         hs->numbrushes = 0;
-        hs->brushes = (hullbrush_t**)malloc(0 * sizeof(hullbrush_t*));
+        hs->brushes = (hullbrush_t**)malloc(sizeof(hullbrush_t*));
         hlassume(hs->brushes != NULL, assume_NoMemory);
     }
 }
@@ -2286,7 +2292,7 @@ void CreateHullShape(int entitynum, bool disabled, const char* id, int defaulthu
             target->id = _strdup(hs->id);
             target->disabled = hs->disabled;
             target->numbrushes = hs->numbrushes;
-            target->brushes = (hullbrush_t**)malloc(hs->numbrushes * sizeof(hullbrush_t*));
+            target->brushes = (hullbrush_t**)malloc((hs->numbrushes > 0 ? hs->numbrushes : 1) * sizeof(hullbrush_t*));
             hlassume(target->brushes != NULL, assume_NoMemory);
             for (int i = 0; i < hs->numbrushes; i++)
             {

@@ -1829,6 +1829,7 @@ static void MakePatchForFace(const int fn, Winding* w
         if (numpoints < 3) // WTF! (Actually happens in real-world maps too)
         {
             Developer(DEVELOPER_LEVEL_WARNING, "Face %d only has %d points on winding\n", fn, numpoints);
+            delete w;
             return;
         }
         if (numpoints > MAX_POINTS_ON_WINDING)
@@ -2083,6 +2084,10 @@ static void MakePatchForFace(const int fn, Winding* w
             }
         }
     }
+    else
+    {
+        delete w;
+    }
 }
 
 // =====================================================================================
@@ -2117,10 +2122,12 @@ static void AddFaceToOpaqueList(
     if (g_opaque_face_count == g_max_opaque_face_count)
     {
         g_max_opaque_face_count += OPAQUE_ARRAY_GROWTH_SIZE;
-        g_opaque_face_list = (opaqueList_t*)realloc(g_opaque_face_list, sizeof(opaqueList_t) * g_max_opaque_face_count);
+        opaqueList_t* newlist =
+            (opaqueList_t*)realloc(g_opaque_face_list, sizeof(opaqueList_t) * g_max_opaque_face_count);
 #ifdef HLRAD_HLASSUMENOMEMORY
-        hlassume(g_opaque_face_list != NULL, assume_NoMemory);
+        hlassume(newlist != NULL, assume_NoMemory);
 #endif
+        g_opaque_face_list = newlist;
     }
 
     {
@@ -2842,12 +2849,15 @@ static void CollectLight()
 #ifdef ZHLT_XASH
         vec3_t newtotallight_direction[MAXLIGHTMAPS];
 #endif
-        for (j = 0; j < MAXLIGHTMAPS && newstyles[i][j] != 255; j++)
+        for (j = 0; j < MAXLIGHTMAPS; j++)
         {
             VectorClear(newtotallight[j]);
 #ifdef ZHLT_XASH
             VectorClear(newtotallight_direction[j]);
 #endif
+        }
+        for (j = 0; j < MAXLIGHTMAPS && newstyles[i][j] != 255; j++)
+        {
             int k;
             for (k = 0; k < MAXLIGHTMAPS && patch->totalstyle[k] != 255; k++)
             {
@@ -2926,7 +2936,7 @@ static void GatherLight(int threadnum)
     transfer_data_t* tData;
     transfer_index_t* tIndex;
 #ifdef HLRAD_TRANSFERDATA_COMPRESS
-    float f;
+    float f = 0;
 #endif
 #ifdef HLRAD_STYLE_CORING
 #ifdef ZHLT_TEXLIGHT
@@ -3328,7 +3338,7 @@ static void GatherRGBLight(int threadnum)
     rgb_transfer_data_t* tRGBData;
     transfer_index_t* tIndex;
 #ifdef HLRAD_TRANSFERDATA_COMPRESS
-    float f[3];
+    float f[3] = {0, 0, 0};
 #endif
 #ifdef HLRAD_STYLE_CORING
 #ifdef ZHLT_TEXLIGHT

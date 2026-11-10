@@ -64,10 +64,11 @@ static unsigned AddTransparencyToDataList(const vec3_t trans)
         }
 #endif
 
-        s_trans_list = (vec3_t*)realloc(s_trans_list, sizeof(vec3_t) * s_max_trans_count);
+        vec3_t* newlist = (vec3_t*)realloc(s_trans_list, sizeof(vec3_t) * s_max_trans_count);
 #ifdef HLRAD_HLASSUMENOMEMORY
-        hlassume(s_trans_list != NULL, assume_NoMemory);
+        hlassume(newlist != NULL, assume_NoMemory);
 #endif
+        s_trans_list = newlist;
 
 #ifdef HLRAD_TRANSPARENCY_FAST
         memset(&s_trans_list[old_max_count], 0, sizeof(vec3_t) * (s_max_trans_count - old_max_count));
@@ -113,10 +114,11 @@ void AddTransparencyToRawArray(const unsigned p1, const unsigned p2, const vec3_
         }
 #endif
 
-        s_raw_list = (transList_t*)realloc(s_raw_list, sizeof(transList_t) * s_max_raw_count);
+        transList_t* newlist = (transList_t*)realloc(s_raw_list, sizeof(transList_t) * s_max_raw_count);
 #ifdef HLRAD_HLASSUMENOMEMORY
-        hlassume(s_raw_list != NULL, assume_NoMemory);
+        hlassume(newlist != NULL, assume_NoMemory);
 #endif
+        s_raw_list = newlist;
 
 #ifdef HLRAD_TRANSPARENCY_FAST
         memset(&s_raw_list[old_max_count], 0, sizeof(transList_t) * (s_max_raw_count - old_max_count));
@@ -346,10 +348,11 @@ void AddStyleToStyleArray(const unsigned p1, const unsigned p2, const int style)
         }
 #endif
 
-        s_style_list = (styleList_t*)realloc(s_style_list, sizeof(styleList_t) * s_max_style_count);
+        styleList_t* newlist = (styleList_t*)realloc(s_style_list, sizeof(styleList_t) * s_max_style_count);
 #ifdef HLRAD_HLASSUMENOMEMORY
-        hlassume(s_style_list != NULL, assume_NoMemory);
+        hlassume(newlist != NULL, assume_NoMemory);
 #endif
+        s_style_list = newlist;
 
 #ifdef HLRAD_TRANSPARENCY_FAST
         memset(&s_style_list[old_max_count], 0, sizeof(styleList_t) * (s_max_style_count - old_max_count));

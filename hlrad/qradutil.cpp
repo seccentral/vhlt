@@ -700,7 +700,7 @@ void FindFacePositions(int facenum)
     vec3_t v;
     const vec3_t v_up = {0, 0, 1};
     vec_t density;
-    vec_t texmins[2], texmaxs[2];
+    vec_t texmins[2] = {0, 0}, texmaxs[2] = {0, 0};
     int imins[2], imaxs[2];
     int is, it;
     int x;
