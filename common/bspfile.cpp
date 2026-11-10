@@ -277,9 +277,10 @@ static void     SwapBSPFile(const bool todisk)
     //
     for (i = 0; i < g_numtexinfo; i++)
     {
-        for (j = 0; j < 8; j++)
+        for (j = 0; j < 4; j++)
         {
             g_texinfo[i].vecs[0][j] = LittleFloat(g_texinfo[i].vecs[0][j]);
+            g_texinfo[i].vecs[1][j] = LittleFloat(g_texinfo[i].vecs[1][j]);
         }
         g_texinfo[i].miptex = LittleLong(g_texinfo[i].miptex);
         g_texinfo[i].flags = LittleLong(g_texinfo[i].flags);
@@ -1814,8 +1815,15 @@ void            UnparseEntities()
 
         for (ep = g_entities[i].epairs; ep; ep = ep->next)
         {
-            sprintf(line, "\"%s\" \"%s\"\n", ep->key, ep->value);
-            strcat(end, line);
+            if (!safe_snprintf(line, sizeof(line), "\"%s\" \"%s\"\n", ep->key, ep->value))
+            {
+                Error("Entity text too long");
+            }
+            if (end + strlen(line) > buf + MAX_MAP_ENTSTRING)
+            {
+                Error("Entity text too long");
+            }
+            memcpy(end, line, strlen(line) + 1);
             end += strlen(line);
         }
         strcat(end, "}\n");

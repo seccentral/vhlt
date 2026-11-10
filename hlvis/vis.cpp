@@ -869,20 +869,28 @@ static void InitVisBlock(void)
 	if(!fp)
 		return;
 
-	while(!feof(fp))
+	while(!feof(fp) && x < MAX_VISBLOCKERS)
 	{
-		fscanf(fp, "%s\n", g_visblockers[x].name);
+		fscanf(fp, "%63s\n", g_visblockers[x].name);
 
 		fscanf(fp, "%d\n", &num_blocks);
+		if (num_blocks < 0 || num_blocks > MAX_VISBLOCKERS)
+		{
+			num_blocks = 0;
+		}
 
 		for(i = 0; i < num_blocks; i++)
 		{
-			fscanf(fp, "%s\n", g_visblockers[x].blocknames[i]);
+			fscanf(fp, "%63s\n", g_visblockers[x].blocknames[i]);
 		}
 
 		g_visblockers[x].numnames = num_blocks;
 
 		fscanf(fp, "%d\n", &num_sides);
+		if (num_sides < 0 || num_sides > MAX_VISBLOCKERS)
+		{
+			num_sides = 0;
+		}
 
 		for(i = 0; i < num_sides; i++)
 		{

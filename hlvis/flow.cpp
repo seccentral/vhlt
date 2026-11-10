@@ -529,7 +529,18 @@ inline static void     RecursiveLeafFlow(const int leafnum, const threaddata_t* 
         if (stack.clipPlaneCount == -1)
         {
             stack.clipPlaneCount = 0;
-            stack.clipPlane = (plane_t*)alloca(sizeof(plane_t) * prevstack->source->numpoints * prevstack->pass->numpoints);
+            {
+                size_t clipPlaneCount = (size_t)prevstack->source->numpoints * (size_t)prevstack->pass->numpoints;
+                if (clipPlaneCount == 0 || clipPlaneCount > 1024 * 1024)
+                {
+                    Error("PortalFlow: unreasonable clip plane count");
+                }
+                stack.clipPlane = (plane_t*)malloc(sizeof(plane_t) * clipPlaneCount);
+                if (!stack.clipPlane)
+                {
+                    Error("PortalFlow: out of memory");
+                }
+            }
 
             ClipToSeperators(prevstack->source, prevstack->pass, NULL, false, &stack);
             ClipToSeperators(prevstack->pass, prevstack->source, NULL, true, &stack);
@@ -581,12 +592,11 @@ inline static void     RecursiveLeafFlow(const int leafnum, const threaddata_t* 
     }
 
 #ifdef RVIS_LEVEL_2
-#if 0
     if (stack.clipPlane != NULL)
     {
         free(stack.clipPlane);
+        stack.clipPlane = NULL;
     }
-#endif
 #endif
 }
 

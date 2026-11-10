@@ -353,15 +353,29 @@ static DWORD WINAPI ThreadEntryStub(LPVOID pParam)
     return 0;
 }
 
+static int      critRefCount = 0;
+
 void            threads_InitCrit()
 {
-    InitializeCriticalSection(&crit);
+    if (critRefCount == 0)
+    {
+        InitializeCriticalSection(&crit);
+    }
+    critRefCount++;
     threaded = true;
 }
 
 void            threads_UninitCrit()
 {
-    DeleteCriticalSection(&crit);
+    if (critRefCount > 0)
+    {
+        critRefCount--;
+    }
+    if (critRefCount == 0)
+    {
+        DeleteCriticalSection(&crit);
+        threaded = false;
+    }
 }
 
 void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction func)
@@ -394,6 +408,10 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
     // Create all the threads (suspended)
     //
     threads_InitCrit();
+    for (i = 0; i < MAX_THREADS; i++)
+    {
+        threadhandle[i] = NULL;
+    }
     for (i = 0; i < g_numthreads; i++)
     {
         HANDLE          hThread = CreateThread(NULL,
@@ -418,7 +436,7 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
             // Process any inserts in lpMsgBuf.
             // ...
             // Display the string.
-            Developer(DEVELOPER_LEVEL_ERROR, "CreateThread #%d [%08X] failed : %s\n", i, threadhandle[i], lpMsgBuf);
+            Developer(DEVELOPER_LEVEL_ERROR, "CreateThread #%d failed : %s\n", i, lpMsgBuf);
             Fatal(assume_THREAD_ERROR, "Unable to create thread #%d", i);
             // Free the buffer.
             LocalFree(lpMsgBuf);
@@ -453,6 +471,8 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
     {
         Developer(DEVELOPER_LEVEL_MESSAGE, "WaitForSingleObject on thread #%d [%08X]\n", i, threadhandle[i]);
         WaitForSingleObject(threadhandle[i], INFINITE);
+        CloseHandle(threadhandle[i]);
+        threadhandle[i] = NULL;
     }
     threads_UninitCrit();
 
@@ -625,6 +645,8 @@ static void*    CDECL ThreadEntryStub(void* pParam)
     return NULL;
 }
 
+static int      critRefCount = 0;
+
 void            threads_InitCrit()
 {
     pthread_mutexattr_t mattrib;
@@ -640,13 +662,23 @@ void            threads_InitCrit()
         {
             Error("pthread_mutex_init failed");
         }
+        pthread_mutexattr_destroy(&mattrib);
     }
+    critRefCount++;
 }
 
 void            threads_UninitCrit()
 {
-    Free(my_mutex);
-    my_mutex = NULL;
+    if (critRefCount > 0)
+    {
+        critRefCount--;
+    }
+    if (critRefCount == 0 && my_mutex)
+    {
+        pthread_mutex_destroy(my_mutex);
+        Free(my_mutex);
+        my_mutex = NULL;
+    }
 }
 
 /*

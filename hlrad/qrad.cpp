@@ -572,7 +572,7 @@ static void     ReadLightFile(const char* const filename)
             comment[1] = 0;
         }
 
-        argCnt = sscanf(scan, "%s %f %f %f %f", szTexlight, &r, &g, &b, &i);
+        argCnt = sscanf(scan, "%4095s %f %f %f %f", szTexlight, &r, &g, &b, &i);
 
         if (argCnt == 2)
         {

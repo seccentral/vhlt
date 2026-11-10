@@ -231,7 +231,7 @@ void DefaultTexture (radtexture_t *tex, const char *name)
 	int i;
 	tex->width = 16;
 	tex->height = 16;
-	strcpy (tex->name, name);
+	strncpy (tex->name, name, 16); tex->name[16 - 1] = '\0';
 	tex->name[16 - 1] = '\0';
 	tex->canvas = (byte *)malloc (tex->width * tex->height);
 	hlassume (tex->canvas != NULL, assume_NoMemory);
@@ -252,7 +252,7 @@ void LoadTexture (radtexture_t *tex, const miptex_t *mt, int size)
 	const byte *data = (const byte *)mt;
 	tex->width = header->width;
 	tex->height = header->height;
-	strcpy (tex->name, header->name);
+	strncpy (tex->name, header->name, 16); tex->name[16 - 1] = '\0';
 	tex->name[16 - 1] = '\0';
 	if (tex->width <= 0 || tex->height <= 0 ||
 		tex->width % (2 * 1 << (MIPLEVELS - 1)) != 0 || tex->height % (2 * (1 << (MIPLEVELS - 1))) != 0)
@@ -298,13 +298,13 @@ void LoadTextureFromWad (radtexture_t *tex, const miptex_t *header)
 {
 	tex->width = header->width;
 	tex->height = header->height;
-	strcpy (tex->name, header->name);
+	strncpy (tex->name, header->name, 16); tex->name[16 - 1] = '\0';
 	tex->name[16 - 1] = '\0';
 	wadfile_t *wad;
 	for (wad = g_wadfiles; wad; wad = wad->next)
 	{
 		lumpinfo_t temp, *found;
-		strcpy (temp.name, tex->name);
+		strncpy (temp.name, tex->name, 16); temp.name[16 - 1] = '\0';
 		found = (lumpinfo_t *)bsearch (&temp, wad->lumpinfos, wad->numlumps, sizeof (lumpinfo_t), lump_sorter_by_name);
 		if (found)
 		{

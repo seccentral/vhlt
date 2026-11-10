@@ -281,12 +281,28 @@ void			Winding::initFromPoints(vec3_t *points, UINT32 numpoints)
 
 Winding&      Winding::operator=(const Winding& other)
 {
+    if (this == &other)
+    {
+        return *this;
+    }
+
     delete[] m_Points;
+    m_Points = NULL;
     m_NumPoints = other.m_NumPoints;
     m_MaxPoints = (m_NumPoints + 3) & ~3;   // groups of 4
 
-    m_Points = new vec3_t[m_MaxPoints];
-    memcpy(m_Points, other.m_Points, sizeof(vec3_t) * m_NumPoints);
+    if (m_MaxPoints)
+    {
+        m_Points = new vec3_t[m_MaxPoints];
+        if (other.m_Points && m_NumPoints)
+        {
+            memcpy(m_Points, other.m_Points, sizeof(vec3_t) * m_NumPoints);
+        }
+    }
+    else
+    {
+        m_Points = NULL;
+    }
     return *this;
 }
 
@@ -365,7 +381,8 @@ void Winding::initFromPlane(const vec3_t normal, const vec_t dist)
 
     // project a really big     axis aligned box onto the plane
     m_NumPoints = 4;
-    m_Points = new vec3_t[m_NumPoints];
+    m_MaxPoints = m_NumPoints;
+    m_Points = new vec3_t[m_MaxPoints];
 
     VectorSubtract(org, vright, m_Points[0]);
     VectorAdd(m_Points[0], vup, m_Points[0]);
@@ -396,7 +413,8 @@ Winding::Winding(const dface_t& face
     int             v;
 
     m_NumPoints = face.numedges;
-    m_Points = new vec3_t[m_NumPoints];
+    m_MaxPoints = m_NumPoints;
+    m_Points = new vec3_t[m_MaxPoints];
 
     unsigned i;
     for (i = 0; i < face.numedges; i++)
@@ -1275,11 +1293,20 @@ void            Winding::resize(UINT32 newsize)
 {
     newsize = (newsize + 3) & ~3;   // groups of 4
 
+    if (newsize == m_MaxPoints)
+    {
+        return;
+    }
+
     vec3_t* newpoints = new vec3_t[newsize];
-    m_NumPoints = qmin(newsize, m_NumPoints);
-    memcpy(newpoints, m_Points, m_NumPoints);
+    UINT32 copypoints = qmin(newsize, m_NumPoints);
+    if (m_Points && copypoints)
+    {
+        memcpy(newpoints, m_Points, sizeof(vec3_t) * copypoints);
+    }
     delete[] m_Points;
     m_Points = newpoints;
+    m_NumPoints = copypoints;
     m_MaxPoints = newsize;
 }
 

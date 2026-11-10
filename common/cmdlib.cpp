@@ -537,10 +537,14 @@ bool CDECL FORMAT_PRINTF(3,4)      safe_snprintf(char* const dest, const size_t 
     amt = vsnprintf(dest, count, args, argptr);
     va_end(argptr);
 
-    // truncated (bad!, snprintf doesn't null terminate the string when this happens)
-    if (amt == count)
+    // vsnprintf returns the number of characters that would have been written.
+    // A negative value indicates an encoding error; a value >= count means truncation.
+    if (amt < 0 || (size_t)amt >= count)
     {
-        dest[count - 1] = 0;
+        if (count > 0)
+        {
+            dest[count - 1] = 0;
+        }
         return false;
     }
 
@@ -554,18 +558,30 @@ bool            safe_strncpy(char* const dest, const char* const src, const size
 
 bool            safe_strncat(char* const dest, const char* const src, const size_t count)
 {
-    if (count)
-    {
-        strncat(dest, src, count);
+    size_t          destlen;
+    size_t          remaining;
+    size_t          srclen;
 
-        dest[count - 1] = 0;                               // Ensure it is null terminated
-        return true;
-    }
-    else
+    if (count == 0)
     {
         Warning("safe_strncat passed empty count");
         return false;
     }
+
+    destlen = strlen(dest);
+    if (destlen >= count - 1)
+    {
+        dest[count - 1] = 0;
+        return false;
+    }
+
+    remaining = count - destlen - 1;
+    srclen = strlen(src);
+
+    strncat(dest, src, remaining);
+    dest[count - 1] = 0;
+
+    return srclen <= remaining;
 }
 
 bool            TerminatedString(const char* buffer, const int size)
