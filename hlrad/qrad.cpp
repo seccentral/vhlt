@@ -561,7 +561,7 @@ static void     ReadLightFile(const char* const filename)
     while (fgets(scan, sizeof(scan), f))
     {
         char*           comment;
-        char            szTexlight[_MAX_PATH];
+        char            szTexlight[MAXTOKEN];
         vec_t           r, g, b, i = 1;
 
         comment = strstr(scan, "//");
@@ -4468,8 +4468,14 @@ static void     Settings()
     safe_snprintf(buf2, sizeof(buf2), "%3.3f", DEFAULT_SMOOTHING_VALUE);
     Log("smoothing threshold  [ %17s ] [ %17s ]\n", buf1, buf2);
 #ifdef HLRAD_CUSTOMSMOOTH
-	safe_snprintf(buf1, sizeof(buf1), g_smoothing_value_2<0? "no change": "%3.3f", g_smoothing_value_2);
-	safe_snprintf(buf2, sizeof(buf2), DEFAULT_SMOOTHING2_VALUE<0? "no change": "%3.3f", DEFAULT_SMOOTHING2_VALUE);
+	if (g_smoothing_value_2 < 0)
+		safe_strncpy(buf1, "no change", sizeof(buf1));
+	else
+		safe_snprintf(buf1, sizeof(buf1), "%3.3f", g_smoothing_value_2);
+	if (DEFAULT_SMOOTHING2_VALUE < 0)
+		safe_strncpy(buf2, "no change", sizeof(buf2));
+	else
+		safe_snprintf(buf2, sizeof(buf2), "%3.3f", DEFAULT_SMOOTHING2_VALUE);
     Log("smoothing threshold 2[ %17s ] [ %17s ]\n", buf1, buf2);
 #endif
     safe_snprintf(buf1, sizeof(buf1), "%3.3f", g_dlight_threshold);

@@ -8,11 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- hlrad: the `-smooth2` defaults are logged without passing an unused format argument.
+- hlrad: bad-face diagnostics print face indices with the correct type on 64-bit builds.
+- hlrad/hlvis: distance sentinels are written as float literals, removing an implicit narrowing conversion (compiled output is unchanged).
 - ripent: `-textureexport` no longer marks textures that reference an external WAD as missing (regression in 3.5.2).
 - hlcsg: reverted the 3.5.2 `IPlaneEquiv` change that treated opposite-facing planes as duplicates and could drop faces from expanded hulls.
 - hlrad: the `GetPhongNormal` degenerate-geometry guard is now scale-invariant.
 
 ### Security
+- hlrad: texture names read from `lights.rad` are bounded by `MAXTOKEN`; a long name could overflow a `_MAX_PATH` stack buffer (audit H12).
+- common log and ripent error paths pass messages as `%s` instead of using them as format strings, so a `%` in a message or path can no longer be interpreted as a format specifier.
 - Reject BSP files smaller than the BSP header.
 - ripent: range-check the WAD `infotableofs` before using it in size arithmetic.
 

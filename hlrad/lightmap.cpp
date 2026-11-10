@@ -132,7 +132,7 @@ void AddFaceForVertexNormal_printerror (const int edgeabs, const int edgeend, df
 			Log (" e=%d v0=%d(%f,%f,%f) v1=%d(%f,%f,%f) share0=%d share1=%d\n", e,
 				v0, g_dvertexes[v0].point[0], g_dvertexes[v0].point[1], g_dvertexes[v0].point[2],
 				v1, g_dvertexes[v1].point[0], g_dvertexes[v1].point[1], g_dvertexes[v1].point[2],
-				(es->faces[0]==NULL? -1: es->faces[0]-g_dfaces), (es->faces[1]==NULL? -1: es->faces[1]-g_dfaces));
+				(int)(es->faces[0]==NULL? -1: es->faces[0]-g_dfaces), (int)(es->faces[1]==NULL? -1: es->faces[1]-g_dfaces));
 		}
 	}
 }
@@ -733,8 +733,8 @@ static void     CalcFaceExtents(lightinfo_t* l)
     s = l->face;
 
 #ifdef ZHLT_64BIT_FIX
-	mins[0] = mins[1] = 99999999;
-	maxs[0] = maxs[1] = -99999999;
+	mins[0] = mins[1] = 1e8f;
+	maxs[0] = maxs[1] = -1e8f;
 #else
     mins[0] = mins[1] = 999999;
     maxs[0] = maxs[1] = -99999; // a little small, but same with Goldsrc. --vluzacn
@@ -802,7 +802,7 @@ static void     CalcFaceExtents(lightinfo_t* l)
 			)
 		{
 			ThreadLock();
-			PrintOnce("\nfor Face %d (texture %s) at ", s - g_dfaces, TextureNameFromFace(s));
+			PrintOnce("\nfor Face %d (texture %s) at ", (int)(s - g_dfaces), TextureNameFromFace(s));
 
 			for (i = 0; i < s->numedges; i++)
 			{
@@ -9068,10 +9068,10 @@ void            FinalLightFace(const int facenum)
 			{
 				if (g_colour_jitter_hack[0] || g_colour_jitter_hack[1] || g_colour_jitter_hack[2])
 					for (i = 0; i < 3; i++)
-						lbi[i] += g_colour_jitter_hack[i] * ((float)rand() / RAND_MAX - 0.5);
+						lbi[i] += g_colour_jitter_hack[i] * ((float)rand() / (float)RAND_MAX - 0.5);
 				if (g_jitter_hack[0] || g_jitter_hack[1] || g_jitter_hack[2])
 				{
-					temp_rand = (float)rand() / RAND_MAX - 0.5;
+					temp_rand = (float)rand() / (float)RAND_MAX - 0.5;
 					for (i = 0; i < 3; i++)
 						lbi[i] += g_jitter_hack[i] * temp_rand;
 				}
