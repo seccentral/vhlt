@@ -1,0 +1,26 @@
+# clang-format 23 (pinned: pip install clang-format==23.1.5).
+# Format everything: cmake --build build/windows --target format
+# Check (gate):      cmake --build build/windows --target format-check
+---
+Language: Cpp
+BasedOnStyle: Microsoft
+Standard: c++11
+ColumnLimit: 120
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+BreakBeforeBraces: Allman
+PointerAlignment: Left
+# Include order is significant in this code base (platform headers, macros).
+SortIncludes: Never
+IncludeBlocks: Preserve
+# Large blocks of commented-out legacy code must not be rewrapped.
+ReflowComments: false
+# Preprocessor directives stay at column 0; feature macros are nested deeply.
+IndentPPDirectives: None
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+MaxEmptyLinesToKeep: 2
+LineEnding: DeriveLF
+InsertNewlineAtEOF: true

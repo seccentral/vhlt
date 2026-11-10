@@ -31,6 +31,32 @@ endif()
 option(VHLT_WERROR "Treat compiler warnings as errors" ON)
 
 # ----------------------------------------------------------------------
+# Formatting: clang-format with the style in .clang-format.
+#   format        rewrite every source file in place
+#   format-check  fail if any file is not formatted (gate)
+# ----------------------------------------------------------------------
+find_program(CLANG_FORMAT_EXECUTABLE clang-format)
+if(CLANG_FORMAT_EXECUTABLE)
+    file(GLOB_RECURSE VHLT_FORMAT_SOURCES CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/common/*.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/hlcsg/*.cpp"  "${CMAKE_CURRENT_SOURCE_DIR}/hlcsg/*.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/hlbsp/*.cpp"  "${CMAKE_CURRENT_SOURCE_DIR}/hlbsp/*.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/hlvis/*.cpp"  "${CMAKE_CURRENT_SOURCE_DIR}/hlvis/*.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/hlrad/*.cpp"  "${CMAKE_CURRENT_SOURCE_DIR}/hlrad/*.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ripent/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/ripent/*.h")
+    add_custom_target(format
+        COMMAND "${CLANG_FORMAT_EXECUTABLE}" -i ${VHLT_FORMAT_SOURCES}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Formatting sources with clang-format"
+        VERBATIM)
+    add_custom_target(format-check
+        COMMAND "${CLANG_FORMAT_EXECUTABLE}" --dry-run --Werror ${VHLT_FORMAT_SOURCES}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Checking source formatting with clang-format"
+        VERBATIM)
+endif()
+
+# ----------------------------------------------------------------------
 # Platform-specific configuration
 # ----------------------------------------------------------------------
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
