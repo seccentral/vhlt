@@ -170,9 +170,9 @@ bool            readtransfers(const char* const transferfile, const long numpatc
 	#endif
                     hlassume(patch->tRGBData != NULL, assume_NoMemory);
 	#ifdef HLRAD_TRANSFERDATA_COMPRESS
-                    amtread = fread(patch->tRGBData, vector_size[g_rgbtransfer_compress_type], patch->iData, file);		    
+                    amtread = fread(patch->tRGBData, vector_size[g_rgbtransfer_compress_type], patch->iData, file);
 	#else
-                    amtread = fread(patch->tRGBData, sizeof(rgb_transfer_data_t), patch->iData, file);		    
+                    amtread = fread(patch->tRGBData, sizeof(rgb_transfer_data_t), patch->iData, file);
 	#endif
 				}
 				else
@@ -184,9 +184,9 @@ bool            readtransfers(const char* const transferfile, const long numpatc
 	#endif
                     hlassume(patch->tData != NULL, assume_NoMemory);
 	#ifdef HLRAD_TRANSFERDATA_COMPRESS
-                    amtread = fread(patch->tData, float_size[g_transfer_compress_type], patch->iData, file);		    
+                    amtread = fread(patch->tData, float_size[g_transfer_compress_type], patch->iData, file);
 	#else
-                    amtread = fread(patch->tData, sizeof(transfer_data_t), patch->iData, file);		    
+                    amtread = fread(patch->tData, sizeof(transfer_data_t), patch->iData, file);
 	#endif
 				}
 #else

@@ -273,7 +273,7 @@ static bool TranslateTexToTex (int facenum, int edgenum, int facenum2, matrix_t 
 	}
 
 	VectorCopy (face_axis[0], edgetotex.v[0]); // / v[0][0] v[1][0] \ is a rotation (possibly with a reflection by the edge)
-	VectorCopy (face_axis[1], edgetotex.v[1]); // \ v[0][1] v[1][1] / 
+	VectorCopy (face_axis[1], edgetotex.v[1]); // \ v[0][1] v[1][1] /
 	VectorScale (v_up, len, edgetotex.v[2]); // encode the length into the 3rd value of the matrix
 	VectorCopy (face_vert[0], edgetotex.v[3]); // map (0,0) into the origin point
 
@@ -910,7 +910,7 @@ static void     CalcFaceVectors(lightinfo_t* l)
     if (distscale == 0.0)
     {
         const unsigned facenum = l->face - g_dfaces;
-    
+
         ThreadLock();
         Log("Malformed face (%d) normal @ \n", facenum);
         Winding* w = new Winding(*l->face);
@@ -1317,12 +1317,12 @@ typedef struct
 	vec3_t point1; // start point
 	vec3_t point2; // end point
 	vec3_t direction; // normalized; from point1 to point2
-	
+
 	bool noseam;
 	vec_t distance; // distance from origin
 	vec_t distancereduction;
 	vec_t flippedangle;
-	
+
 	vec_t ratio; // if ratio != 1, seam is unavoidable
 	matrix_t prevtonext;
 	matrix_t nexttoprev;
@@ -1435,7 +1435,7 @@ void ChopFrag (samplefrag_t *frag)
 		vec3_t tmp, v, normal;
 		const matrix_t *m;
 		const matrix_t *m_inverse;
-		
+
 		e = &frag->edges[frag->numedges];
 
 		// some basic info
@@ -1604,7 +1604,7 @@ static samplefrag_t *GrowSingleFrag (const samplefraginfo_t *info, samplefrag_t 
 	}
 
 	// do overlap test
-	
+
 	overlap = false;
 	clipplanes = (dplane_t *)malloc (frag->winding->m_NumPoints * sizeof (dplane_t));
 	hlassume (clipplanes != NULL, assume_NoMemory);
@@ -1708,11 +1708,11 @@ static bool FindBestEdge (samplefraginfo_t *info, samplefrag_t *&bestfrag, sampl
 	return found;
 }
 
-static samplefraginfo_t *CreateSampleFrag (int facenum, vec_t s, vec_t t, 
+static samplefraginfo_t *CreateSampleFrag (int facenum, vec_t s, vec_t t,
 #ifdef HLRAD_BLUR_MINIMALSQUARE
 	const vec_t square[2][2],
 #else
-	vec_t reach, 
+	vec_t reach,
 #endif
 	int maxsize)
 {
@@ -1731,7 +1731,7 @@ static samplefraginfo_t *CreateSampleFrag (int facenum, vec_t s, vec_t t,
 	info->head->parentfrag = NULL;
 	info->head->parentedge = NULL;
 	info->head->facenum = facenum;
-	
+
 	info->head->flippedangle = 0.0;
 	info->head->noseam = true;
 
@@ -1877,15 +1877,15 @@ static light_flag_t SetSampleFromST(vec_t* const point,
 	facenum = l->surfnum;
 	face = l->face;
 	faceplane = getPlaneFromFace (face);
-	
-	fraginfo = CreateSampleFrag (facenum, original_s, original_t, 
+
+	fraginfo = CreateSampleFrag (facenum, original_s, original_t,
 #ifdef HLRAD_BLUR_MINIMALSQUARE
 		square,
 #else
-		reach, 
+		reach,
 #endif
 		100);
-	
+
 	bool found;
 	samplefrag_t *bestfrag;
 	vec3_t bestpos;
@@ -1952,7 +1952,7 @@ static light_flag_t SetSampleFromST(vec_t* const point,
 #endif
 		}
 	}
-	
+
 	if (found)
 	{
 		matrix_t worldtotex, textoworld;
@@ -1974,7 +1974,7 @@ static light_flag_t SetSampleFromST(vec_t* const point,
 			ThreadUnlock ();
 			hlassume (false, assume_MalformedTextureFace);
 		}
-		
+
 		// point
 		tex[0] = bests;
 		tex[1] = bestt;
@@ -2004,7 +2004,7 @@ static light_flag_t SetSampleFromST(vec_t* const point,
 	}
 
 	DeleteSampleFrag (fraginfo);
-	
+
 	return LuxelFlag;
 
 #else
@@ -2643,7 +2643,7 @@ static void     CalcPoints(lightinfo_t* l)
         }
     }
 
-    // 2nd Pass, find units that are not lit and try to move them one half or unit worth 
+    // 2nd Pass, find units that are not lit and try to move them one half or unit worth
     // in each direction and see if that is lit.
     // This handles 1 x N lightmaps which are all dark everywhere and have no frame of refernece
     // for a good center or directly lit areas
@@ -2969,7 +2969,7 @@ void            CreateDirectLights()
 #else
             VectorScale(dl->intensity, DIRECT_SCALE, dl->intensity);
 #endif
-        
+
 #ifdef HLRAD_WATERBACKFACE_FIX
 			dface_t *f = &g_dfaces[p->faceNumber];
 			if (g_face_entity[p->faceNumber] - g_entities != 0 && !strncasecmp (GetTextureByNumber (f->texinfo), "!", 1))
@@ -2994,7 +2994,7 @@ void            CreateDirectLights()
 	        // what it's supposed to be for) :-)
 #ifdef HLRAD_WHOME
 
-	        if (g_softlight_hack[0] || g_softlight_hack[1] || g_softlight_hack[2]) 
+	        if (g_softlight_hack[0] || g_softlight_hack[1] || g_softlight_hack[2])
             {
 		        numdlights++;
 		        dl = (directlight_t *) calloc(1, sizeof(directlight_t));
@@ -3155,7 +3155,7 @@ void            CreateDirectLights()
 
         dl->style = IntForKey(e, "style");
 #ifdef ZHLT_TEXLIGHT
-        if (dl->style < 0) 
+        if (dl->style < 0)
             dl->style = -dl->style; //LRC
 #endif
 #ifdef HLRAD_STYLE_CORING
@@ -4073,7 +4073,7 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
 	#ifdef HLRAD_OPAQUE_STYLE
 							int opaquestyle;
 	#endif
-							if (TestSegmentAgainstOpaqueList(pos, 
+							if (TestSegmentAgainstOpaqueList(pos,
 	#ifdef HLRAD_OPAQUEINSKY_FIX
 								skyhit
 	#else
@@ -4238,7 +4238,7 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
 					#ifdef HLRAD_OPAQUE_STYLE
 								int opaquestyle;
 					#endif
-								if (TestSegmentAgainstOpaqueList(pos, 
+								if (TestSegmentAgainstOpaqueList(pos,
 					#ifdef HLRAD_OPAQUEINSKY_FIX
 									skyhit
 					#else
@@ -4365,7 +4365,7 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
 #ifdef HLRAD_HULLU
 			            vec3_t transparency = {1.0,1.0,1.0};
 #endif
-                        if (TestSegmentAgainstOpaqueList(pos, 
+                        if (TestSegmentAgainstOpaqueList(pos,
 #ifdef HLRAD_OPAQUEINSKY_FIX
 							skyhit
 #else
@@ -4378,7 +4378,7 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
                         {
                             continue;
                         }
-						
+
 #ifdef HLRAD_DIVERSE_LIGHTING
 						if (lighting_diversify)
 						{
@@ -4588,7 +4588,7 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
                             {
                                 continue;                  // behind light surface
                             }
-							
+
 #ifdef HLRAD_ARG_MISC
 							vec_t denominator = dist * dist * g_fade;
 #else
@@ -4602,7 +4602,7 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
                             ratio = dot * dot2 / denominator;
 	#endif
 #endif
-							
+
 #ifdef HLRAD_TEXLIGHT_SPOTS_FIX
 							// analogous to the one in MakeScales
 							// 0.4f is tested to be able to fully eliminate bright spots
@@ -4724,7 +4724,7 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
                         }
                         }
 #ifdef HLRAD_OPAQUE_STYLE
-						if (TestLine (pos, 
+						if (TestLine (pos,
 	#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
 							testline_origin
 	#else
@@ -4738,7 +4738,7 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
 						vec3_t transparency;
 	#endif
 						int opaquestyle;
-						if (TestSegmentAgainstOpaqueList (pos, 
+						if (TestSegmentAgainstOpaqueList (pos,
 	#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
 							testline_origin
 	#else
@@ -4782,9 +4782,9 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
                     {
 #ifdef HLRAD_HULLU
                  	    vec3_t transparency = {1.0,1.0,1.0};
-#endif 
+#endif
 
-                        if (l->type != emit_skylight && TestLine(pos, 
+                        if (l->type != emit_skylight && TestLine(pos,
 	#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
 							testline_origin
 	#else
@@ -4797,7 +4797,7 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
 
                         if (l->type != emit_skylight)
                         {                                  // Don't test from light_environment entities to face, the special sky code occludes correctly
-                            if (TestSegmentAgainstOpaqueList(pos, 
+                            if (TestSegmentAgainstOpaqueList(pos,
 	#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
 								testline_origin
 	#else
@@ -4931,7 +4931,7 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
 #ifdef HLRAD_HULLU
 			vec3_t transparency = {1.0,1.0,1.0};
 #endif
-			if (TestSegmentAgainstOpaqueList(pos, 
+			if (TestSegmentAgainstOpaqueList(pos,
 #ifdef HLRAD_OPAQUEINSKY_FIX
 				skyhit
 #else
@@ -5107,7 +5107,7 @@ static void AddSamplesToPatches (const sample_t **samples, const unsigned char *
 		w->RemoveColinearPoints ();
 		texwindings[j] = w;
 	}
-	
+
 	for (i = 0; i < l->numsurfpt; i++)
 	{
 		// prepare clip planes
@@ -5688,7 +5688,7 @@ void CalcLightmap (lightinfo_t *l, byte *styles)
 #ifdef HLRAD_GROWSAMPLE
 				const dplane_t *surfaceplane = getPlaneFromFaceNumber (surface);
 				Winding *surfacewinding = new Winding (g_dfaces[surface]);
-				
+
 				VectorCopy (spot, spot2);
 				for (int x = 0; x < surfacewinding->m_NumPoints; x++)
 				{
@@ -6073,13 +6073,13 @@ void            BuildFacelights(const int facenum)
         if(opaque->facenum == facenum && opaque->transparency)
         {
             vec_t transparency = VectorAvg (opaque->transparency_scale); //vec_t transparency = opaque->transparency; //--vluzacn
-            
+
             b_transparency_loss = true;
-            
+
             light_left_for_facelight = 1.0 - transparency;
             if( light_left_for_facelight < 0.0 ) light_left_for_facelight = 0.0;
             if( light_left_for_facelight > 1.0 ) light_left_for_facelight = 1.0;
-            
+
             break;
         }
     }
@@ -6607,9 +6607,9 @@ void            BuildFacelights(const int facenum)
 						if (!blocked)
 						{
 #endif
-                        GatherSampleLight(pos, pvs, pointnormal, subsampled, 
+                        GatherSampleLight(pos, pvs, pointnormal, subsampled,
 #ifdef ZHLT_XASH
-							subsampled_direction, 
+							subsampled_direction,
 #endif
 #ifdef HLRAD_AUTOCORING
 							f_styles
@@ -6657,9 +6657,9 @@ void            BuildFacelights(const int facenum)
 							if (!blocked)
 							{
 #endif
-							GatherSampleLight(spot2, pvs2, normal2, subsampled2, 
+							GatherSampleLight(spot2, pvs2, normal2, subsampled2,
 #ifdef ZHLT_XASH
-								subsampled2_direction, 
+								subsampled2_direction,
 #endif
 #ifdef HLRAD_AUTOCORING
 								f_styles
@@ -6772,9 +6772,9 @@ void            BuildFacelights(const int facenum)
 			if (!blocked)
 			{
 #endif
-            GatherSampleLight(spot, pvs, pointnormal, sampled, 
+            GatherSampleLight(spot, pvs, pointnormal, sampled,
 #ifdef ZHLT_XASH
-				sampled_direction, 
+				sampled_direction,
 #endif
 #ifdef HLRAD_AUTOCORING
 				f_styles
@@ -6814,9 +6814,9 @@ void            BuildFacelights(const int facenum)
 #endif
 				}
 				VectorSubtract (vec3_origin, pointnormal, normal2);
-				GatherSampleLight(spot2, pvs2, normal2, sampled2, 
+				GatherSampleLight(spot2, pvs2, normal2, sampled2,
 #ifdef ZHLT_XASH
-					sampled2_direction, 
+					sampled2_direction,
 #endif
 #ifdef HLRAD_AUTOCORING
 					f_styles
@@ -6865,7 +6865,7 @@ void            BuildFacelights(const int facenum)
 			VectorCopy (pointnormal, sampled_normal);
 #endif
         }
-		
+
 #ifdef HLRAD_AUTOCORING
 		for (j = 0; j < ALLSTYLES && f_styles[j] != 255; j++)
 #else
@@ -6882,7 +6882,7 @@ void            BuildFacelights(const int facenum)
 #endif
 
 #ifndef HLRAD_TRANCPARENCYLOSS_FIX
-#ifdef HLRAD_HULLU            
+#ifdef HLRAD_HULLU
             if(b_transparency_loss)
             {
 #ifdef HLRAD_AUTOCORING
@@ -7084,9 +7084,9 @@ void            BuildFacelights(const int facenum)
 		#endif
 			}
 			VectorSubtract (vec3_origin, l.facenormal, normal2);
-			GatherSampleLight (patch->origin, pvs, l.facenormal, frontsampled, 
+			GatherSampleLight (patch->origin, pvs, l.facenormal, frontsampled,
 		#ifdef ZHLT_XASH
-				frontsampled_direction, 
+				frontsampled_direction,
 		#endif
 	#ifdef HLRAD_AUTOCORING
 				patch->totalstyle_all
@@ -7101,9 +7101,9 @@ void            BuildFacelights(const int facenum)
 				, facenum
 	#endif
 				);
-			GatherSampleLight (spot2, pvs2, normal2, backsampled, 
+			GatherSampleLight (spot2, pvs2, normal2, backsampled,
 		#ifdef ZHLT_XASH
-				backsampled_direction, 
+				backsampled_direction,
 		#endif
 	#ifdef HLRAD_AUTOCORING
 				patch->totalstyle_all
@@ -7151,11 +7151,11 @@ void            BuildFacelights(const int facenum)
 		}
 		else
 		{
-			GatherSampleLight (patch->origin, pvs, l.facenormal, 
+			GatherSampleLight (patch->origin, pvs, l.facenormal,
 	#ifdef HLRAD_AUTOCORING
-				patch->totallight_all, 
+				patch->totallight_all,
 	#ifdef ZHLT_XASH
-				patch->totallight_all_direction, 
+				patch->totallight_all_direction,
 	#endif
 				patch->totalstyle_all
 	#else
@@ -7171,11 +7171,11 @@ void            BuildFacelights(const int facenum)
 				);
 		}
 #else
-		GatherSampleLight (patch->origin, pvs, l.facenormal, 
+		GatherSampleLight (patch->origin, pvs, l.facenormal,
 	#ifdef HLRAD_AUTOCORING
-			patch->totallight_all, 
+			patch->totallight_all,
 	#ifdef ZHLT_XASH
-				patch->totallight_all_direction, 
+				patch->totallight_all_direction,
 	#endif
 				patch->totalstyle_all
 	#else
@@ -8296,7 +8296,7 @@ void MLH_mdllightCreate (mdllight_t *ml)
 			for (k = 0; k < ALLSTYLES; ++k)
 				if (ml->face[i].style[k].exist)
 				{
-					ml->face[i].sample[j].style[k] = 
+					ml->face[i].sample[j].style[k] =
 						&g_dlightdata[f->lightofs + ml->face[i].style[k].seq * fl->numsamples * 3 + ml->face[i].sample[j].num * 3];
 				}
 		}
@@ -8321,10 +8321,10 @@ int MLH_CopyLight (const vec3_t from, const vec3_t to)
 				{
 					VectorCopy (mlfrom.face[0].sample[0].style[k],mlto.face[i].sample[j].style[k]);
 					Developer (DEVELOPER_LEVEL_SPAM, "Mdl Light Hack: face (%d) sample (%d) style (%d) position (%f,%f,%f)\n",
-						mlto.face[i].num, mlto.face[i].sample[j].num, k, 
+						mlto.face[i].num, mlto.face[i].sample[j].num, k,
 						mlto.face[i].sample[j].pos[0], mlto.face[i].sample[j].pos[1], mlto.face[i].sample[j].pos[2]);
 				}
-	Developer (DEVELOPER_LEVEL_MESSAGE, "Mdl Light Hack: %d sample light copied from (%f,%f,%f) to (%f,%f,%f)\n", 
+	Developer (DEVELOPER_LEVEL_MESSAGE, "Mdl Light Hack: %d sample light copied from (%f,%f,%f) to (%f,%f,%f)\n",
 		count, mlfrom.floor[0], mlfrom.floor[1], mlfrom.floor[2], mlto.floor[0], mlto.floor[1], mlto.floor[2]);
 	return count;
 }
@@ -8529,7 +8529,7 @@ void AddPatchLights (int facenum)
 #ifndef HLRAD_LOCALTRIANGULATION
 	trian = CreateTriangulation (facenum);
 #endif
-	
+
 	for (item = g_dependentfacelights[facenum]; item != NULL; item = item->next)
 	{
 		f_other = &g_dfaces[item->facenum];
@@ -8558,9 +8558,9 @@ void AddPatchLights (int facenum)
 		#endif
 											);
 #else
-					SampleTriangulation (trian, samp->pos, v, 
+					SampleTriangulation (trian, samp->pos, v,
 		#ifdef ZHLT_XASH
-										v_direction, 
+										v_direction,
 		#endif
 										f_other->styles[k]); //LRC
 #endif
@@ -8793,9 +8793,9 @@ void            FinalLightFace(const int facenum)
             if (g_numbounce)//LRC && (k == 0))
 #endif
             {
-                SampleTriangulation(trian, samp->pos, v, 
+                SampleTriangulation(trian, samp->pos, v,
 	#ifdef ZHLT_XASH
-					v_direction, 
+					v_direction,
 	#endif
 					f->styles[k]); //LRC
 #else
@@ -8929,16 +8929,16 @@ void            FinalLightFace(const int facenum)
 	        // Changes by Adam Foster - afoster@compsoc.man.ac.uk
 #ifdef HLRAD_WHOME
 
-            // AJM: your code is formatted really wierd, and i cant understand a damn thing. 
+            // AJM: your code is formatted really wierd, and i cant understand a damn thing.
             //      so i reformatted it into a somewhat readable "normal" fashion. :P
 
-	        if ( g_colour_qgamma[0] != 1.0 ) 
+	        if ( g_colour_qgamma[0] != 1.0 )
 		        lb[0] = (float) pow(lb[0] / 256.0f, g_colour_qgamma[0]) * 256.0f;
 
-	        if ( g_colour_qgamma[1] != 1.0 ) 
+	        if ( g_colour_qgamma[1] != 1.0 )
 		        lb[1] = (float) pow(lb[1] / 256.0f, g_colour_qgamma[1]) * 256.0f;
 
-	        if ( g_colour_qgamma[2] != 1.0 ) 
+	        if ( g_colour_qgamma[2] != 1.0 )
 		        lb[2] = (float) pow(lb[2] / 256.0f, g_colour_qgamma[2]) * 256.0f;
 
 	        // Two different ways of adding noise to the lightmap - colour jitter
@@ -8951,9 +8951,9 @@ void            FinalLightFace(const int facenum)
 	        // was as if r, g or b could wrap, going close to zero.
 
 	#ifndef HLRAD_FinalLightFace_VL
-	        if (g_colour_jitter_hack[0] || g_colour_jitter_hack[1] || g_colour_jitter_hack[2]) 
+	        if (g_colour_jitter_hack[0] || g_colour_jitter_hack[1] || g_colour_jitter_hack[2])
             {
-		        for (i = 0; i < 3; i++) 
+		        for (i = 0; i < 3; i++)
                 {
 		            lb[i] += g_colour_jitter_hack[i] * ((float)rand() / RAND_MAX - 0.5);
 		            if (lb[i] < 0.0f)
@@ -8967,10 +8967,10 @@ void            FinalLightFace(const int facenum)
 		        }
 	        }
 
-	        if (g_jitter_hack[0] || g_jitter_hack[1] || g_jitter_hack[2]) 
+	        if (g_jitter_hack[0] || g_jitter_hack[1] || g_jitter_hack[2])
             {
 		        temp_rand = (float)rand() / RAND_MAX - 0.5;
-		        for (i = 0; i < 3; i++) 
+		        for (i = 0; i < 3; i++)
                 {
 		            lb[i] += g_jitter_hack[i] * temp_rand;
 		            if (lb[i] < 0.0f)
@@ -8991,7 +8991,7 @@ void            FinalLightFace(const int facenum)
 	            }
 	        }
 #endif
-			
+
 #ifdef HLRAD_PRESERVELIGHTMAPCOLOR
 			// clip from the top
 			{
@@ -9057,13 +9057,13 @@ void            FinalLightFace(const int facenum)
 	#ifdef HLRAD_WHOME
 			if (k == 0)
 			{
-				if (g_colour_jitter_hack[0] || g_colour_jitter_hack[1] || g_colour_jitter_hack[2]) 
-					for (i = 0; i < 3; i++) 
+				if (g_colour_jitter_hack[0] || g_colour_jitter_hack[1] || g_colour_jitter_hack[2])
+					for (i = 0; i < 3; i++)
 						lbi[i] += g_colour_jitter_hack[i] * ((float)rand() / RAND_MAX - 0.5);
-				if (g_jitter_hack[0] || g_jitter_hack[1] || g_jitter_hack[2]) 
+				if (g_jitter_hack[0] || g_jitter_hack[1] || g_jitter_hack[2])
 				{
 					temp_rand = (float)rand() / RAND_MAX - 0.5;
-					for (i = 0; i < 3; i++) 
+					for (i = 0; i < 3; i++)
 						lbi[i] += g_jitter_hack[i] * temp_rand;
 				}
 			}

@@ -83,7 +83,7 @@ void            RemovePortalFromNode(portal_t* portal, node_t* l)
 /*
  * ================
  * MakeHeadnodePortals
- * 
+ *
  * The created portals will face the global g_outside_node
  * ================
  */
@@ -149,9 +149,9 @@ void            MakeHeadnodePortals(node_t* node, const vec3_t mins, const vec3_
 
 /*
  * ==============================================================================
- * 
+ *
  * PORTAL FILE GENERATION
- * 
+ *
  * ==============================================================================
  */
 

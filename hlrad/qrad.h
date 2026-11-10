@@ -174,8 +174,8 @@
 // O_o ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Changes by Jussi Kivilinna <hullu@unitedadmins.com> [http://hullu.xtragaming.com/]
 #ifdef HLRAD_HULLU
-	// Transparency light support for bounced light(transfers) is extreamly slow 
-	// for 'vismatrix' and 'sparse' atm. 
+	// Transparency light support for bounced light(transfers) is extreamly slow
+	// for 'vismatrix' and 'sparse' atm.
 	// Only recommended to be used with 'nomatrix' mode
 	#define DEFAULT_CUSTOMSHADOW_WITH_BOUNCELIGHT false
 
@@ -390,7 +390,7 @@ typedef unsigned char rgb_transfer_data_t;
 		//default.. 48bit
 		typedef unsigned short rgb_transfer_t[3];
 	#endif
-	
+
 	typedef rgb_transfer_t rgb_transfer_data_t;
 #endif
 #endif
@@ -1072,9 +1072,9 @@ extern void FreeTriangulations ();
 #else
 #ifdef ZHLT_TEXLIGHT
 #ifdef HLRAD_LERP_VL
-extern void     SampleTriangulation(const lerpTriangulation_t* const trian, const vec3_t point, vec3_t result, 
+extern void     SampleTriangulation(const lerpTriangulation_t* const trian, const vec3_t point, vec3_t result,
 #ifdef ZHLT_XASH
-					vec3_t &result_direction, 
+					vec3_t &result_direction,
 #endif
 					int style); //LRC
 #else

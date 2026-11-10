@@ -832,7 +832,7 @@ void            WriteMiptex()
 				safe_strncat (szTmpWad, ";", MAX_VAL);
 			}
 		}
-		
+
 	#ifdef HLCSG_CHART_FIX
 		Log("\n");
 		if (*szTmpWad)

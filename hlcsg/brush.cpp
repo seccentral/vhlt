@@ -381,7 +381,7 @@ void ExpandBrushWithHullBrush (const brush_t *brush, const brushhull_t *hull0, c
 	axialbevel = (bool *)malloc (hb->numfaces * sizeof (bool));
 	memset (axialbevel, 0, hb->numfaces * sizeof (bool));
 	warned = false;
-	
+
 	// check for collisions of face-vertex type. face-edge type is also permitted. face-face type is excluded.
 	for (f = hull0->faces; f; f = f->next)
 	{
@@ -422,7 +422,7 @@ void ExpandBrushWithHullBrush (const brush_t *brush, const brushhull_t *hull0, c
 			}
 			continue; // the same plane will be added in the last stage
 		}
-		
+
 		// find the impact point
 		vec3_t bestvertex;
 		vec_t bestdist;
@@ -1333,7 +1333,7 @@ bool            MakeBrushPlanes(brush_t* b)
         planenum = PlaneFromPoints(s->planepts[0], s->planepts[1], s->planepts[2]);
         if (planenum == -1)
         {
-            Fatal(assume_PLANE_WITH_NO_NORMAL, "Entity %i, Brush %i, Side %i: plane with no normal", 
+            Fatal(assume_PLANE_WITH_NO_NORMAL, "Entity %i, Brush %i, Side %i: plane with no normal",
 #ifdef HLCSG_COUNT_NEW
 				b->originalentitynum, b->originalbrushnum
 #else
@@ -1657,14 +1657,14 @@ contents_t      CheckBrushContents(const brush_t* const b)
         {
             Fatal(assume_MIXED_FACE_CONTENTS, "Entity %i, Brush %i: mixed face contents\n    Texture %s and %s",
 #ifdef HLCSG_COUNT_NEW
-				b->originalentitynum, b->originalbrushnum, 
+				b->originalentitynum, b->originalbrushnum,
 #else
-				b->entitynum, b->brushnum, 
+				b->entitynum, b->brushnum,
 #endif
 #ifdef HLCSG_CheckBrushContents_FIX
                 g_brushsides[b->firstside + best_i].td.name,
 #else
-                g_brushsides[b->firstside].td.name, 
+                g_brushsides[b->firstside].td.name,
 #endif
 				s->td.name);
         }
@@ -1686,11 +1686,11 @@ contents_t      CheckBrushContents(const brush_t* const b)
 #endif
 			)
         {
-            Fatal(assume_BRUSH_NOT_ALLOWED_IN_WORLD, "Entity %i, Brush %i: %s brushes not allowed in world\n(did you forget to tie this origin brush to a rotating entity?)", 
+            Fatal(assume_BRUSH_NOT_ALLOWED_IN_WORLD, "Entity %i, Brush %i: %s brushes not allowed in world\n(did you forget to tie this origin brush to a rotating entity?)",
 #ifdef HLCSG_COUNT_NEW
-				b->originalentitynum, b->originalbrushnum, 
+				b->originalentitynum, b->originalbrushnum,
 #else
-				b->entitynum, b->brushnum, 
+				b->entitynum, b->brushnum,
 #endif
 				ContentsToString(contents));
         }
@@ -1725,11 +1725,11 @@ contents_t      CheckBrushContents(const brush_t* const b)
             break;
 #endif
         default:
-            Fatal(assume_BRUSH_NOT_ALLOWED_IN_ENTITY, "Entity %i, Brush %i: %s brushes not allowed in entity", 
+            Fatal(assume_BRUSH_NOT_ALLOWED_IN_ENTITY, "Entity %i, Brush %i: %s brushes not allowed in entity",
 #ifdef HLCSG_COUNT_NEW
-				b->originalentitynum, b->originalbrushnum, 
+				b->originalentitynum, b->originalbrushnum,
 #else
-				b->entitynum, b->brushnum, 
+				b->entitynum, b->brushnum,
 #endif
 				ContentsToString(contents));
             break;

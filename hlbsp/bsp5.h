@@ -225,9 +225,9 @@ node_t;
 //=============================================================================
 // solidbsp.c
 extern void     SubdivideFace(face_t* f, face_t** prevptr);
-extern node_t*  SolidBSP(const surfchain_t* const surfhead, 
+extern node_t*  SolidBSP(const surfchain_t* const surfhead,
 #ifdef ZHLT_DETAILBRUSH
-						 brush_t *detailbrushes, 
+						 brush_t *detailbrushes,
 #endif
 						 bool report_progress);
 

@@ -206,7 +206,7 @@ vec_t			snap_to_winding_noedge(const Winding& w, const dplane_t& plane, vec_t* c
 		planes[numplanes].dist = DotProduct (w.m_Points[x], planes[numplanes].normal);
 		numplanes++;
 	}
-	
+
 	bestwidth = 0;
 	VectorCopy (point, bestpoint);
 	newwidth = width;
@@ -602,7 +602,7 @@ bool            TestSegmentAgainstOpaqueList(const vec_t* p1, const vec_t* p2
 	bool intersects[MAX_OPAQUE_GROUP_COUNT];
 	for (x = 0; x < g_opaque_group_count; x++)
 	{
-		intersects[x] = 
+		intersects[x] =
 			LineSegmentIntersectsBounds (p1, p2, g_opaque_group_list[x].mins, g_opaque_group_list[x].maxs);
 	}
 #endif
@@ -712,7 +712,7 @@ void            ProjectionPoint(const vec_t* const v, const vec_t* const p, vec_
         // division by zero seems to work just fine on x86;
         // it returns nan and the program still works!!
         // this causes a floating point exception on Alphas, so...
-        mag = 0.00000001; 
+        mag = 0.00000001;
     }
 #endif
     val = DotProduct(v, p) / mag;
@@ -912,7 +912,7 @@ void GetAlternateOrigin (const vec3_t pos, const vec3_t normal, const patch_t *p
 	facenormal = faceplane->normal;
 	VectorCopy (normal, clipplane.normal);
 	clipplane.dist = DotProduct (pos, clipplane.normal);
-	
+
 	w = *patch->winding;
 	if (w.WindingOnPlaneSide (clipplane.normal, clipplane.dist) != SIDE_CROSS)
 	{

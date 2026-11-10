@@ -114,7 +114,7 @@ Zones* MakeZones(void)
 
             {
                 epair_t* keyvalue;
-    
+
                 for (keyvalue = ent->epairs; keyvalue; keyvalue = keyvalue->next)
                 {
                     UINT32 other_id = atoi(keyvalue->key);
@@ -124,12 +124,12 @@ Zones* MakeZones(void)
                     }
                 }
             }
-    
+
             {
                 UINT32          j;
                 BoundingBox     bounds;
                 dface_t*        f = g_dfaces + mod->firstface;
-            
+
                 for (j = 0; j < mod->numfaces; j++, f++)
                 {
                     Winding*        w = WindingFromFace(f);
@@ -144,7 +144,7 @@ Zones* MakeZones(void)
 
                 zones->set(func_vis_id, bounds);
 
-                Log("Adding zone %u : mins(%4.3f %4.3f %4.3f) maxs(%4.3f %4.3f %4.3f)\n", func_vis_id, 
+                Log("Adding zone %u : mins(%4.3f %4.3f %4.3f) maxs(%4.3f %4.3f %4.3f)\n", func_vis_id,
                     bounds.m_Mins[0],bounds.m_Mins[1],bounds.m_Mins[2],
                     bounds.m_Maxs[0],bounds.m_Maxs[1],bounds.m_Maxs[2]);
             }

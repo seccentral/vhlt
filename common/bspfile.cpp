@@ -156,7 +156,7 @@ int             CompressVis(const byte* const src, const unsigned int src_length
 
 // =====================================================================================
 //  DecompressVis
-//      
+//
 // =====================================================================================
 void            DecompressVis(const byte* src, byte* const dest, const unsigned int dest_length)
 {
@@ -188,7 +188,7 @@ void            DecompressVis(const byte* src, byte* const dest, const unsigned 
             src++;
             continue;
         }
-		
+
 #ifdef ZHLT_DecompressVis_FIX
 		hlassume (&src[1] - g_dvisdata < g_visdatasize, assume_DECOMPRESSVIS_OVERFLOW);
 #endif
@@ -226,7 +226,7 @@ static void     SwapBSPFile(const bool todisk)
     dmodel_t*       d;
     dmiptexlump_t*  mtl;
 
-    // models       
+    // models
     for (i = 0; i < g_nummodels; i++)
     {
         d = &g_dmodels[i];
@@ -261,7 +261,7 @@ static void     SwapBSPFile(const bool todisk)
 
     //
     // planes
-    //      
+    //
     for (i = 0; i < g_numplanes; i++)
     {
         for (j = 0; j < 3; j++)
@@ -274,7 +274,7 @@ static void     SwapBSPFile(const bool todisk)
 
     //
     // texinfos
-    //      
+    //
     for (i = 0; i < g_numtexinfo; i++)
     {
         for (j = 0; j < 8; j++)
@@ -416,7 +416,7 @@ static int      CopyLump(int lump, void* dest, int size, const dheader_t* const 
     {
         Error("LoadBSPFile: odd lump size");
     }
-	
+
 	//special handling for tex and lightdata to keep things from exploding - KGP
 	if(lump == LUMP_TEXTURES && dest == (void*)g_dtexdata)
 	{ hlassume(g_max_map_miptex > length,assume_MAX_MAP_MIPTEX); }
@@ -496,7 +496,7 @@ void            LoadBSPImage(dheader_t* const header)
 
     //
     // swap everything
-    //      
+    //
     SwapBSPFile(false);
 
     g_dmodels_checksum = FastChecksum(g_dmodels, g_nummodels * sizeof(g_dmodels[0]));
@@ -559,7 +559,7 @@ void            WriteBSPFile(const char* const filename)
     bspfile = SafeOpenWrite(filename);
     SafeWrite(bspfile, header, sizeof(dheader_t));         // overwritten later
 
-    //      LUMP TYPE       DATA            LENGTH                              HEADER  BSPFILE   
+    //      LUMP TYPE       DATA            LENGTH                              HEADER  BSPFILE
     AddLump(LUMP_PLANES,    g_dplanes,      g_numplanes * sizeof(dplane_t),     header, bspfile);
     AddLump(LUMP_LEAFS,     g_dleafs,       g_numleafs * sizeof(dleaf_t),       header, bspfile);
     AddLump(LUMP_VERTEXES,  g_dvertexes,    g_numvertexes * sizeof(dvertex_t),  header, bspfile);
@@ -676,7 +676,7 @@ bool CalcFaceExtents_test ()
 	// If the test failed, please check:
 	//   1. whether the calculation is performed on FPU
 	//   2. whether the register precision is too low
-		
+
 	CorrectFPUPrecision ();
 
 	ok = true;
@@ -1276,7 +1276,7 @@ int	ParseImplicitTexinfoFromTexture (int miptex)
 	int size;
 	miptex_t *mt;
 	char name[16];
-	
+
 	if (miptex < 0 || miptex >= numtextures)
 	{
 		Warning ("ParseImplicitTexinfoFromTexture: internal error: invalid texture number %d.", miptex);
@@ -1292,7 +1292,7 @@ int	ParseImplicitTexinfoFromTexture (int miptex)
 
 	mt = (miptex_t *)&g_dtexdata[offset];
 	safe_strncpy (name, mt->name, 16);
-	
+
 	if (!(strlen (name) >= 6 && !strncasecmp (&name[1], "_rad", 4) && '0' <= name[5] && name[5] <= '9'))
 	{
 		return -1;
@@ -1938,7 +1938,7 @@ void            GetVectorForKey(const entity_t* const ent, const char* const key
 
 // =====================================================================================
 //  FindTargetEntity
-//      
+//
 // =====================================================================================
 entity_t *FindTargetEntity(const char* const target)
 {
@@ -1976,7 +1976,7 @@ void CDECL      dtexdata_free()
 
 // =====================================================================================
 //  GetTextureByNumber
-//      Touchy function, can fail with a page fault if all the data isnt kosher 
+//      Touchy function, can fail with a page fault if all the data isnt kosher
 //      (i.e. map was compiled with missing textures)
 // =====================================================================================
 #ifdef HLCSG_HLBSP_VOIDTEXINFO

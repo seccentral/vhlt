@@ -42,7 +42,7 @@ void            SubdivideFace(face_t* f, face_t** prevptr)
 #endif
     tex = &g_texinfo[f->texturenum];
 
-    if (tex->flags & TEX_SPECIAL) 
+    if (tex->flags & TEX_SPECIAL)
     {
         return;
     }
@@ -64,7 +64,7 @@ void            SubdivideFace(face_t* f, face_t** prevptr)
 	if (f->facestyle == face_discardable)
 		return;
 #endif
-	
+
     for (axis = 0; axis < 2; axis++)
     {
         while (1)
@@ -121,7 +121,7 @@ void            SubdivideFace(face_t* f, face_t** prevptr)
                 break;
             }
 #endif
-                
+
             // split it
             subdivides++;
 

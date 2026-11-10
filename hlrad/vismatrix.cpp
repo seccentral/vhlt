@@ -86,7 +86,7 @@ static void     TestPatchToFace(const unsigned patchnum, const int facenum, cons
 #ifdef HLRAD_OPAQUE_STYLE
 				int opaquestyle = -1;
 #endif
-		
+
                 // check vis between patch and patch2
                 // if bit has not already been set
                 //  && v2 is not behind light plane
@@ -144,7 +144,7 @@ static void     TestPatchToFace(const unsigned patchnum, const int facenum, cons
 	#endif
 						) != CONTENTS_EMPTY)
 #else
-                    if (TestLine_r(head, 
+                    if (TestLine_r(head,
 	#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
 						origin1, origin2
 	#else
@@ -202,14 +202,14 @@ static void     TestPatchToFace(const unsigned patchnum, const int facenum, cons
                     	    //new size
                     	    unsigned long old_max = s_max_transparency_count;
                     	    s_max_transparency_count += 128;
-                    	    
+
                     	    //realloc
                     	    s_transparency_list = (transparency_t*)realloc(s_transparency_list, s_max_transparency_count * sizeof(transparency_t));
-                    	    
+
                     	    // clean new memory
                             memset(&s_transparency_list[old_max], 0, sizeof(transparency_t) * 128);
                     	}
-                    	
+
                     	//add to array
                     	VectorCopy(transparency, s_transparency_list[s_transparency_count].transparency);
                     	s_transparency_list[s_transparency_count].bitpos = bitset;
@@ -520,7 +520,7 @@ static bool     CheckVisBitVismatrix(unsigned p1, unsigned p2
 
     if (s_vismatrix[bitpos >> 3] & (1 << (bitpos & 7)))
     {
-#ifdef HLRAD_HULLU    	
+#ifdef HLRAD_HULLU
     	if(g_customshadow_with_bouncelight)
     	{
     	    GetTransparency( a, b, transparency_out, next_index );
@@ -565,7 +565,7 @@ static bool     CheckVisBitVismatrix(unsigned p1, unsigned p2
 
     if (s_vismatrix[bitpos >> 3] & (1 << (bitpos & 7)))
     {
-#ifdef HLRAD_HULLU    	
+#ifdef HLRAD_HULLU
     	if(g_customshadow_with_bouncelight)
     	{
     	    vec3_t getvalue = {1.0, 1.0, 1.0};

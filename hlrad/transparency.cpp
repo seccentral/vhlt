@@ -48,7 +48,7 @@ static unsigned AddTransparencyToDataList(const vec3_t trans)
 			return i;
 		}
 	}
-	
+
 	//realloc if needed
 	while( s_trans_count >= s_max_trans_count )
 	{
@@ -64,27 +64,27 @@ static unsigned AddTransparencyToDataList(const vec3_t trans)
 			Error ("AddTransparencyToDataList: array size exceeded INT_MAX");
 		}
 #endif
-		
+
 		s_trans_list = (vec3_t *)realloc( s_trans_list, sizeof(vec3_t) * s_max_trans_count );
 #ifdef HLRAD_HLASSUMENOMEMORY
 		hlassume (s_trans_list != NULL, assume_NoMemory);
 #endif
-		
+
 #ifdef HLRAD_TRANSPARENCY_FAST
 		memset( &s_trans_list[old_max_count], 0, sizeof(vec3_t) * (s_max_trans_count - old_max_count) );
 #else
 		memset( &s_trans_list[old_max_count], 0, sizeof(vec3_t) * TRANS_LIST_GROWTH );
 #endif
-		
+
 		if( old_max_count == 0 )
 		{
 			VectorFill(s_trans_list[0], 1.0);
 			s_trans_count++;
 		}
 	}
-	
+
 	VectorCopy(trans, s_trans_list[s_trans_count]);
-	
+
 	return ( s_trans_count++ );
 }
 
@@ -95,9 +95,9 @@ void	AddTransparencyToRawArray(const unsigned p1, const unsigned p2, const vec3_
 {
 	//make thread safe
 	ThreadLock();
-	
+
 	unsigned data_index = AddTransparencyToDataList(trans);
-	
+
 	//realloc if needed
 	while( s_raw_count >= s_max_raw_count )
 	{
@@ -113,25 +113,25 @@ void	AddTransparencyToRawArray(const unsigned p1, const unsigned p2, const vec3_
 			Error ("AddTransparencyToRawArray: array size exceeded INT_MAX");
 		}
 #endif
-		
+
 		s_raw_list = (transList_t *)realloc( s_raw_list, sizeof(transList_t) * s_max_raw_count );
 #ifdef HLRAD_HLASSUMENOMEMORY
 		hlassume (s_raw_list != NULL, assume_NoMemory);
 #endif
-		
+
 #ifdef HLRAD_TRANSPARENCY_FAST
 		memset( &s_raw_list[old_max_count], 0, sizeof(transList_t) * (s_max_raw_count - old_max_count) );
 #else
 		memset( &s_raw_list[old_max_count], 0, sizeof(transList_t) * RAW_LIST_GROWTH );
 #endif
 	}
-	
+
 	s_raw_list[s_raw_count].p1 = p1;
 	s_raw_list[s_raw_count].p2 = p2;
 	s_raw_list[s_raw_count].data_index = data_index;
-	
+
 	s_raw_count++;
-	
+
 	//unlock list
 	ThreadUnlock();
 }
@@ -143,7 +143,7 @@ static int CDECL SortList(const void *a, const void *b)
 {
 	const transList_t* item1 = (transList_t *)a;
 	const transList_t* item2 = (transList_t *)b;
-	
+
 	if( item1->p1 == item2->p1 )
 	{
 		return item1->p2 - item2->p2;
@@ -172,7 +172,7 @@ void	CreateFinalTransparencyArrays(const char *print_name)
 #ifdef HLRAD_HLASSUMENOMEMORY
 	hlassume (s_sorted_list != NULL, assume_NoMemory);
 #endif
-	
+
 	//First half have p1>p2
 	for( unsigned int i = 0; i < s_raw_count; i++ )
 	{
@@ -182,15 +182,15 @@ void	CreateFinalTransparencyArrays(const char *print_name)
 	}
 	//Second half have p1<p2
 	memcpy( &s_sorted_list[s_raw_count], s_raw_list, sizeof(transList_t) * s_raw_count );
-	
+
 	//free old array
 	free( s_raw_list );
 	s_raw_list = NULL;
 	s_raw_count = s_max_raw_count = 0;
-	
+
 	//need to sorted for fast search function
 	qsort( s_sorted_list, s_sorted_count, sizeof(transList_t), SortList );
-	
+
 #ifdef ZHLT_64BIT_FIX
 	size_t size = s_sorted_count * sizeof(transList_t) + s_max_trans_count * sizeof(vec3_t);
 #else
@@ -203,14 +203,14 @@ void	CreateFinalTransparencyArrays(const char *print_name)
         else
         	Log("%-20s: %5.1f bytes\n", print_name, (double)size); //--vluzacn
 	Developer (DEVELOPER_LEVEL_MESSAGE, "\ts_trans_count=%d\ts_sorted_count=%d\n", s_trans_count, s_sorted_count); //--vluzacn
-        	
+
 #if 0
         int total_1 = 0;
         for(int i = 0; i < s_sorted_count; i++)
         {
-        	Log("a: %7i b: %7i di: %10i r: %3.1f g: %3.1f b: %3.1f\n", 
-        		s_sorted_list[i].p1, 
-        		s_sorted_list[i].p2, 
+        	Log("a: %7i b: %7i di: %10i r: %3.1f g: %3.1f b: %3.1f\n",
+        		s_sorted_list[i].p1,
+        		s_sorted_list[i].p2,
         		s_sorted_list[i].data_index,
         		s_trans_list[s_sorted_list[i].data_index][0],
         		s_trans_list[s_sorted_list[i].data_index][1],
@@ -218,7 +218,7 @@ void	CreateFinalTransparencyArrays(const char *print_name)
         	);
         	total_1++;
         }
-        
+
         vec3_t rgb;
         int total_2 = 0;
         for(unsigned int next_index = 0, a = 0; a < g_num_patches; a++)
@@ -226,12 +226,12 @@ void	CreateFinalTransparencyArrays(const char *print_name)
         	for(unsigned int b = 0; b < g_num_patches; b++)
         	{
         		GetTransparency(a, b, rgb, next_index);
-        		
+
         		if(!VectorCompare(rgb,vec3_one))
         		{
-        			Log("a: %7i b: %7i ni: %10i r: %3.1f g: %3.1f b: %3.1f\n", 
-        				a, 
-        				b, 
+        			Log("a: %7i b: %7i ni: %10i r: %3.1f g: %3.1f b: %3.1f\n",
+        				a,
+        				b,
         				next_index,
         				rgb[0],
         				rgb[1],
@@ -241,7 +241,7 @@ void	CreateFinalTransparencyArrays(const char *print_name)
         		}
         	}
         }
-        
+
         Log("total1: %i\ntotal2: %i\n",total_1,total_2);
 #endif
 }
@@ -253,10 +253,10 @@ void	FreeTransparencyArrays( )
 {
 	if (s_sorted_list) free(s_sorted_list);
 	if (s_trans_list)  free(s_trans_list);
-	
+
 	s_trans_list = NULL;
 	s_sorted_list = NULL;
-	
+
 	s_max_trans_count = s_trans_count = s_sorted_count = 0;
 }
 
@@ -266,7 +266,7 @@ void	FreeTransparencyArrays( )
 void GetTransparency(const unsigned p1, const unsigned p2, vec3_t &trans, unsigned int &next_index)
 {
 	VectorFill( trans, 1.0 );
-	
+
 	for( unsigned i = next_index; i < s_sorted_count; i++ )
 	{
 		if ( s_sorted_list[i].p1 < p1 )
@@ -283,24 +283,24 @@ void GetTransparency(const unsigned p1, const unsigned p2, vec3_t &trans, unsign
 			{
 				VectorCopy( s_trans_list[s_sorted_list[i].data_index], trans );
 				next_index = i + 1;
-			
+
 				return;
 			}
 			else //if ( s_sorted_list[i].p2 > p2 )
 			{
 				next_index = i;
-			
+
 				return;
 			}
 		}
 		else //if ( s_sorted_list[i].p1 > p1 )
 		{
 			next_index = i;
-			
+
 			return;
 		}
 	}
-	
+
 	next_index = s_sorted_count;
 }
 
@@ -328,7 +328,7 @@ void	AddStyleToStyleArray(const unsigned p1, const unsigned p2, const int style)
 		return;
 	//make thread safe
 	ThreadLock();
-	
+
 	//realloc if needed
 	while( s_style_count >= s_max_style_count )
 	{
@@ -344,25 +344,25 @@ void	AddStyleToStyleArray(const unsigned p1, const unsigned p2, const int style)
 			Error ("AddStyleToStyleArray: array size exceeded INT_MAX");
 		}
 #endif
-		
+
 		s_style_list = (styleList_t *)realloc( s_style_list, sizeof(styleList_t) * s_max_style_count );
 #ifdef HLRAD_HLASSUMENOMEMORY
 		hlassume (s_style_list != NULL, assume_NoMemory);
 #endif
-		
+
 #ifdef HLRAD_TRANSPARENCY_FAST
 		memset( &s_style_list[old_max_count], 0, sizeof(styleList_t) * (s_max_style_count - old_max_count) );
 #else
 		memset( &s_style_list[old_max_count], 0, sizeof(styleList_t) * STYLE_LIST_GROWTH );
 #endif
 	}
-	
+
 	s_style_list[s_style_count].p1 = p1;
 	s_style_list[s_style_count].p2 = p2;
 	s_style_list[s_style_count].style = (char)style;
-	
+
 	s_style_count++;
-	
+
 	//unlock list
 	ThreadUnlock();
 }
@@ -370,7 +370,7 @@ static int CDECL SortStyleList(const void *a, const void *b)
 {
 	const styleList_t* item1 = (styleList_t *)a;
 	const styleList_t* item2 = (styleList_t *)b;
-	
+
 	if( item1->p1 == item2->p1 )
 	{
 		return item1->p2 - item2->p2;
@@ -388,7 +388,7 @@ void	CreateFinalStyleArrays(const char *print_name)
 	}
 	//need to sorted for fast search function
 	qsort( s_style_list, s_style_count, sizeof(styleList_t), SortStyleList );
-	
+
 #ifdef ZHLT_64BIT_FIX
 	size_t size = s_max_style_count * sizeof(styleList_t);
 #else
@@ -404,15 +404,15 @@ void	CreateFinalStyleArrays(const char *print_name)
 void	FreeStyleArrays( )
 {
 	if (s_style_count) free(s_style_list);
-	
+
 	s_style_list = NULL;
-	
+
 	s_max_style_count = s_style_count = 0;
 }
 void GetStyle(const unsigned p1, const unsigned p2, int &style, unsigned int &next_index)
 {
 	style = -1;
-	
+
 	for( unsigned i = next_index; i < s_style_count; i++ )
 	{
 		if ( s_style_list[i].p1 < p1 )
@@ -429,24 +429,24 @@ void GetStyle(const unsigned p1, const unsigned p2, int &style, unsigned int &ne
 			{
 				style = (int)s_style_list[i].style;
 				next_index = i + 1;
-			
+
 				return;
 			}
 			else //if ( s_style_list[i].p2 > p2 )
 			{
 				next_index = i;
-			
+
 				return;
 			}
 		}
 		else //if ( s_style_list[i].p1 > p1 )
 		{
 			next_index = i;
-			
+
 			return;
 		}
 	}
-	
+
 	next_index = s_style_count;
 }
 #endif

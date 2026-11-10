@@ -215,7 +215,7 @@ static transfer_index_t* CompressTransferIndicies(const transfer_raw_index_t* tR
 /*
  * =============
  * MakeScales
- * 
+ *
  * This is the primary time sink.
  * It can be run multi threaded.
  * =============
@@ -423,7 +423,7 @@ void            MakeScales(const int threadnum)
 				trans = 0.8f / patch2->area;
 #else
 			// HLRAD_TRANSWEIRDFIX:
-			// we should limit "trans(patch2receive) * patch1area" 
+			// we should limit "trans(patch2receive) * patch1area"
 			// instead of "trans(patch2receive) * patch2area".
 			// also raise "0.4f" to "0.8f" ( 0.8/Q_PI = 1/4).
             if (trans * area > 0.8f)
@@ -458,7 +458,7 @@ void            MakeScales(const int threadnum)
 					, lighting_power, lighting_scale
 	#endif
 					);
-				
+
 				vec_t frac;
 				frac = dist / patch2->emitter_range;
 				frac = (frac - 0.5f) * 2.0f; // make a smooth transition between the two methods
@@ -647,7 +647,7 @@ void            MakeScales(const int threadnum)
 /*
  * =============
  * SwapTransfersTask
- * 
+ *
  * Change transfers from light sent out to light collected in.
  * In an ideal world, they would be exactly symetrical, but
  * because the form factors are only aproximated, then normalized,
@@ -712,7 +712,7 @@ void            SwapTransfers(const int patchnum)
 /*
  * =============
  * MakeScales
- * 
+ *
  * This is the primary time sink.
  * It can be run multi threaded.
  * =============
@@ -894,7 +894,7 @@ void            MakeRGBScales(const int threadnum)
 				continue;
 			}
 #endif
-			
+
 #ifdef HLRAD_DIVERSE_LIGHTING
 			if (lighting_diversify
 	#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
@@ -906,7 +906,7 @@ void            MakeRGBScales(const int threadnum)
 			}
 #endif
             trans_one = (dot1 * dot2) / (dist * dist);         // Inverse square falloff factoring angle between patch normals
-            
+
 #ifdef HLRAD_TRANSWEIRDFIX
 #ifdef HLRAD_NOSWAP
 			if (trans_one * patch2->area > 0.8f)
@@ -948,7 +948,7 @@ void            MakeRGBScales(const int threadnum)
 					, lighting_power, lighting_scale
 	#endif
 					);
-				
+
 				vec_t frac;
 				frac = dist / patch2->emitter_range;
 				frac = (frac - 0.5f) * 2.0f; // make a smooth transition between the two methods
@@ -1034,7 +1034,7 @@ void            MakeRGBScales(const int threadnum)
             	/////////////////////////////////////////RED
                 send = trans[0] * patch2->area;
                 // Caps light from getting weird
-                if (send > 0.4f) 
+                if (send > 0.4f)
                 {
                     trans[0] = 0.4f / patch2->area;
                     send = 0.4f;
@@ -1042,11 +1042,11 @@ void            MakeRGBScales(const int threadnum)
 	#ifndef HLRAD_TRANSNONORMALIZE
                 total += send / 3.0f;
 	#endif
-                
+
             	/////////////////////////////////////////GREEN
                 send = trans[1] * patch2->area;
                 // Caps light from getting weird
-                if (send > 0.4f) 
+                if (send > 0.4f)
                 {
                     trans[1] = 0.4f / patch2->area;
                     send = 0.4f;
@@ -1058,7 +1058,7 @@ void            MakeRGBScales(const int threadnum)
             	/////////////////////////////////////////BLUE
                 send = trans[2] * patch2->area;
                 // Caps light from getting weird
-                if (send > 0.4f) 
+                if (send > 0.4f)
                 {
                     trans[2] = 0.4f / patch2->area;
                     send = 0.4f;
@@ -1201,7 +1201,7 @@ void            MakeRGBScales(const int threadnum)
 /*
  * =============
  * SwapTransfersTask
- * 
+ *
  * Change transfers from light sent out to light collected in.
  * In an ideal world, they would be exactly symetrical, but
  * because the form factors are only aproximated, then normalized,
@@ -1291,14 +1291,14 @@ void            DumpTransfersMemoryUsage()
 		Log("Transfer Lists : %11.0f : %8.2fk transfers\n", (double)g_total_transfer, (double)g_total_transfer/1000.0f);
 	else
 		Log("Transfer Lists : %11.0f transfers\n", (double)g_total_transfer);
-	
+
 	if(g_transfer_index_bytes > 1024*1024)
 		Log("       Indices : %11.0f : %8.2fM bytes\n", (double)g_transfer_index_bytes, (double)g_transfer_index_bytes/(1024.0f * 1024.0f));
 	else if(g_transfer_index_bytes > 1024)
 		Log("       Indices : %11.0f : %8.2fk bytes\n", (double)g_transfer_index_bytes, (double)g_transfer_index_bytes/1024.0f);
 	else
 		Log("       Indices : %11.0f bytes\n", (double)g_transfer_index_bytes);
-	
+
 	if(g_transfer_data_bytes > 1024*1024)
 		Log("          Data : %11.0f : %8.2fM bytes\n", (double)g_transfer_data_bytes, (double)g_transfer_data_bytes/(1024.0f * 1024.0f));
 	else if(g_transfer_data_bytes > 1024)
@@ -1312,14 +1312,14 @@ void            DumpTransfersMemoryUsage()
 		Log("Transfer Lists : %11u : %7.2fk transfers\n", g_total_transfer, g_total_transfer/1000.0f);
 	else
 		Log("Transfer Lists : %11u transfers\n", g_total_transfer);
-	
+
 	if(g_transfer_index_bytes > 1024*1024)
 		Log("       Indices : %11u : %7.2fM bytes\n", g_transfer_index_bytes, g_transfer_index_bytes/(1024.0f * 1024.0f));
 	else if(g_transfer_index_bytes > 1024)
 		Log("       Indices : %11u : %7.2fk bytes\n", g_transfer_index_bytes, g_transfer_index_bytes/1024.0f);
 	else
 		Log("       Indices : %11u bytes\n", g_transfer_index_bytes);
-	
+
 	if(g_transfer_data_bytes > 1024*1024)
 		Log("          Data : %11u : %7.2fM bytes\n", g_transfer_data_bytes, g_transfer_data_bytes/(1024.0f * 1024.0f));
 	else if(g_transfer_data_bytes > 1024)
@@ -1330,4 +1330,3 @@ void            DumpTransfersMemoryUsage()
 }
 
 #endif
-

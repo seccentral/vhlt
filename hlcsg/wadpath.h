@@ -5,7 +5,7 @@
 
 #define MAX_WADPATHS 128    // arbitrary
 
-typedef struct    
+typedef struct
 {
     char            path[_MAX_PATH];
     bool            usedbymap;        // does this map requrie this wad to be included in the bsp?
@@ -16,7 +16,7 @@ typedef struct
 } wadpath_t;//!!! the above two are VERY DIFFERENT. ie (usedtextures == 0) != (usedbymap == false)
 
 extern wadpath_t*  g_pWadPaths[MAX_WADPATHS];
-extern int         g_iNumWadPaths;    
+extern int         g_iNumWadPaths;
 
 
 extern void        PushWadPath(const char* const path, bool inuse);

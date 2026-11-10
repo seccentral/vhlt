@@ -333,11 +333,11 @@ extern bool     g_onlyents;
 extern bool     g_noclip;
 extern bool     g_wadtextures;
 extern bool     g_skyclip;
-extern bool     g_estimate;         
-extern const char* g_hullfile;        
+extern bool     g_estimate;
+extern const char* g_hullfile;
 
 #ifdef ZHLT_NULLTEX // AJM:
-extern bool     g_bUseNullTex; 
+extern bool     g_bUseNullTex;
 #endif
 
 #ifdef ZHLT_DETAIL // AJM
@@ -345,7 +345,7 @@ extern bool g_bDetailBrushes;
 #endif
 
 #ifdef HLCSG_CLIPECONOMY // AJM:
-extern bool     g_bClipNazi; 
+extern bool     g_bClipNazi;
 #endif
 
 #ifdef HLCSG_PRECISIONCLIP // KGP
@@ -406,7 +406,7 @@ extern void     HandleWadinclude();
 //=============================================================================
 // brushunion.c
 void            CalculateBrushUnions(int brushnum);
- 
+
 //============================================================================
 // hullfile.cpp
 extern vec3_t   g_hull_size[NUM_HULLS][2];
@@ -419,7 +419,7 @@ extern void LoadWadcfgfile (const char *filename);
 extern void LoadWadconfig (const char *filename, const char *configname);
 #endif
 #ifndef HLCSG_WADCFG_NEW
-#ifdef HLCSG_WADCFG // AJM: 
+#ifdef HLCSG_WADCFG // AJM:
 //============================================================================
 // wadcfg.cpp
 
@@ -436,7 +436,7 @@ extern char     wadconfigname[MAX_WAD_CFG_NAME];
 extern char *g_apppath;
 #endif
 
-//JK: 
+//JK:
 extern char *g_wadcfgfile;
 
 #endif // HLCSG_WADCFG
@@ -446,7 +446,7 @@ extern char *g_wadcfgfile;
 //============================================================================
 // autowad.cpp      AJM
 
-extern bool     g_bWadAutoDetect; 
+extern bool     g_bWadAutoDetect;
 #ifndef HLCSG_AUTOWAD_NEW
 extern int      g_numUsedTextures;
 

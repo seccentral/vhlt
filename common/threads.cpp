@@ -95,7 +95,7 @@ int             GetThreadWork()
 #ifdef ZHLT_PROGRESSFILE // AJM
         if (g_progressfile)
         {
-            
+
 
         }
 #endif
@@ -349,7 +349,7 @@ q_threadfunction q_entry;
 
 static DWORD WINAPI ThreadEntryStub(LPVOID pParam)
 {
-    q_entry((int)pParam);
+    q_entry((int)(intptr_t)pParam);
     return 0;
 }
 
@@ -399,7 +399,7 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
         HANDLE          hThread = CreateThread(NULL,
                                                0,
                                                (LPTHREAD_START_ROUTINE) ThreadEntryStub,
-                                               (LPVOID) i,
+                                               (LPVOID)(intptr_t) i,
                                                CREATE_SUSPENDED,
                                                &threadid[i]);
 
@@ -493,7 +493,7 @@ void            ThreadSetPriority(q_threadpriority type)
     g_threadpriority = type;
 
     // Currently in Linux land users are incapable of raising the priority level of their processes
-    // Unless you are root -high is useless . . . 
+    // Unless you are root -high is useless . . .
     switch (g_threadpriority)
     {
     case eThreadPriorityLow:
@@ -564,7 +564,7 @@ static int PlatformThreadDefault()
     unsigned int number;
     size_t len = sizeof(unsigned int);
     sysctlbyname(name, &number, &len, NULL, 0);
-    
+
     if (number < 1) {
         return UnixThreadDefault();
     } else {

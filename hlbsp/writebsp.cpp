@@ -733,7 +733,7 @@ static void RemoveCoveredFaces_r (node_t *node)
 		}
 		return;
 	}
-	
+
 	// this is a node
 	for (face_t *f = node->faces; f; f = f->next)
 	{
@@ -1130,7 +1130,7 @@ void            FinishBSPFile()
 #endif
 	}
 #endif
-	
+
 #ifdef ZHLT_HIDDENSOUNDTEXTURE
 	for (int i = 0; i < g_numtexinfo; i++)
 	{

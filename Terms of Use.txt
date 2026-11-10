@@ -5,7 +5,7 @@ Readme File
 
 ----------
 
-About This Document: 
+About This Document:
 
 This document contains last-minute information about ZHLT, including questions you may have concerning the tools or your computer. If you have a question, check to see if it is addressed here first: you may save yourself an email to me at a latter date.
 

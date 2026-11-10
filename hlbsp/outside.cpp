@@ -113,7 +113,7 @@ static void     MarkLeakTrail(portal_t* n2)
 // =====================================================================================
 //  RecursiveFillOutside
 //      Returns true if an occupied leaf is reached
-//      If fill is false, just check, don't fill 
+//      If fill is false, just check, don't fill
 // =====================================================================================
 #ifdef ZHLT_DETAILBRUSH
 static void FreeDetailNode_r (node_t *n)
@@ -166,7 +166,7 @@ static bool     RecursiveFillOutside(node_t* l, const bool fill)
     portal_t*       p;
     int             s;
 
-    if ((l->contents == CONTENTS_SOLID) || (l->contents == CONTENTS_SKY) 
+    if ((l->contents == CONTENTS_SOLID) || (l->contents == CONTENTS_SKY)
 #ifdef ZHLT_DETAIL
         || (l->contents == CONTENTS_DETAIL)
 #endif
@@ -618,7 +618,7 @@ node_t*         FillOutside(node_t* node, const bool leakfile, const unsigned hu
         }
 
         g_bLeaked = true;
-            
+
         return node;
     }
 #ifdef HLBSP_DELETELEAKFILE
@@ -633,7 +633,7 @@ node_t*         FillOutside(node_t* node, const bool leakfile, const unsigned hu
     valid++;
     RecursiveFillOutside(g_outside_node.portals->nodes[s], true);
 
-    // remove faces and nodes from filled in leafs  
+    // remove faces and nodes from filled in leafs
     c_falsenodes = 0;
     c_free_faces = 0;
     c_keep_faces = 0;

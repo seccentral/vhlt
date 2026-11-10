@@ -98,11 +98,11 @@ void            ParseFromMemory(char* buffer, const int size)
 /*
  * Signals that the current g_token was not used, and should be reported
  * for the next GetToken.  Note that
- * 
+ *
  * GetToken (true);
  * UnGetToken ();
  * GetToken (false);
- * 
+ *
  * could cross a line boundary.
  */
 // =====================================================================================
@@ -301,7 +301,7 @@ void            ParseWadToken(const bool crossline)
         for (j = 0; ; j++)
         {
             token_p = ++s_script->script_p;
-            
+
             // assert max path length
             if (j > _MAX_PATH)
                 Error("Line %i: Wadpath definition %i is too long (%s)\n", s_scriptline, temp);

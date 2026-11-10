@@ -199,7 +199,7 @@ inline winding_t*      ChopWinding(winding_t* const in, pstack_t* const stack, c
 inline static void AddPlane(pstack_t* const stack, const plane_t* const split)
 {
     int     j;
-    
+
     if (stack->clipPlaneCount)
     {
         for (j = 0; j < stack->clipPlaneCount; j++)
@@ -230,9 +230,9 @@ inline static void AddPlane(pstack_t* const stack, const plane_t* const split)
 // =====================================================================================
 inline static winding_t* ClipToSeperators(
     const winding_t* const source,
-    const winding_t* const pass, 
+    const winding_t* const pass,
     winding_t* const a_target,
-    const bool flipclip, 
+    const bool flipclip,
     pstack_t* const stack)
 {
     int             i, j, k, l;
@@ -245,7 +245,7 @@ inline static winding_t* ClipToSeperators(
 
     const unsigned int numpoints = source->numpoints;
 
-    // check all combinations       
+    // check all combinations
     for (i=0, l=1; i < numpoints; i++, l++)
     {
         if (l == numpoints)
@@ -384,7 +384,7 @@ inline static void     RecursiveLeafFlow(const int leafnum, const threaddata_t* 
     {
         const unsigned offset = leafnum >> 3;
         const unsigned bit = (1 << (leafnum & 7));
-    
+
         // mark the leaf as visible
         if (!(thread->leafvis[offset] & bit))
         {
@@ -405,7 +405,7 @@ inline static void     RecursiveLeafFlow(const int leafnum, const threaddata_t* 
     stack.clipPlane = NULL;
 #endif
 
-    // check all portals for flowing into other leafs       
+    // check all portals for flowing into other leafs
     unsigned i;
     portal_t** plist = leaf->portals;
 
@@ -447,21 +447,21 @@ inline static void     RecursiveLeafFlow(const int leafnum, const threaddata_t* 
             {
                 test = (long*)p->mightsee;
             }
-    
+
             {
                 const int bitlongs = g_bitlongs;
 
                 {
                     long* prevmight = (long*)prevstack->mightsee;
                     long* might = (long*)stack.mightsee;
-                
+
                     unsigned j;
                     for (j = 0; j < bitlongs; j++, test++, might++, prevmight++)
                     {
                         (*might) = (*prevmight) & (*test);
                     }
                 }
-        
+
                 {
                     long* might = (long*)stack.mightsee;
                     long* vis = (long*)thread->leafvis;
@@ -473,7 +473,7 @@ inline static void     RecursiveLeafFlow(const int leafnum, const threaddata_t* 
                             break;
                         }
                     }
-            
+
                     if (j == g_bitlongs)
                     {                                                  // can't see anything new
                         continue;
@@ -640,7 +640,7 @@ static void     SimpleFlood(byte* const srcmightsee, const int leafnum, byte* co
     {
         const unsigned  offset = leafnum >> 3;
         const unsigned  bit = (1 << (leafnum & 7));
-    
+
         if (srcmightsee[offset] & bit)
         {
             return;
@@ -684,7 +684,7 @@ void			BlockVis(int unused)
 	visblocker_t *v;
 	visblocker_t *v2;
 	leaf_t *leaf;
-	
+
 	while(1)
 	{
 		i = GetThreadWork();
@@ -704,16 +704,16 @@ void			BlockVis(int unused)
 			for(k = 0; k < v->numleafs; k++)
 			{
 				leaf = &g_leafs[v->blockleafs[k]];
-				
+
 				for(l = 0; l < leaf->numportals; l++)
 				{
 					p = leaf->portals[l];
-					
+
 					for(m = 0; m < v2->numleafs; m++)
 					{
 						const unsigned offset = v2->blockleafs[m] >> 3;
 						const unsigned bit = (1 << (v2->blockleafs[m] & 7));
-	
+
 						p->mightsee[offset] &= ~bit;
 					}
 				}
@@ -740,14 +740,14 @@ static portal_t	*GetSplitPortal(leaf_t *leaf1, leaf_t *leaf2)
 	for(i = 0, p1 = leaf1->portals[0]; i < leaf1->numportals; i++, p1++)
 	{
 		hlassert(p1->winding->numpoints >= 3);
-		
+
 		// Check to make sure all the points on the other leaf are in front of the portal plane
 		for(k = 0, t = leaf2->portals[0]; k < leaf2->numportals; k++, t++)
 		{
 			for(l = 0; l < t->winding->numpoints; l++)
 			{
 				check_dist = DotProduct(t->winding->points[l], p1->plane.normal) - p1->plane.dist;
-				
+
 				// We make the assumption that all portals face away from their parent leaf
 				if(check_dist < -ON_EPSILON)
 					goto PostLoop;
@@ -755,7 +755,7 @@ static portal_t	*GetSplitPortal(leaf_t *leaf1, leaf_t *leaf2)
 		}
 
 PostLoop:
-		// If we didn't check all the leaf2 portals, then this leaf1 portal doesn't work		
+		// If we didn't check all the leaf2 portals, then this leaf1 portal doesn't work
 		if(k < leaf2->numportals)
 			continue;
 
@@ -793,14 +793,14 @@ static void		MakeSplitPortalList(leaf_t *leaf1, leaf_t *leaf2, portal_t **portal
 	for(i = 0, p1 = leaf1->portals[0]; i < leaf1->numportals; i++, p1++)
 	{
 		hlassert(p1->winding->numpoints >= 3);
-		
+
 		// Check to make sure all the points on the other leaf are in front of the portal plane
 		for(k = 0, t = leaf2->portals[0]; k < leaf2->numportals; k++, t++)
 		{
 			for(l = 0; l < t->winding->numpoints; l++)
 			{
 				check_dist = DotProduct(t->winding->points[l], p1->plane.normal) - p1->plane.dist;
-				
+
 				// We make the assumption that all portals face away from their parent leaf
 				if(check_dist < -ON_EPSILON)
 					goto PostLoop;
@@ -808,7 +808,7 @@ static void		MakeSplitPortalList(leaf_t *leaf1, leaf_t *leaf2, portal_t **portal
 		}
 
 PostLoop:
-		// If we didn't check all the leaf2 portals, then this leaf1 portal doesn't work		
+		// If we didn't check all the leaf2 portals, then this leaf1 portal doesn't work
 		if(k < leaf2->numportals)
 			continue;
 
@@ -908,7 +908,7 @@ static void			GetPortalBounds(portal_t *p, plane_t **bounds)
 // AJM: MVD
 // =====================================================================================
 //  ClipWindingsToBounds
-//      clips all the windings with all the planes (including original face) and outputs 
+//      clips all the windings with all the planes (including original face) and outputs
 //      what's left int "out"
 // =====================================================================================
 static void			ClipWindingsToBounds(winding_t *windings, int numwindings, plane_t *bounds, int numbounds, plane_t &original_plane, winding_t **out, int &num_out)
@@ -926,7 +926,7 @@ static void			ClipWindingsToBounds(winding_t *windings, int numwindings, plane_t
 	Winding wind;
 
 	for(h = 0; h < numwindings; h++)
-	{					
+	{
 		// For each winding...
 		// Create a winding with CWinding
 
@@ -941,7 +941,7 @@ static void			ClipWindingsToBounds(winding_t *windings, int numwindings, plane_t
 			// Chop the winding to the bounds
 			wind.Chop(bounds[i].normal, bounds[i].dist);
 		}
-		
+
 		if(wind.Valid())
 		{
 			// We have a valid winding, copy to array
@@ -967,7 +967,7 @@ static void			ClipWindingsToBounds(winding_t *windings, int numwindings, plane_t
 // =====================================================================================
 static void			GenerateWindingList(leaf_t *leaf, winding_t **winds)
 {
-	
+
 
 	winding_t windings[MAX_PORTALS_ON_LEAF];
 	int numwinds = 0;
@@ -1067,7 +1067,7 @@ static float		GetShortestDistance(leaf_t *leaf1, leaf_t *leaf2)
 static float		CalcSplitsAndDotProducts(plane_t *org_split_plane, leaf_t *leaf1, leaf_t *leaf2, plane_t *bounds, int num_bounds)
 {
 	int i, j, k, l;
-	
+
 	portal_t *splits = NULL;
 	int num_splits;
 
@@ -1147,7 +1147,7 @@ static float		CalcSplitsAndDotProducts(plane_t *org_split_plane, leaf_t *leaf1, 
 	if(splits)
 		delete [] splits;
 
-	return min_dist;			
+	return min_dist;
 }
 
 #endif
@@ -1504,7 +1504,7 @@ void	MaxDistVis(int unused)
 
 	unsigned offset_tl;
 	unsigned bit_tl;
-	
+
 	while(1)
 	{
 		i = GetThreadWork();
@@ -1533,7 +1533,7 @@ void	MaxDistVis(int unused)
 					}
 				}
 				for (m = 0; m < tl->numportals; m++)
-				{	
+				{
 					if (tl->portals[m]->visbits[offset_l] & bit_l)
 					{
 						visible = true;
@@ -1544,7 +1544,7 @@ void	MaxDistVis(int unused)
 					goto NoWork;
 				}
 			}
-			
+
 			// rough check
 			{
 				vec3_t v;
@@ -1642,7 +1642,7 @@ void	MaxDistVis(int unused)
 				continue;
 
 			// Try out our NEW, IMPROVED ALGORITHM!!!!
-			
+
 			// Get a portal on Leaf 1 that completely seperates the two leafs
 			/*split = GetSplitPortal(l, tl);
 
@@ -1665,7 +1665,7 @@ void	MaxDistVis(int unused)
 						for(n = 0; n < split->winding->numpoints; n++) // numpoints of split portals = number of boundaries
 						{
 							dist = DotProduct(tl->portals[k]->winding->points[m], boundary[n].normal) - boundary[n].dist;
-	
+
 							if(dist < -ON_EPSILON)
 							{
 								// Outside boundaries
@@ -1746,7 +1746,7 @@ Work:
 						l->portals[k]->visbits[offset_tl] &= ~bit_tl;
 					else
 						l->portals[k]->mightsee[offset_tl] &= ~bit_tl;
-					
+
 					if(tl->portals[m]->status != stat_none)
 						tl->portals[m]->visbits[offset_l] &= ~bit_l;
 					else
@@ -1754,7 +1754,7 @@ Work:
 				}
 			}
 #endif
-			
+
 NoWork:
 			continue;	// Hack to keep label from causing compile error
 		}

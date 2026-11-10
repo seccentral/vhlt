@@ -14,7 +14,7 @@ struct interpolation_t
 		int patchnum;
 		vec_t weight;
 	};
-	
+
 	bool isbiased;
 	vec_t totalweight;
 	std::vector< Point > points;
@@ -34,7 +34,7 @@ struct localtriangulation_t
 			eSquareRight,
 #endif
 		};
-		
+
 		eShape shape;
 		int leftpatchnum;
 		vec3_t leftspot;
@@ -48,7 +48,7 @@ struct localtriangulation_t
 		vec3_t spot;
 		vec3_t direction;
 	};
-	
+
 	dplane_t plane;
 	Winding winding;
 	vec3_t center; // center is on the plane
@@ -95,7 +95,7 @@ static bool CalcAdaptedSpot (const localtriangulation_t *lt, const vec3_t positi
 	vec_t frac;
 	vec3_t middle;
 	vec3_t v;
-	
+
 	for (i = 0; i < (int)lt->neighborfaces.size (); i++)
 	{
 		if (lt->neighborfaces[i] == surface)
@@ -142,7 +142,7 @@ static vec_t GetAngle (const vec3_t leftdirection, const vec3_t rightdirection, 
 {
 	vec_t angle;
 	vec3_t v;
-	
+
 	CrossProduct (rightdirection, leftdirection, v);
 	angle = atan2 (DotProduct (v, normal), DotProduct (rightdirection, leftdirection));
 
@@ -171,7 +171,7 @@ static vec_t GetFrac (const vec3_t leftspot, const vec3_t rightspot, const vec3_
 	CrossProduct (direction, normal, v);
 	dot1 = DotProduct (leftspot, v);
 	dot2 = DotProduct (rightspot, v);
-	
+
 	// dot1 <= 0 < dot2
 	if (dot1 >= -NORMAL_EPSILON)
 	{
@@ -254,7 +254,7 @@ static bool CalcWeight (const localtriangulation_t *lt, const vec3_t spot, vec_t
 	hp2 = &lt->sortedhullpoints[(j + 1) % (int)lt->sortedhullpoints.size ()];
 
 	frac = GetFrac (hp1->spot, hp2->spot, direction, lt->normal);
-	
+
 	len = (1 - frac) * DotProduct (hp1->spot, direction) + frac * DotProduct (hp2->spot, direction);
 	dist = DotProduct (spot, direction);
 	if (len <= ON_EPSILON / 4 || dist > len + 2 * ON_EPSILON)
@@ -298,7 +298,7 @@ static void CalcInterpolation_Square (const localtriangulation_t *lt, int i, con
 	vec3_t mid_far;
 	vec3_t mid_near;
 	vec3_t test;
-	
+
 	w1 = &lt->sortedwedges[i];
 	w2 = &lt->sortedwedges[(i + 1) % (int)lt->sortedwedges.size ()];
 	w3 = &lt->sortedwedges[(i + 2) % (int)lt->sortedwedges.size ()];
@@ -396,7 +396,7 @@ static void CalcInterpolation_Square (const localtriangulation_t *lt, int i, con
 	weights[3] += 0.5 * (1 - ratio) * frac_near;
 	weights[1] += 0.5 * ratio * (1 - frac_far);
 	weights[2] += 0.5 * ratio * frac_far;
-	
+
 	// find mid_near on (o,p1), mid_far on (p2,p3), spot on (mid_near,mid_far)
 	CrossProduct (lt->normal, w3->leftdirection, normal1);
 	VectorNormalize (normal1);
@@ -528,7 +528,7 @@ static void CalcInterpolation (const localtriangulation_t *lt, const vec3_t spot
 		interp->points[0].weight = 1.0;
 		return;
 	}
-	
+
 	// Find the wedge with minimum non-negative angle (counterclockwise) pass the spot
 	angles.resize ((int)lt->sortedwedges.size ());
 	for (i = 0; i < (int)lt->sortedwedges.size (); i++)
@@ -564,7 +564,7 @@ static void CalcInterpolation (const localtriangulation_t *lt, const vec3_t spot
 			vec_t ratio;
 
 			frac = GetFrac (w->leftspot, wnext->leftspot, direction, lt->normal);
-			
+
 			len = (1 - frac) * DotProduct (w->leftspot, direction) + frac * DotProduct (wnext->leftspot, direction);
 			dist = DotProduct (spot, direction);
 			if (len <= ON_EPSILON / 4 || dist > len + 2 * ON_EPSILON)
@@ -671,7 +671,7 @@ static void CalcInterpolation (const localtriangulation_t *lt, const vec3_t spot
 			{
 				frac = dot / (dot - dot2);
 				frac = qmax (0, qmin (frac, 1));
-			
+
 				interp->isbiased = true;
 				interp->totalweight = 1.0;
 				interp->points.resize (2);
@@ -823,7 +823,7 @@ void InterpolateSampleLight (const vec3_t position, int surface, int numstyles, 
 {
 	try
 	{
-	
+
 	const facetriangulation_t *ft;
 	interpolation_t *maininterp;
 	std::vector< vec_t > localweights;
@@ -887,7 +887,7 @@ void InterpolateSampleLight (const vec3_t position, int surface, int numstyles, 
 			}
 		}
 	}
-	
+
 	// Combine into one interpolation
 	maininterp->isbiased = false;
 	maininterp->totalweight = 0;
@@ -1179,7 +1179,7 @@ static void GatherPatches (localtriangulation_t *lt, const facetriangulation_t *
 		for (patch2 = g_face_patches[facenum2]; patch2; patch2 = patch2->next)
 		{
 			patchnum2 = patch2 - g_patches;
-			
+
 			point.leftpatchnum = patchnum2;
 			VectorMA (patch2->origin, -PATCH_HUNT_OFFSET, dp2->normal, v);
 
@@ -1275,7 +1275,7 @@ static void PurgePatches (localtriangulation_t *lt)
 			continue;
 		}
 		valid[cur] = 2; // mark current patch as final
-		
+
 		CrossProduct (points[cur].leftdirection, lt->normal, normal);
 		VectorNormalize (normal);
 		VectorScale (normal, cos (TRIANGLE_SHAPE_THRESHOLD), v);
@@ -1296,7 +1296,7 @@ static void PurgePatches (localtriangulation_t *lt)
 			// the triangle is good
 			break;
 		}
-		
+
 		CrossProduct (lt->normal, points[cur].leftdirection, normal);
 		VectorNormalize (normal);
 		VectorScale (normal, cos (TRIANGLE_SHAPE_THRESHOLD), v);
@@ -1491,7 +1491,7 @@ static bool TryMakeSquare (localtriangulation_t *lt, int i)
 	{
 		return false;
 	}
-	
+
 	// (o, p1, p3) must be a triangle
 	angle = GetAngle (w1->leftdirection, w3->leftdirection, lt->normal);
 	angle = GetAngleDiff (angle, 0);
@@ -1588,7 +1588,7 @@ static localtriangulation_t *CreateLocalTriangulation (const facetriangulation_t
 
 	// Gather all patches from nearby faces
 	GatherPatches (lt, facetrian);
-	
+
 	// Remove distant patches
 	PurgePatches (lt);
 
@@ -1934,19 +1934,19 @@ void FreeTriangulations ()
 
 #else
 #ifdef HLRAD_LERP_VL
-static bool		LerpTriangle(const lerpTriangulation_t* trian, const vec3_t point, vec3_t result, 
+static bool		LerpTriangle(const lerpTriangulation_t* trian, const vec3_t point, vec3_t result,
 	#ifdef ZHLT_XASH
-					vec3_t &result_direction, 
+					vec3_t &result_direction,
 	#endif
 					int pt1, int pt2, int pt3, int style);
-static bool		LerpEdge(const lerpTriangulation_t* trian, const vec3_t point, vec3_t result, 
+static bool		LerpEdge(const lerpTriangulation_t* trian, const vec3_t point, vec3_t result,
 	#ifdef ZHLT_XASH
-					vec3_t &result_direction, 
+					vec3_t &result_direction,
 	#endif
 					int pt1, int pt2, int style);
-static bool		LerpNearest(const lerpTriangulation_t* trian, const vec3_t point, vec3_t result, 
+static bool		LerpNearest(const lerpTriangulation_t* trian, const vec3_t point, vec3_t result,
 	#ifdef ZHLT_XASH
-					vec3_t &result_direction, 
+					vec3_t &result_direction,
 	#endif
 					int pt1, int style);
 #define LERP_EPSILON 0.5
@@ -1996,7 +1996,7 @@ static bool     TestWallIntersectTri(const lerpTriangulation_t* const trian, con
     plane_from_points(p1, p2, p3, &plane);
 
     // Try first 'vertical' side
-    // Since we test each of the 3 segments from patch against wall, only one side of wall needs testing inside 
+    // Since we test each of the 3 segments from patch against wall, only one side of wall needs testing inside
     // patch (since they either dont intersect at all at this point, or both line segments intersect inside)
     for (x = 0; x < trian->numwalls; x++, wall++)
     {
@@ -2112,9 +2112,9 @@ static bool     TestTriIntersectWall(const lerpTriangulation_t* trian, const vec
 //      pt1 must be closest point
 // =====================================================================================
 #ifdef HLRAD_LERP_VL
-static bool LerpTriangle(const lerpTriangulation_t* trian, const vec3_t point, vec3_t result, 
+static bool LerpTriangle(const lerpTriangulation_t* trian, const vec3_t point, vec3_t result,
 	#ifdef ZHLT_XASH
-				vec3_t &result_direction, 
+				vec3_t &result_direction,
 	#endif
 				int pt1, int pt2, int pt3, int style)
 {
@@ -2163,9 +2163,9 @@ static bool LerpTriangle(const lerpTriangulation_t* trian, const vec3_t point, v
 	// the point could be on the edge.
 	if (fabs (dist12) < LERP_EPSILON)
 	{
-		if (LerpEdge (trian, point, result, 
+		if (LerpEdge (trian, point, result,
 	#ifdef ZHLT_XASH
-				result_direction, 
+				result_direction,
 	#endif
 				pt1, pt2, style))
 		{
@@ -2174,9 +2174,9 @@ static bool LerpTriangle(const lerpTriangulation_t* trian, const vec3_t point, v
 	}
 	if (fabs (dist13) < LERP_EPSILON)
 	{
-		if (LerpEdge (trian, point, result, 
+		if (LerpEdge (trian, point, result,
 	#ifdef ZHLT_XASH
-				result_direction, 
+				result_direction,
 	#endif
 				pt1, pt3, style))
 		{
@@ -2185,9 +2185,9 @@ static bool LerpTriangle(const lerpTriangulation_t* trian, const vec3_t point, v
 	}
 	if (fabs (dist23) < LERP_EPSILON)
 	{
-		if (LerpEdge (trian, point, result, 
+		if (LerpEdge (trian, point, result,
 	#ifdef ZHLT_XASH
-				result_direction, 
+				result_direction,
 	#endif
 				pt2, pt3, style))
 		{
@@ -2333,9 +2333,9 @@ static void     LerpTriangle(const lerpTriangulation_t* const trian, const vec3_
 //  LerpNearest
 // =====================================================================================
 #ifdef HLRAD_LERP_VL
-static bool LerpNearest(const lerpTriangulation_t* trian, const vec3_t point, vec3_t result, 
+static bool LerpNearest(const lerpTriangulation_t* trian, const vec3_t point, vec3_t result,
 	#ifdef ZHLT_XASH
-				vec3_t &result_direction, 
+				vec3_t &result_direction,
 	#endif
 				int pt1, int style)
 {
@@ -2386,7 +2386,7 @@ static void     LerpNearest(const lerpTriangulation_t* const trian, vec3_t resul
     // If none in nearest face, settle for nearest
     if (numpoints)
     {
-	#ifdef ZHLT_TEXLIGHT 
+	#ifdef ZHLT_TEXLIGHT
         VectorCopy(*GetTotalLight(trian->points[trian->dists[0].patch], style), result); //LRC
 	#else
         VectorCopy(trian->points[trian->dists[0].patch]->totallight, result);
@@ -2403,9 +2403,9 @@ static void     LerpNearest(const lerpTriangulation_t* const trian, vec3_t resul
 //  LerpEdge
 // =====================================================================================
 #ifdef HLRAD_LERP_VL
-static bool		LerpEdge(const lerpTriangulation_t* trian, const vec3_t point, vec3_t result, 
+static bool		LerpEdge(const lerpTriangulation_t* trian, const vec3_t point, vec3_t result,
 	#ifdef ZHLT_XASH
-					vec3_t &result_direction, 
+					vec3_t &result_direction,
 	#endif
 					int pt1, int pt2, int style)
 {
@@ -2722,9 +2722,9 @@ static void     FindDists(const lerpTriangulation_t* const trian, const vec3_t p
 // =====================================================================================
 #ifdef ZHLT_TEXLIGHT
 #ifdef HLRAD_LERP_VL
-void            SampleTriangulation(const lerpTriangulation_t* const trian, const vec3_t point, vec3_t result, 
+void            SampleTriangulation(const lerpTriangulation_t* const trian, const vec3_t point, vec3_t result,
 	#ifdef ZHLT_XASH
-					vec3_t &result_direction, 
+					vec3_t &result_direction,
 	#endif
 					int style)
 #else
@@ -2746,9 +2746,9 @@ void            SampleTriangulation(const lerpTriangulation_t* const trian, vec3
 		int pt1 = trian->dists[0].patch;
 		int pt2 = trian->dists[1].patch;
 		int pt3 = trian->dists[2].patch;
-		if (LerpTriangle (trian, point, result, 
+		if (LerpTriangle (trian, point, result,
 	#ifdef ZHLT_XASH
-				result_direction, 
+				result_direction,
 	#endif
 				pt1, pt2, pt3, style))
 		{
@@ -2762,9 +2762,9 @@ void            SampleTriangulation(const lerpTriangulation_t* const trian, vec3
 		if (trian->numpoints >= 4 && trian->dists[3].invalid <= 0)
 		{
 			int pt4 = trian->dists[3].patch;
-			if (LerpTriangle (trian, point, result, 
+			if (LerpTriangle (trian, point, result,
 	#ifdef ZHLT_XASH
-					result_direction, 
+					result_direction,
 	#endif
 					pt1, pt2, pt4, style))
 			{
@@ -2774,9 +2774,9 @@ void            SampleTriangulation(const lerpTriangulation_t* const trian, vec3
 				return;
 	#endif
 			}
-			if (LerpTriangle (trian, point, result, 
+			if (LerpTriangle (trian, point, result,
 	#ifdef ZHLT_XASH
-					result_direction, 
+					result_direction,
 	#endif
 					pt1, pt3, pt4, style))
 			{
@@ -2789,9 +2789,9 @@ void            SampleTriangulation(const lerpTriangulation_t* const trian, vec3
 			if (trian->numpoints >= 5 && trian->dists[4].invalid <= 0)
 			{
 				int pt5 = trian->dists[4].patch;
-				if (LerpTriangle (trian, point, result, 
+				if (LerpTriangle (trian, point, result,
 	#ifdef ZHLT_XASH
-						result_direction, 
+						result_direction,
 	#endif
 						pt1, pt2, pt5, style))
 				{
@@ -2801,9 +2801,9 @@ void            SampleTriangulation(const lerpTriangulation_t* const trian, vec3
 	#endif
 					return;
 				}
-				if (LerpTriangle (trian, point, result, 
+				if (LerpTriangle (trian, point, result,
 	#ifdef ZHLT_XASH
-						result_direction, 
+						result_direction,
 	#endif
 						pt1, pt3, pt5, style))
 				{
@@ -2813,9 +2813,9 @@ void            SampleTriangulation(const lerpTriangulation_t* const trian, vec3
 	#endif
 					return;
 				}
-				if (LerpTriangle (trian, point, result, 
+				if (LerpTriangle (trian, point, result,
 	#ifdef ZHLT_XASH
-						result_direction, 
+						result_direction,
 	#endif
 						pt1, pt4, pt5, style))
 				{
@@ -2833,9 +2833,9 @@ void            SampleTriangulation(const lerpTriangulation_t* const trian, vec3
 	{
 		int pt1 = trian->dists[0].patch;
 		int pt2 = trian->dists[1].patch;
-		if (LerpEdge (trian, point, result, 
+		if (LerpEdge (trian, point, result,
 	#ifdef ZHLT_XASH
-				result_direction, 
+				result_direction,
 	#endif
 				pt1, pt2, style))
 		{
@@ -2848,9 +2848,9 @@ void            SampleTriangulation(const lerpTriangulation_t* const trian, vec3
 		if (trian->numpoints >= 3 && trian->dists[2].invalid <= 0 )
 		{
 			int pt3 = trian->dists[2].patch;
-			if (LerpEdge (trian, point, result, 
+			if (LerpEdge (trian, point, result,
 	#ifdef ZHLT_XASH
-					result_direction, 
+					result_direction,
 	#endif
 					pt1, pt3, style))
 			{
@@ -2865,9 +2865,9 @@ void            SampleTriangulation(const lerpTriangulation_t* const trian, vec3
 	if (trian->numpoints >= 1)
 	{
 		int pt1 = trian->dists[0].patch;
-		if (LerpNearest (trian, point, result, 
+		if (LerpNearest (trian, point, result,
 	#ifdef ZHLT_XASH
-				result_direction, 
+				result_direction,
 	#endif
 				pt1, style))
 		{

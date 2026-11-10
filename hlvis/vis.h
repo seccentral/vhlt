@@ -69,10 +69,10 @@ typedef struct
 } plane_t;
 
 typedef enum
-{ 
-    stat_none, 
-    stat_working, 
-    stat_done 
+{
+    stat_none,
+    stat_working,
+    stat_done
 } vstatus_t;
 
 typedef struct
@@ -204,7 +204,7 @@ extern leaf_t*  g_leafs;
 // Visblockers
 extern visblocker_t g_visblockers[MAX_VISBLOCKERS];
 extern int		g_numvisblockers;
-extern byte*	g_mightsee; 
+extern byte*	g_mightsee;
 #endif
 #endif
 

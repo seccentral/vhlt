@@ -31,7 +31,7 @@
 
 /*
  * ==============
- * getfiletime        
+ * getfiletime
  * ==============
  */
 
@@ -47,7 +47,7 @@ time_t          getfiletime(const char* const filename)
 }
 
 /*
- * ==============      
+ * ==============
  * getfilesize
  * ==============
  */
@@ -214,4 +214,3 @@ void            SaveFile(const char* const filename, const void* const buffer, i
     SafeWrite(f, buffer, count);
     fclose(f);
 }
-

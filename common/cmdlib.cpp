@@ -112,12 +112,12 @@ const char*     stristr(const char* const string, const char* const substring)
 }
 
 /*--------------------------------------------------------------------
-// New implementation of FlipSlashes, DefaultExtension, StripFilename, 
+// New implementation of FlipSlashes, DefaultExtension, StripFilename,
 // StripExtension, ExtractFilePath, ExtractFile, ExtractFileBase, etc.
 ----------------------------------------------------------------------*/
 #ifdef ZHLT_NEW_FILE_FUNCTIONS //added "const". --vluzacn
 
-//Since all of these functions operate around either the extension 
+//Since all of these functions operate around either the extension
 //or the directory path, centralize getting both numbers here so we
 //can just reference them everywhere else.  Use strrchr to give a
 //speed boost while we're at it.
@@ -133,11 +133,11 @@ inline void getFilePositions(const char* path, int* extension_position, int* dir
 	if(ptr == 0)
 	{ *directory_position = -1; }
 	else
-	{ 
+	{
 		*directory_position = ptr - path;
 		if(*directory_position > *extension_position)
 		{ *extension_position = -1; }
-		
+
 		//cover the case where we were passed a directory - get 2nd-to-last slash
 		if(*directory_position == (int)strlen(path) - 1)
 		{
@@ -402,9 +402,9 @@ void            ExtractFileExtension(const char* const path, char* dest)
 
 /*
  * ============================================================================
- * 
+ *
  * BYTE ORDER FUNCTIONS
- * 
+ *
  * ============================================================================
  */
 

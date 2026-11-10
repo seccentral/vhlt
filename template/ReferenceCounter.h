@@ -44,7 +44,7 @@ public:
 	ReferenceCounter& operator=(const ReferenceCounter& other) {copy(other); return *this;}
 
 public:
-    // User functions 
+    // User functions
 	inline int add(int amt);// increment the value by amt, returns the ORIGINAL value
 	inline int sub(int amt);// increment the value by amt, returns the ORIGINAL value
 	inline int inc();// increment the value, returns the NEW value
@@ -226,7 +226,7 @@ inline int ReferenceCounter::read() const
 inline void ReferenceCounter::copy(const ReferenceCounter& other)
 {
 	m_atom.counter = other.read();
-}     
+}
 #endif//HAVE_ATOMIC
 #endif//SINGLE_THREADED
 

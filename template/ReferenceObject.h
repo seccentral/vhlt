@@ -35,7 +35,7 @@ public:
   \email   sean@dimensionalrift.com
   \cvsauthor $Author: sean $
   \date    $Date: 2000/09/11 20:28:24 $
-  \version $Revision: 1.1 $ 
+  \version $Revision: 1.1 $
   \brief   ReferenceObject is a template class designed to be used a base class for pass-by-reference objects, to that things such as returning objects up the stack efficiently are possible.
   \bug     EVERY non const function needs its very first operation to be CopyForWrite()
   \bug     EVERY derived class should define its operator=() to call the ReferenceObject base class version (notice this operator is protected,)
@@ -47,7 +47,7 @@ public:
 
 
 template<class HEADER_T, class DATA_T>
-class ReferenceObject  
+class ReferenceObject
 {
 public:
 	ReferenceObject();

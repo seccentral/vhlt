@@ -25,7 +25,7 @@ static bool     CheckVisBitNoVismatrix(unsigned patchnum1, unsigned patchnum2
         patchnum2 = a;
     }
 #endif
-    
+
     if (patchnum1 > g_num_patches)
     {
         Warning("in CheckVisBit(), patchnum1 > num_patches");
@@ -35,7 +35,7 @@ static bool     CheckVisBitNoVismatrix(unsigned patchnum1, unsigned patchnum2
         Warning("in CheckVisBit(), patchnum2 > num_patches");
     }
 #endif
-	
+
     patch_t*        patch = &g_patches[patchnum1];
     patch_t*        patch2 = &g_patches[patchnum2];
 
@@ -114,7 +114,7 @@ static bool     CheckVisBitNoVismatrix(unsigned patchnum1, unsigned patchnum2
 	#endif
 				) != CONTENTS_EMPTY)
 #else
-            if (TestLine_r(0, 
+            if (TestLine_r(0,
 	#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
 				origin1, origin2
 	#else
@@ -149,7 +149,7 @@ static bool     CheckVisBitNoVismatrix(unsigned patchnum1, unsigned patchnum2
 					AddStyleToStyleArray (patchnum1, patchnum2, opaquestyle);
 				}
 #endif
-#ifdef HLRAD_HULLU            	
+#ifdef HLRAD_HULLU
             	if(g_customshadow_with_bouncelight)
             	{
             		VectorCopy(transparency, transparency_out);
@@ -168,7 +168,7 @@ static bool     CheckVisBitNoVismatrix(unsigned patchnum1, unsigned patchnum2
 									   , vec3_t &transparency_out
 #endif
 									   )
-{	
+{
     patch_t*        patch = &g_patches[receiver];
     patch_t*        emitpatch = &g_patches[emitter];
 
@@ -223,7 +223,7 @@ static bool     CheckVisBitNoVismatrix(unsigned patchnum1, unsigned patchnum2
 	#endif
 				) != CONTENTS_EMPTY)
 #else
-            if (TestLine_r(0, 
+            if (TestLine_r(0,
 	#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
 				backorigin, emitorigin
 	#else
@@ -258,7 +258,7 @@ static bool     CheckVisBitNoVismatrix(unsigned patchnum1, unsigned patchnum2
 					AddStyleToStyleArray (receiver, emitter, opaquestyle);
 				}
 #endif
-#ifdef HLRAD_HULLU            	
+#ifdef HLRAD_HULLU
             	if(g_customshadow_with_bouncelight)
             	{
             		VectorCopy(transparency, transparency_out);

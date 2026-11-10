@@ -97,7 +97,7 @@ static void		SetVisColumn (int patchnum, bool uncompressedcolumn[MAX_SPARSE_VISM
 	int m;
 	int i;
 	unsigned int bits;
-	
+
 	column = &s_vismatrix[patchnum];
 	if (column->count || column->row)
 	{
@@ -134,7 +134,7 @@ static void		SetVisColumn (int patchnum, bool uncompressedcolumn[MAX_SPARSE_VISM
 	}
 	column->row = (sparse_row_t *)malloc (column->count * sizeof (sparse_row_t));
 	hlassume (column->row != NULL, assume_NoMemory);
-	
+
 	i = 0;
 	for (mbegin = 0; mbegin < g_num_patches; mbegin += 8)
 	{
@@ -396,7 +396,7 @@ static bool     CheckVisBitSparse(unsigned x, unsigned y
 /*
  * ==============
  * TestPatchToFace
- * 
+ *
  * Sets vis bits for all patches in the face
  * ==============
  */
@@ -495,7 +495,7 @@ static void     TestPatchToFace(const unsigned patchnum, const int facenum, cons
 	#endif
 						) != CONTENTS_EMPTY)
 #else
-                    if (TestLine_r(head, 
+                    if (TestLine_r(head,
 	#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
 						origin1, origin2
 	#else
@@ -530,7 +530,7 @@ static void     TestPatchToFace(const unsigned patchnum, const int facenum, cons
 						AddStyleToStyleArray (patchnum, m, opaquestyle);
 					}
 #endif
-                                        
+
 #ifdef HLRAD_HULLU
 	#ifdef HLRAD_TRANSPARENCY_CPP
                     if(g_customshadow_with_bouncelight && !VectorCompare(transparency, vec3_one) )
@@ -546,19 +546,19 @@ static void     TestPatchToFace(const unsigned patchnum, const int facenum, cons
                     	    //new size
                     	    unsigned long oldsize = s_max_transparency_count;
                     	    s_max_transparency_count += 128;
-                    	    
+
                     	    //realloc
                     	    s_transparency_list = (transparency_t*)realloc(s_transparency_list, s_max_transparency_count * sizeof(transparency_t));
-                    	    
+
                     	    // clean new memory
                     	    memset(&s_transparency_list[oldsize], 0, sizeof(transparency_t) * 128);
                     	}
-                    	
+
                     	//add to array
                     	VectorCopy(transparency, s_transparency_list[s_transparency_count].transparency);
                 	s_transparency_list[s_transparency_count].y = m;
                     	s_transparency_list[s_transparency_count].x = patchnum;
-                    	
+
                     	s_transparency_count++;
                     }
 	#endif
@@ -578,7 +578,7 @@ static void     TestPatchToFace(const unsigned patchnum, const int facenum, cons
 /*
  * ==============
  * BuildVisRow
- * 
+ *
  * Calc vis bits from a single patch
  * ==============
  */
@@ -624,7 +624,7 @@ static void     BuildVisRow(const int patchnum, byte* pvs, const int head)
 /*
  * ===========
  * BuildVisLeafs
- * 
+ *
  * This is run by multiple threads
  * ===========
  */
@@ -835,7 +835,7 @@ static void     FreeVisMatrix()
     	free(s_transparency_list);
     	s_transparency_list = NULL;
     }
-    s_transparency_count = s_max_transparency_count = 0;    
+    s_transparency_count = s_max_transparency_count = 0;
 #endif
 #endif
 
@@ -900,7 +900,7 @@ void            MakeScalesSparseVismatrix()
         	Log("%-20s: %5.1f kilos\n", "custom shadow array", (s_max_transparency_count*sizeof(transparency_t)) / 1024.0);
 	#endif
 #endif
-        
+
 #ifndef HLRAD_HULLU
         NamedRunThreadsOn(g_num_patches, g_estimate, MakeScales);
 #else

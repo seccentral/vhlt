@@ -24,9 +24,9 @@ void properties_initialize(const char* filename)
 
 	ifstream file(filename,ios::in);
 	if(!file)
-	{ 
+	{
 		file.close();
-		return; 
+		return;
 	}
 
 

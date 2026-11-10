@@ -85,7 +85,7 @@ public:
             (tmpBox.m_Mins[2] > tmpBox.m_Maxs[2]))
         {
             return false;
-        }   
+        }
         return true;
     }
     eBoundingState test(const BoundingBox& other) const

@@ -30,7 +30,7 @@
   \email   sean@dimensionalrift.com
   \cvsauthor $Author: sean $
   \date    $Date: 2000/09/11 20:28:24 $
-  \version $Revision: 1.1 $ 
+  \version $Revision: 1.1 $
   \brief   ReferencePtr is a simplified ReferencePtr, primiarily for use with reference counted pointers.
 	 Its purpose is solely for simplified garbage collection, and not any kind of advanced
 	 copy on write functionality.  Passing a normal pointer to this class effectively starts
@@ -47,7 +47,7 @@ public:
 
 
 template<class DATA_T>
-class ReferencePtr  
+class ReferencePtr
 {
 public:
 	// Construction

@@ -3,7 +3,7 @@
 #include "csg.h"
 
 wadpath_t*  g_pWadPaths[MAX_WADPATHS];
-int         g_iNumWadPaths = 0;    
+int         g_iNumWadPaths = 0;
 
 
 // =====================================================================================
@@ -27,7 +27,7 @@ void        PushWadPath(const char* const path, bool inuse)
         current = g_pWadPaths[i];
 
         if (!strcmp(current->path, path))
-            return; 
+            return;
     }
 #endif
 
@@ -66,7 +66,7 @@ bool        IsUsedWadPath(const char* const path)
 
             return false;
         }
-    }   
+    }
 
     return false;
 }

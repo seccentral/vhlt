@@ -322,33 +322,33 @@ void Winding::initFromPlane(const vec3_t normal, const vec_t dist)
     vec_t           max, v;
     vec3_t          org, vright, vup;
 
-    // find the major axis               
+    // find the major axis
 
     max = -BOGUS_RANGE;
     int x = -1;
-    for (i = 0; i < 3; i++)          
+    for (i = 0; i < 3; i++)
     {
-        v = fabs(normal[i]);        
+        v = fabs(normal[i]);
         if (v > max)
         {
             max = v;
             x = i;
         }
-    }                
+    }
     if (x == -1)
     {
         Error("Winding::initFromPlane no major axis found\n");
     }
 
     VectorCopy(vec3_origin, vup);
-    switch (x) 
+    switch (x)
     {
     case 0:
-    case 1:          
+    case 1:
         vup[2] = 1;
         break;
     case 2:
-        vup[0] = 1;      
+        vup[0] = 1;
         break;
     }
 
@@ -455,7 +455,7 @@ void			Winding::RemoveColinearPoints(
 		VectorSubtract (p2, p1, v1);
 		VectorSubtract (p3, p2, v2);
 		// v1 or v2 might be close to 0
-		if (DotProduct (v1, v2) * DotProduct (v1, v2) >= DotProduct (v1, v1) * DotProduct (v2, v2) 
+		if (DotProduct (v1, v2) * DotProduct (v1, v2) >= DotProduct (v1, v1) * DotProduct (v2, v2)
 			- ON_EPSILON * ON_EPSILON * (DotProduct (v1, v1) + DotProduct (v2, v2) + ON_EPSILON * ON_EPSILON))
 			// v2 == k * v1 + v3 && abs (v3) < ON_EPSILON || v1 == k * v2 + v3 && abs (v3) < ON_EPSILON
 		{
@@ -520,7 +520,7 @@ void            Winding::RemoveColinearPoints(
 
     if (nump == m_NumPoints)
     {
-        return;  
+        return;
     }
 
 #if 0
@@ -561,7 +561,7 @@ void            Winding::RemoveColinearPoints(
     for (i = 0; i < m_NumPoints; i++)
     {
         j = (i + 1) % m_NumPoints;                  // i + 1
-        k = (i + m_NumPoints - 1) % m_NumPoints;    // i - 1 
+        k = (i + m_NumPoints - 1) % m_NumPoints;    // i - 1
         VectorSubtract(m_Points[i], m_Points[j], v1);
         VectorSubtract(m_Points[i], m_Points[k], v2);
         VectorNormalize(v1);
@@ -582,7 +582,7 @@ void            Winding::RemoveColinearPoints(
 
     if (nump == m_NumPoints)
     {
-        return;  
+        return;
     }
 
 #if 0

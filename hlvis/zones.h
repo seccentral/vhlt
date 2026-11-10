@@ -34,7 +34,7 @@ public:
         }
         return false;
     }
-    
+
     void set(UINT32 zone, const BoundingBox& bounds);
     UINT32 getZoneFromBounds(const BoundingBox& bounds);
     UINT32 getZoneFromWinding(const Winding& winding);

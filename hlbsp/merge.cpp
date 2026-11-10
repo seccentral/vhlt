@@ -38,7 +38,7 @@ static face_t*  TryMerge(face_t* f1, face_t* f2)
     if (f1->numpoints == -1 || f2->numpoints == -1)
     {
         return NULL;
-    }    
+    }
     if (f1->texturenum != f2->texturenum)
     {
         return NULL;
@@ -66,7 +66,7 @@ static face_t*  TryMerge(face_t* f1, face_t* f2)
 
     //
     // find a common edge
-    //      
+    //
     p1 = p2 = NULL;                                        // shut up the compiler
     j = 0;
 
@@ -198,7 +198,7 @@ static face_t*  MergeFaceToList(face_t* face, face_t* list)
 
     for (f = list; f; f = f->next)
     {
-        //CheckColinear (f);            
+        //CheckColinear (f);
         newf = TryMerge(face, f);
         if (!newf)
         {

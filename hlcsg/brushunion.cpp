@@ -343,22 +343,22 @@ void            CalculateBrushUnions(const int brushnum)
                     if ((volume_ratio_1 > g_BrushUnionThreshold) || (g_developer >= DEVELOPER_LEVEL_MESSAGE))
                     {
                         volume_ratio_1 *= 100.0;
-                        Warning("Entity %d : Brush %d intersects with brush %d by %2.3f percent", 
+                        Warning("Entity %d : Brush %d intersects with brush %d by %2.3f percent",
 #ifdef HLCSG_COUNT_NEW
-							b1->originalentitynum, b1->originalbrushnum, b2->originalbrushnum, 
+							b1->originalentitynum, b1->originalbrushnum, b2->originalbrushnum,
 #else
-							b1->entitynum, brushnum, bn, 
+							b1->entitynum, brushnum, bn,
 #endif
 							volume_ratio_1);
                     }
                     if ((volume_ratio_2 > g_BrushUnionThreshold) || (g_developer >= DEVELOPER_LEVEL_MESSAGE))
                     {
                         volume_ratio_2 *= 100.0;
-                        Warning("Entity %d : Brush %d intersects with brush %d by %2.3f percent", 
+                        Warning("Entity %d : Brush %d intersects with brush %d by %2.3f percent",
 #ifdef HLCSG_COUNT_NEW
-							b1->originalentitynum, b2->originalbrushnum, b1->originalbrushnum, 
+							b1->originalentitynum, b2->originalbrushnum, b1->originalbrushnum,
 #else
-							b1->entitynum, bn, brushnum, 
+							b1->entitynum, bn, brushnum,
 #endif
 							volume_ratio_2);
                     }

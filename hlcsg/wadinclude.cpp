@@ -106,7 +106,7 @@ void            HandleWadinclude()
 
         currentwad = g_pWadPaths[i];
         pszWadFile = currentwad->path;
-        
+
 #ifdef HLCSG_AUTOWAD/*
     #ifdef _DEBUG
         Log("[dbg] HandleWIC: attempting to parse wad '%s'\n", currentwad->path);
@@ -161,7 +161,7 @@ void            HandleWadinclude()
     bool            bExcludeThisWad;
 
     const char*     path = ValueForKey(&g_entities[0], "wad");
-    
+
     szNewWad[0] = 0;
     safe_strncpy(szTmpPath, path, MAXTOKEN);
 

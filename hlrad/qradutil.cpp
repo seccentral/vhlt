@@ -140,7 +140,7 @@ void getAdjustedPlaneFromFaceNumber(unsigned int faceNumber, dplane_t* plane)
     const vec_t*    face_offset = g_face_offset[faceNumber];
 
     plane->type = (planetypes)0;
-    
+
     if (face->side)
     {
         vec_t dist;
@@ -329,7 +329,7 @@ void ApplyMatrixOnPlane (const matrix_t &m_inverse, const vec3_t in_normal, vec_
 	// out_normal is not normalized
 {
 	int i;
-	
+
 	hlassume (&in_normal[0] != &out_normal[0], assume_first);
 	for (i = 0; i < 3; i++)
 	{
@@ -345,7 +345,7 @@ void MultiplyMatrix (const matrix_t &m_left, const matrix_t &m_right, matrix_t &
 {
 	int i, j;
 	const vec_t lastrow[4] = {0, 0, 0, 1};
-	
+
 	hlassume (&m != &m_left && &m != &m_right, assume_first);
 	for (i = 0; i < 3; i++)
 	{
@@ -461,7 +461,7 @@ bool InvertMatrix (const matrix_t &m, matrix_t &m_inverse)
 	VectorScale (normalaxis, -faceplane[3], texorg);
 	VectorMA (texorg, -texplanes[0][3], texaxis[0], texorg);
 	VectorMA (texorg, -texplanes[1][3], texaxis[1], texorg);
-	
+
 	VectorCopy (texaxis[0], m_inverse.v[0]);
 	VectorCopy (texaxis[1], m_inverse.v[1]);
 	VectorCopy (normalaxis, m_inverse.v[2]);
@@ -639,7 +639,7 @@ static void CalcSinglePosition (positionmap_t *map, int is, int it)
 				p->best_t = test_st[1];
 			}
 		}
-		
+
 		if (!p->valid)
 		{
 			zone->getCenter (test_st);
@@ -704,7 +704,7 @@ void FindFacePositions (int facenum)
 	map->facewindingwithoffset = NULL;
 	map->texwinding = NULL;
 	map->grid = NULL;
-	
+
 	ti = &g_texinfo[f->texinfo];
 	if (ti->flags & TEX_SPECIAL)
 	{
@@ -720,7 +720,7 @@ void FindFacePositions (int facenum)
 		map->valid = false;
 		return;
 	}
-	
+
 	map->facewinding = new Winding (*f);
 	map->faceplane = *getPlaneFromFace (f);
 	map->facewindingwithoffset = new Winding (map->facewinding->m_NumPoints);
@@ -943,7 +943,7 @@ bool FindNearestPosition (int facenum, const Winding *texwinding, const dplane_t
 				VectorSubtract (current_st, original_st, v);
 				d = VectorLength (v);
 
-				if (!found || 
+				if (!found ||
 #ifdef HLRAD_AVOIDWALLBLEED
 					!p->nudged && best_nudged ||
 					p->nudged == best_nudged
@@ -1000,7 +1000,7 @@ bool FindNearestPosition (int facenum, const Winding *texwinding, const dplane_t
 	itmax = qmin (itmax, map->h - 1);
 	ismin = qmax (0, ismin);
 	ismax = qmin (ismax, map->w - 1);
-	
+
 	found = false;
 	for (it = itmin; it <= itmax; it++)
 	{

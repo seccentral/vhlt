@@ -547,7 +547,7 @@ static void CQ_SelectPartition (cq_node_t *node)
 			bucketsizes[j]++;
 			CQ_VectorAdd (bucketsums[j], nodepoints[i], bucketsums[j]);
 		}
-		
+
 		int min = 256;
 		int max = -1;
 		count = 0;
@@ -971,7 +971,7 @@ static void GetLight (dface_t *face, const int texsize[2], double x, double y, v
 	dx = qmax (0, qmin (dx, 1));
 	dy = y - iy;
 	dy = qmax (0, qmin (dy, 1));
-	
+
 	// do bilinear interpolation
 	vec3_t light00, light10, light01, light11;
 	GetLightInt (face, texsize, ix, iy, light00);
@@ -993,7 +993,7 @@ static bool GetValidTextureName (int miptex, char name[16])
 	int offset;
 	int size;
 	miptex_t *mt;
-	
+
 	if (miptex < 0 || miptex >= numtextures)
 	{
 		return false;
@@ -1013,7 +1013,7 @@ static bool GetValidTextureName (int miptex, char name[16])
 	{
 		return false;
 	}
-	
+
 	if (strlen (name) >= 5 && !strncasecmp (&name[1], "_rad", 4))
 	{
 		return false;
@@ -1049,7 +1049,7 @@ void EmbedLightmapInTextures ()
 	for (i = 0; i < g_numfaces; i++)
 	{
 		dface_t *f = &g_dfaces[i];
-		
+
 		if (f->lightofs == -1) // some faces don't have lightmap
 		{
 			continue;
@@ -1058,7 +1058,7 @@ void EmbedLightmapInTextures ()
 		{
 			continue;
 		}
-		
+
 		entity_t *ent = g_face_entity[i];
 		int originaltexinfonum = f->texinfo;
 		texinfo_t *originaltexinfo = &g_texinfo[originaltexinfonum];
@@ -1387,7 +1387,7 @@ void EmbedLightmapInTextures ()
 		// emit a texture
 
 		int miptexsize;
-		
+
 		miptexsize = (int)sizeof (miptex_t);
 		for (miplevel = 0; miplevel < MIPLEVELS; miplevel++)
 		{
@@ -1488,7 +1488,7 @@ void EmbedLightmapInTextures ()
 		free (miptex);
 
 		CQ_FreeSearchTree (palettetree);
-		
+
 		free (texture);
 		for (miplevel = 0; miplevel < MIPLEVELS; miplevel++)
 		{

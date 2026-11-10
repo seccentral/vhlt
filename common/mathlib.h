@@ -15,7 +15,7 @@
 #include <float.h>
 #endif
 
-#if !defined(qmax) 
+#if !defined(qmax)
 #define qmax(a,b)            (((a) > (b)) ? (a) : (b)) // changed 'max' to 'qmax'. --vluzacn
 #endif
 

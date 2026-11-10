@@ -13,10 +13,10 @@
 #ifdef _DEBUG
 #define ZHLT_VERSIONSTRING "v3.4 dbg"
 #else
-#define ZHLT_VERSIONSTRING "v3.4"
+#define ZHLT_VERSIONSTRING "v3.5"
 #endif
 
-#define HACK_VERSIONSTRING "VL34" //--vluzacn
+#define HACK_VERSIONSTRING "VL35" //--vluzacn
 
 #if !defined (HLCSG) && !defined (HLBSP) && !defined (HLVIS) && !defined (HLRAD) && !defined (RIPENT) //--vluzacn
 #error "You must define one of these in the settings of each project: HLCSG, HLBSP, HLVIS, HLRAD, RIPENT. The most likely cause is that you didn't load the project from the sln file."
@@ -600,16 +600,22 @@
 #endif
 //=====================================================================
 
-#if _MSC_VER <1400
+#ifdef __MINGW32__
+#include <io.h>
+#endif
+
+#if (defined(_MSC_VER) && _MSC_VER <1400) || defined(__MINGW32__)
+#ifdef strcpy_s
+#undef strcpy_s
+#endif
+#ifdef sprintf_s
+#undef sprintf_s
+#endif
 #define strcpy_s strcpy //--vluzacn
 #define sprintf_s sprintf //--vluzacn
 #endif
-#if _MSC_VER >= 1400
+#if defined(_MSC_VER) && _MSC_VER >= 1400
 #pragma warning(disable: 4996)
-#endif
-
-#ifdef __MINGW32__
-#include <io.h>
 #endif
 
 #ifdef HAVE_CONFIG_H

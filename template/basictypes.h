@@ -4,7 +4,7 @@
 
 #if 0 // linux fix --vluzacn
 // AJM GNU
-#ifdef __GNUC__ 
+#ifdef __GNUC__
 #define __int64 long long
 #endif
 #endif

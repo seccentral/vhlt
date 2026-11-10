@@ -391,9 +391,9 @@ static contents_t ParseBrush(entity_t* mapent)
             {
                 Error("Parsing Entity %i, Brush %i, Side %i : Expecting '(' got '%s'",
 #ifdef HLCSG_COUNT_NEW
-					b->originalentitynum, b->originalbrushnum, 
+					b->originalentitynum, b->originalbrushnum,
 #else
-                      b->entitynum, b->brushnum, 
+                      b->entitynum, b->brushnum,
 #endif
 					  b->numsides, g_token);
             }
@@ -409,9 +409,9 @@ static contents_t ParseBrush(entity_t* mapent)
             {
                 Error("Parsing	Entity %i, Brush %i, Side %i : Expecting ')' got '%s'",
 #ifdef HLCSG_COUNT_NEW
-					b->originalentitynum, b->originalbrushnum, 
+					b->originalentitynum, b->originalbrushnum,
 #else
-                      b->entitynum, b->brushnum, 
+                      b->entitynum, b->brushnum,
 #endif
 					  b->numsides, g_token);
             }
@@ -564,9 +564,9 @@ static contents_t ParseBrush(entity_t* mapent)
                 Warning
                     ("Degenerate QuArK-style brush texture : Entity %i, Brush %i @ (%f,%f,%f) (%f,%f,%f)	(%f,%f,%f)",
 #ifdef HLCSG_COUNT_NEW
-					b->originalentitynum, b->originalbrushnum, 
+					b->originalentitynum, b->originalbrushnum,
 #else
-                     b->entitynum, b->brushnum, 
+                     b->entitynum, b->brushnum,
 #endif
 					 side->planepts[0][0], side->planepts[0][1], side->planepts[0][2],
                      side->planepts[1][0], side->planepts[1][1], side->planepts[1][2], side->planepts[2][0],
@@ -706,7 +706,7 @@ static contents_t ParseBrush(entity_t* mapent)
         {
             VectorAdd(b->hulls[0].bounds.m_Mins, b->hulls[0].bounds.m_Maxs, origin);
             VectorScale(origin, 0.5, origin);
-    
+
             safe_snprintf(string, MAXTOKEN, "%i %i %i", (int)origin[0], (int)origin[1], (int)origin[2]);
             SetKeyValue(&g_entities[b->entitynum], "origin", string);
         }
@@ -773,7 +773,7 @@ static contents_t ParseBrush(entity_t* mapent)
         {
             VectorCopy(b->hulls[0].bounds.m_Mins, mins);
             VectorCopy(b->hulls[0].bounds.m_Maxs, maxs);
-    
+
             safe_snprintf(string, MAXTOKEN, "%.0f %.0f %.0f %.0f %.0f %.0f", mins[0], mins[1], mins[2], maxs[0], maxs[1], maxs[2]);
             SetKeyValue(&g_entities[b->entitynum], "zhlt_minsmaxs", string);
         }
@@ -856,11 +856,11 @@ bool            ParseMapEntity()
 
     if (strcmp(g_token, "{"))
     {
-        Error("Parsing Entity %i, expected '{' got '%s'", 
+        Error("Parsing Entity %i, expected '{' got '%s'",
 #ifdef HLCSG_COUNT_NEW
-			g_numparsedentities, 
+			g_numparsedentities,
 #else
-			this_entity, 
+			this_entity,
 #endif
 			g_token);
     }
@@ -949,7 +949,7 @@ bool            ParseMapEntity()
 	if (*ValueForKey (mapent, "zhlt_usemodel"))
 	{
 		if (!*ValueForKey (mapent, "origin"))
-			Warning ("Entity %i: 'zhlt_usemodel' requires the entity to have an origin brush.", 
+			Warning ("Entity %i: 'zhlt_usemodel' requires the entity to have an origin brush.",
 #ifdef HLCSG_COUNT_NEW
 				g_numparsedentities
 #else
@@ -1112,7 +1112,7 @@ bool            ParseMapEntity()
 						}
 						if (zeroscale)
 						{
-							Error ("Entity %i, Brush %i: invalid texture scale.\n", 
+							Error ("Entity %i, Brush %i: invalid texture scale.\n",
 	#ifdef HLCSG_COUNT_NEW
 								brush->originalentitynum, brush->originalbrushnum
 	#else
@@ -1203,7 +1203,7 @@ bool            ParseMapEntity()
 
 #ifndef HLCSG_HLBSP_ALLOWEMPTYENTITY
     if (mapent->numbrushes && all_clip)
-        Fatal(assume_NO_VISIBILE_BRUSHES, "Entity %i has no visible brushes\n", 
+        Fatal(assume_NO_VISIBILE_BRUSHES, "Entity %i has no visible brushes\n",
 #ifdef HLCSG_COUNT_NEW
 			g_numparsedentities
 #else
@@ -1222,7 +1222,7 @@ bool            ParseMapEntity()
 		SetKeyValue (mapent, "compiler", versionstring);
 	}
 #endif
-    
+
 #ifdef ZHLT_DETAIL // AJM
     if (!strcmp(ValueForKey(mapent, "classname"), "info_detail") && g_bDetailBrushes && this_entity != 0)
     {
@@ -1298,9 +1298,9 @@ bool            ParseMapEntity()
 
         Error("Entity %i, contains ONLY an origin brush near (%.0f,%.0f,%.0f)\n",
 #ifdef HLCSG_COUNT_NEW
-			g_numparsedentities, 
+			g_numparsedentities,
 #else
-              this_entity, 
+              this_entity,
 #endif
 			  hull->bounds.m_Mins[0], hull->bounds.m_Mins[1], hull->bounds.m_Mins[2]);
     }
@@ -1398,11 +1398,11 @@ bool            ParseMapEntity()
 		const char *classname = ValueForKey (mapent, "classname");
 		if (strncmp (classname, "light", 5))
 		{
-			Warning ("Entity %i (classname \"%s\"): origin outside +/-%.0f: (%.0f,%.0f,%.0f)", 
+			Warning ("Entity %i (classname \"%s\"): origin outside +/-%.0f: (%.0f,%.0f,%.0f)",
 #ifdef HLCSG_COUNT_NEW
-				g_numparsedentities, 
+				g_numparsedentities,
 #else
-				this_entity, 
+				this_entity,
 #endif
 				classname, (double)ENGINE_ENTITY_RANGE, mapent->origin[0], mapent->origin[1], mapent->origin[2]);
 		}
@@ -1428,8 +1428,8 @@ unsigned int    CountEngineEntities()
         // if its a light_spot or light_env, dont include it as an engine entity!
         if (classname)
         {
-            if (   !strncasecmp(classname, "light", 5) 
-                || !strncasecmp(classname, "light_spot", 10) 
+            if (   !strncasecmp(classname, "light", 5)
+                || !strncasecmp(classname, "light_spot", 10)
                 || !strncasecmp(classname, "light_environment", 17)
                )
             {
@@ -1485,7 +1485,7 @@ void            LoadMapFile(const char* const filename)
 
     for (i = g_entities[0].firstbrush; i < g_entities[0].firstbrush + g_entities[0].numbrushes; i++)
     {
-        Log("worldspawn brush %i: contents %s\n", i, ContentsToString((contents_t)g_mapbrushes[i].contents)); 
+        Log("worldspawn brush %i: contents %s\n", i, ContentsToString((contents_t)g_mapbrushes[i].contents));
     }
     */
 
@@ -1500,7 +1500,7 @@ void            LoadMapFile(const char* const filename)
     Verbose("%5i map entities \n", g_numentities - num_engine_entities);
     Verbose("%5i engine entities\n", num_engine_entities);
 
-    // AJM: added in 
+    // AJM: added in
 #ifdef HLCSG_AUTOWAD
 #ifndef HLCSG_AUTOWAD_TEXTURELIST_FIX
 #ifdef HLCSG_ONLYENTS_NOWADCHANGE

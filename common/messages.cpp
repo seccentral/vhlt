@@ -1,6 +1,6 @@
 #include "messages.h"
 
-// AJM: because these are repeated, they use up redundant memory. 
+// AJM: because these are repeated, they use up redundant memory.
 //  consequently ive made them into const strings which each occurance can point to.
 
 // Common descriptions
@@ -121,7 +121,7 @@ static const MessageTable_t assumes[assume_last] = {
 #ifdef ZHLT_64BIT_FIX
 	{"Couldn't open extent file", "<mapname>.ext doesn't exist. This file is required by the " PLATFORM_VERSIONSTRING " version of hlrad.", "Make sure hlbsp has run correctly. Alternatively, run 'ripent.exe -writeextentfile <mapname>' to create the extent file."},
 #endif
-}; 
+};
 
 const MessageTable_t* GetAssume(assume_msgs id)
 {
@@ -131,5 +131,3 @@ const MessageTable_t* GetAssume(assume_msgs id)
     }
     return &assumes[id];
 }
-
-

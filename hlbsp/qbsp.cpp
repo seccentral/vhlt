@@ -23,7 +23,7 @@
 */
 
 #ifdef HLCSG_HLBSP_ALLOWEMPTYENTITY
-vec3_t          g_hull_size[NUM_HULLS][2] = 
+vec3_t          g_hull_size[NUM_HULLS][2] =
 {
     {// 0x0x0
         {0, 0, 0},          {0, 0, 0}
@@ -32,14 +32,14 @@ vec3_t          g_hull_size[NUM_HULLS][2] =
     {// 32x32x72
         {-16, -16, -36},    {16, 16, 36}
     }
-    ,                                                      
+    ,
     {// 64x64x64
         {-32, -32, -32},    {32, 32, 32}
     }
-    ,                                                      
+    ,
     {// 32x32x36
         {-16, -16, -18},    {16, 16, 18}
-    }                                                     
+    }
 };
 #endif
 static FILE*    polyfiles[NUM_HULLS];
@@ -1502,7 +1502,7 @@ static bool     ProcessModel()
 #endif
         nodes = SolidBSP(surfs,
 #ifdef ZHLT_DETAILBRUSH
-			detailbrushes, 
+			detailbrushes,
 #endif
 			modnum==0);
         if (g_nummodels == 1 && !g_nofill)                   // assume non-world bmodels are simple
@@ -1561,10 +1561,10 @@ static bool     ProcessModel()
 		{
 			ent = NULL;
 		}
-		Warning ("Empty solid entity: model %d (entity: classname \"%s\", origin \"%s\", targetname \"%s\")", 
-			g_nummodels - 1, 
-			(ent? ValueForKey (ent, "classname"): "unknown"), 
-			(ent? ValueForKey (ent, "origin"): "unknown"), 
+		Warning ("Empty solid entity: model %d (entity: classname \"%s\", origin \"%s\", targetname \"%s\")",
+			g_nummodels - 1,
+			(ent? ValueForKey (ent, "classname"): "unknown"),
+			(ent? ValueForKey (ent, "origin"): "unknown"),
 			(ent? ValueForKey (ent, "targetname"): "unknown"));
 		VectorClear (model->mins); // fix "backward minsmaxs" in HL
 		VectorClear (model->maxs);
@@ -1576,11 +1576,11 @@ static bool     ProcessModel()
 		{
 			ent = NULL;
 		}
-		Warning ("No visible brushes in solid entity: model %d (entity: classname \"%s\", origin \"%s\", targetname \"%s\", range (%.0f,%.0f,%.0f) - (%.0f,%.0f,%.0f))", 
-			g_nummodels - 1, 
-			(ent? ValueForKey (ent, "classname"): "unknown"), 
-			(ent? ValueForKey (ent, "origin"): "unknown"), 
-			(ent? ValueForKey (ent, "targetname"): "unknown"), 
+		Warning ("No visible brushes in solid entity: model %d (entity: classname \"%s\", origin \"%s\", targetname \"%s\", range (%.0f,%.0f,%.0f) - (%.0f,%.0f,%.0f))",
+			g_nummodels - 1,
+			(ent? ValueForKey (ent, "classname"): "unknown"),
+			(ent? ValueForKey (ent, "origin"): "unknown"),
+			(ent? ValueForKey (ent, "targetname"): "unknown"),
 			model->mins[0], model->mins[1], model->mins[2], model->maxs[0], model->maxs[1], model->maxs[2]);
 	}
 #endif

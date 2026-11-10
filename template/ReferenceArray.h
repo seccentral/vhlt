@@ -23,7 +23,7 @@
   \email   sean@dimensionalrift.com
   \cvsauthor $Author: sean $
   \date    $Date: 2000/09/11 20:28:24 $
-  \version $Revision: 1.1 $ 
+  \version $Revision: 1.1 $
   \brief   ReferenceArray is exactly the same as ReferencePtr, except it expects
            the objects pointing to it to be allocated with new[] instead (and thusly
            the object is deleted with delete[] when the reference count hits zero)
@@ -44,7 +44,7 @@ public:
 
 
 template<class DATA_T>
-class ReferenceArray  
+class ReferenceArray
 {
 public:
 	// Construction
@@ -54,7 +54,7 @@ public:
 	virtual ~ReferenceArray();
 
 	// Assignment
-	ReferenceArray<DATA_T>& operator=(const ReferenceArray<DATA_T>& other);       
+	ReferenceArray<DATA_T>& operator=(const ReferenceArray<DATA_T>& other);
 	ReferenceArray<DATA_T>& operator=(DATA_T* other);
 
 	// Dereferencing

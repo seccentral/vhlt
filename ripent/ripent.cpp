@@ -1,9 +1,9 @@
 /***
 *
 *	Copyright (c) 1998, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 ****/
@@ -64,10 +64,10 @@ bool g_deleteembeddedlightmaps = DEFAULT_DELETEEMBEDDEDLIGHTMAPS;
 
 // ScanForToken()
 // Added by: Ryan Gregg aka Nem
-// 
+//
 // Scans entity data starting  at iIndex for cToken.  Every time a \n char
 // is encountered iLine is incremented.  If iToken is not null, the index
-// cToken was found at is inserted into it. 
+// cToken was found at is inserted into it.
 bool ScanForToken(char cToken, int &iIndex, int &iLine, bool bIgnoreWhiteSpace, bool bIgnoreOthers, int *iToken = 0)
 {
 	for(; iIndex < g_entdatasize; iIndex++)
@@ -121,7 +121,7 @@ typedef std::list< CEntityPairList * > CEntityList;
 
 // ParseEntityData()
 // Added by: Ryan Gregg aka Nem
-// 
+//
 // Pareses and reformats entity data stripping all non essential
 // formatting  and using the formatting  options passed through this
 // function.  The length is specified because in some cases (i.e. the
@@ -438,7 +438,7 @@ static void     WriteBSP(const char* const name)
     StripExtension(filename);
     DefaultExtension(filename, ".bsp");
 #endif
-	
+
 	Log ("\nUpdating %s.\n", filename); //--vluzacn
     WriteBSPFile(filename);
 }
@@ -580,7 +580,7 @@ static void		WriteTextures(const char* const name)
 		header.identification[2] = 'D';
 		header.identification[3] = '3';
 		header.numlumps = 0;
-		
+
 		lumpinfo_t *info;
 		info = (lumpinfo_t *)malloc (((dmiptexlump_t*)g_dtexdata)->nummiptex * sizeof (lumpinfo_t)); // might be more than needed
 		hlassume (info != NULL, assume_NoMemory);
@@ -672,7 +672,7 @@ static void		ReadTextures(const char *name)
 		g_texdatasize = header.infotableofs - wadofs + dataofs;
 
 		SafeRead (wadfile, (byte *)g_dtexdata + dataofs, g_texdatasize - dataofs);
-		
+
 		lumpinfo_t *info;
 		info = (lumpinfo_t *)malloc (header.numlumps * sizeof (lumpinfo_t));
 		hlassume (info != NULL, assume_NoMemory);
@@ -923,7 +923,7 @@ static void     Settings()
 
     if (!g_info)
     {
-        return; 
+        return;
     }
 
     Log("\n-= Current %s Settings =-\n", g_Program);
