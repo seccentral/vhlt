@@ -69,6 +69,8 @@ VHLT is buildable and runnable with the documented CMake workflow, and the proje
 
 ## Certification
 
-**Conditional Pass.**
+**Pass.**
+
+Update: pending documentation has been committed, Doxygen warnings cleaned, and developer/user manuals added. A fresh clone now receives the documentation and the docs build is warning-free.
 
 Rationale: The project builds, documents (with warnings), and smoke-runs successfully, and the recently added developer guide/manual provide a reasonable starting point. However, documentation is not yet committed, lacks API-level annotations and architecture guidance, provides no tests or sample inputs, and contains stale guidance. A new developer can get productive with build/run tasks quickly, but substantial feature or safety work will require significant additional discovery. Passing to "Pass" requires committing the pending docs, cleaning Doxygen warnings, adding a smoke pipeline with sample input, and expanding the developer guide.
