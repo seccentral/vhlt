@@ -51,6 +51,12 @@ endif()
 # The project is warning-clean; keep it that way.
 option(VHLT_WERROR "Treat compiler warnings as errors" ON)
 
+# hlrad-ng: next-generation hlrad with byte-identical output to hlrad.
+# Off by default while under development; see docs/research/hlrad-optimizations.md.
+option(VHLT_HLRAD_NG "Build the next-generation hlrad" OFF)
+# Compile hlrad-ng with the profiling counters from hlrad-ng/profile.{h,cpp}.
+option(VHLT_HLRAD_NG_PROFILE "Build hlrad-ng with profiling counters" OFF)
+
 # ----------------------------------------------------------------------
 # Formatting: clang-format with the style in .clang-format.
 #   format        rewrite every source file in place
@@ -64,6 +70,7 @@ if(CLANG_FORMAT_EXECUTABLE)
         "${CMAKE_CURRENT_SOURCE_DIR}/hlbsp/*.cpp"  "${CMAKE_CURRENT_SOURCE_DIR}/hlbsp/*.h"
         "${CMAKE_CURRENT_SOURCE_DIR}/hlvis/*.cpp"  "${CMAKE_CURRENT_SOURCE_DIR}/hlvis/*.h"
         "${CMAKE_CURRENT_SOURCE_DIR}/hlrad/*.cpp"  "${CMAKE_CURRENT_SOURCE_DIR}/hlrad/*.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/hlrad-ng/*.cpp"  "${CMAKE_CURRENT_SOURCE_DIR}/hlrad-ng/*.h"
         "${CMAKE_CURRENT_SOURCE_DIR}/ripent/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/ripent/*.h")
     add_custom_target(format
         COMMAND "${CLANG_FORMAT_EXECUTABLE}" -i ${VHLT_FORMAT_SOURCES}
@@ -130,17 +137,19 @@ set(VHLT_COMMON_INCLUDE_DIRS
 # Helper for adding one of the ZHLT tools
 # ----------------------------------------------------------------------
 function(add_vhlt_tool target)
-    cmake_parse_arguments(TOOL "" "" "SOURCES;EXTRA_DEFINITIONS" ${ARGN})
+    cmake_parse_arguments(TOOL "NO_INSTALL;INCLUDE_FIRST" "" "SOURCES;EXTRA_DEFINITIONS" ${ARGN})
 
     add_executable(${target}
         ${VHLT_COMMON_SOURCES}
         ${TOOL_SOURCES}
     )
 
-    target_include_directories(${target} PRIVATE
-        ${VHLT_COMMON_INCLUDE_DIRS}
-        ${target}
-    )
+    if(TOOL_INCLUDE_FIRST)
+        set(_vhlt_tool_includes ${target} ${VHLT_COMMON_INCLUDE_DIRS})
+    else()
+        set(_vhlt_tool_includes ${VHLT_COMMON_INCLUDE_DIRS} ${target})
+    endif()
+    target_include_directories(${target} PRIVATE ${_vhlt_tool_includes})
 
     target_compile_definitions(${target} PRIVATE
         ${VHLT_PLATFORM_DEFINITIONS}
@@ -164,9 +173,11 @@ function(add_vhlt_tool target)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
 
-    install(TARGETS ${target}
-        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    )
+    if(NOT TOOL_NO_INSTALL)
+        install(TARGETS ${target}
+            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        )
+    endif()
 endfunction()
 
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/Terms of Use.txt"
@@ -241,6 +252,37 @@ add_vhlt_tool(hlrad
     EXTRA_DEFINITIONS
         HLRAD
 )
+
+# hlrad-ng is an exact copy of hlrad today; it must keep producing
+# byte-identical output while being optimized (docs/research/hlrad-optimizations.md).
+# Not installed or packaged until parity is accepted.
+if(VHLT_HLRAD_NG)
+    add_vhlt_tool(hlrad-ng
+        NO_INSTALL
+        INCLUDE_FIRST
+        SOURCES
+            hlrad-ng/compress.cpp
+            hlrad-ng/lerp.cpp
+            hlrad-ng/lightmap.cpp
+            hlrad-ng/loadtextures.cpp
+            hlrad-ng/mathutil.cpp
+            hlrad-ng/nomatrix.cpp
+            hlrad-ng/profile.cpp
+            hlrad-ng/qrad.cpp
+            hlrad-ng/qradutil.cpp
+            hlrad-ng/sparse.cpp
+            hlrad-ng/trace.cpp
+            hlrad-ng/transfers.cpp
+            hlrad-ng/transparency.cpp
+            hlrad-ng/vismatrix.cpp
+            hlrad-ng/vismatrixutil.cpp
+        EXTRA_DEFINITIONS
+            HLRAD
+    )
+    if(VHLT_HLRAD_NG_PROFILE)
+        target_compile_definitions(hlrad-ng PRIVATE HLRAD_NG_PROFILE)
+    endif()
+endif()
 
 add_vhlt_tool(ripent
     SOURCES

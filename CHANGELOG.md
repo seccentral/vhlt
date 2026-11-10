@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `hlrad-ng`: a next-generation hlrad that must keep producing byte-identical output to hlrad while getting faster. It is a separate CMake target behind `-DVHLT_HLRAD_NG=ON`, is not installed or packaged, and leaves `hlrad` untouched as the fallback. See `docs/research/hlrad-optimizations.md`.
+- `tools/diffhlrad.ps1`: a differential harness that runs hlrad and hlrad-ng on the same compiled map at the same thread count and compares the full `.bsp` bytes (reporting the first differing offset and lump), `.dlit`, `.inc` and the exported entity text.
+
 ### Documentation
 - Maximum-quality guide: the preset uses `-chop 16 -texchop 8`, and explains why `-console 0` speeds up compiles started from J.A.C.K. or Hammer.
+- Added `docs/research/hlrad-optimizations.md`: the phased, exactness-first optimization plan for hlrad-ng.
 
 ## [3.5.4] - 2026-11-10
 

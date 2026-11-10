@@ -17,6 +17,7 @@ Current version: 3.5.4 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `
 - [docs/developer/warning-cleanup-plan.md](developer/warning-cleanup-plan.md): baseline and batched plan to reach zero compiler warnings (completed).
 - [docs/developer/lint-cleanup-plan.md](developer/lint-cleanup-plan.md): completed clang-tidy cleanup plan (zero findings, 0 errors).
 - [tools/regress.ps1](../tools/regress.ps1): deterministic map-compile regression harness (see Tests in the developer guide).
+- [tools/diffhlrad.ps1](../tools/diffhlrad.ps1): hlrad vs hlrad-ng byte-parity harness (Phase 0 of docs/research/hlrad-optimizations.md).
 
 ## Build and verify
 
@@ -25,6 +26,9 @@ cmake --preset windows && cmake --build --preset windows   # build/windows/bin/*
 cmake --preset linux   && cmake --build --preset linux     # build/linux/bin/* (cross-compiled, glibc 2.28+)
 cmake --build build/windows --target docs                  # Doxygen -> build/windows/docs/html/index.html
 cmake --build build/<preset> --target package              # vhlt-<version>-win64.zip / vhlt-<version>-Linux.zip
+cmake --preset windows -DVHLT_HLRAD_NG=ON && cmake --build --preset windows   # also builds hlrad-ng.exe
+# -DVHLT_HLRAD_NG_PROFILE=ON compiles hlrad-ng with the profiling counters (hlrad-ng/profile.*)
+# HLRAD_NG_LEGACY=1 makes hlrad-ng use the scalar per-face BuildFacelights flow (fallback/A-B switch)
 cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build build/lint   # clang-tidy lint
 cmake --build build/windows --target format                # clang-format all sources in place
 cmake --build build/windows --target format-check          # gate: fails on unformatted code
@@ -96,8 +100,9 @@ cmake --build build/windows --target format-check          # gate: fails on unfo
 - `hlbsp/`: `qbsp.cpp` (`main`, reads hlcsg output), `solidbsp.cpp`, `brink.cpp`, `surfaces.cpp`, `merge.cpp`, `tjunc.cpp`, `outside.cpp` (leaks), `portals.cpp` (`WritePortalfile`), `writebsp.cpp`.
 - `hlvis/`: `vis.cpp` (`main`, `LoadPortals` .prt parser), `flow.cpp` (`BasePortalVis`, `RecursiveLeafFlow`, `ChopWinding`, `MaxDistVis`). `zones.cpp` is compiled out (no `ZHLT_ZONES`).
 - `hlrad/`: `qrad.cpp` (`main`, options, `.rad` texlights, patches, `GatherLight`), `lightmap.cpp` (direct lighting, sample positions, blur cache, `FinalLightFace`, `GetPhongNormal`), `lerp.cpp` (interpolation triangulation), `vismatrix.cpp`/`sparse.cpp`/`nomatrix.cpp` (three visibility-matrix strategies), `vismatrixutil.cpp` (transfer creation), `transfers.cpp` (`.inc` read and write), `loadtextures.cpp` (`LoadTexture`, reflectivity), `trace.cpp` (opaque ray tracing), `transparency.cpp`, `compress.{h,cpp}` (float/vector packing for transfers), `mathutil.cpp`, `qradutil.cpp`.
+- `hlrad-ng/`: the next-generation hlrad under development; today an exact copy of `hlrad/` that must stay byte-identical while being optimized. Built only with `-DVHLT_HLRAD_NG=ON`, never installed or packaged. Plan and exactness contract: `docs/research/hlrad-optimizations.md`. Differential gate: `tools/diffhlrad.ps1`.
 - `ripent/ripent.cpp`: entity and texture import/export (`-export`, `-import`, `-textureexport`, `-textureimport`, `-textureparse`, `-texdata`, `-lightdata`).
-- `docs/`: `user/manual.md`, `developer/developer.md`, `api/Doxyfile.in` (CMake `configure_file` → `build/Doxyfile`; output follows `CMAKE_BINARY_DIR`), and this `llms.txt`.
+- `docs/`: `user/manual.md`, `developer/developer.md`, `research/` (optimization plans), `api/Doxyfile.in` (CMake `configure_file` → `build/Doxyfile`; output follows `CMAKE_BINARY_DIR`), and this `llms.txt`.
 - `audits/`: audit reports. The canonical record is the consolidated or final report.
 
 ## Build configuration that changes semantics
