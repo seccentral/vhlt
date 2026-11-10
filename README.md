@@ -30,7 +30,7 @@ The project builds five command-line tools:
 | [Ninja](https://github.com/ninja-build/ninja/releases) | any recent | build runner |
 | [Zig](https://ziglang.org/download/) | 0.17.1 | C++ compiler (bundled Clang) for Windows and Linux |
 | [Doxygen](https://www.doxygen.nl/download.html) | optional | API docs |
-| clang-tidy ([LLVM](https://github.com/llvm/llvm-project/releases)) | optional | lint |
+| clang-tidy | 22.1.8 (`pip install clang-tidy==22.1.8`), the same version as Zig 0.17.1's bundled clang | lint |
 | clang-format | 23.1.5 (`pip install clang-format==23.1.5`) | code formatting (required for contributions) |
 
 `cmake`, `ninja` and `zig` must be on `PATH`. Otherwise pass `-DZIG_EXECUTABLE=<path>` on the first configure, and call CMake by its full path. `.env.example` lists the optional `CMAKE` and `ZIG` paths; copy it to `.env`, which is git-ignored.
@@ -56,7 +56,7 @@ Other targets (shown for the `windows` preset; use `build/linux` for Linux):
 
 The style is in `.clang-format`. The bulk reformat commit is listed in `.git-blame-ignore-revs`; run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once so `git blame` skips it.
 
-Lint with clang-tidy by configuring with `-DVHLT_CLANG_TIDY=ON`. Every file is then checked during the build with its real defines; the checks are in `.clang-tidy`.
+Lint with clang-tidy by configuring a separate build directory with `-DVHLT_CLANG_TIDY=ON`, for example `cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build build/lint`. Every file is then checked during the build with its real defines; the checks are in `.clang-tidy`. CMake asks the Zig driver for its system include paths and libc++ macros and passes them to clang-tidy. clang-tidy must match Zig's clang version (22.1.8 for Zig 0.17.1), otherwise Zig's built-in headers fail to parse.
 
 The ZIP contains the five tools, `Terms of Use.txt`, the user manual, and the HTML API docs if the `docs` target was built first.
 

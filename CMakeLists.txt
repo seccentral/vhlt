@@ -24,7 +24,28 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(VHLT_CLANG_TIDY "Run clang-tidy on every source file during the build" OFF)
 if(VHLT_CLANG_TIDY)
     find_program(CLANG_TIDY_EXECUTABLE clang-tidy REQUIRED)
-    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE}")
+    # Zig adds its libc/libc++ include paths and libc++ configuration macros
+    # internally, so they are not in the compile commands clang-tidy sees.
+    # Ask the Zig driver for them once and pass them as extra arguments.
+    set(_vhlt_empty "${CMAKE_BINARY_DIR}/vhlt_tidy_probe.cpp")
+    file(WRITE "${_vhlt_empty}" "")
+    # CMake keeps the zig executable in CMAKE_CXX_COMPILER and the list's
+    # mandatory arguments ("c++ -target <triple>") in CMAKE_CXX_COMPILER_ARG1.
+    separate_arguments(_vhlt_zig_args NATIVE_COMMAND "${CMAKE_CXX_COMPILER_ARG1}")
+    execute_process(
+        COMMAND "${CMAKE_CXX_COMPILER}" ${_vhlt_zig_args} -E -v -x c++ "${_vhlt_empty}"
+        OUTPUT_QUIET ERROR_VARIABLE _vhlt_zig_verbose)
+    string(REGEX MATCHALL " -D [^ \r\n]+| -isystem \"[^\"]+\"" _vhlt_zig_flags "${_vhlt_zig_verbose}")
+    set(_vhlt_tidy_args "")
+    foreach(_flag IN LISTS _vhlt_zig_flags)
+        string(REGEX REPLACE "^ -D (.*)$" "-D\\1" _flag "${_flag}")
+        string(REGEX REPLACE "^ -isystem \"(.*)\"$" "-isystem\\1" _flag "${_flag}")
+        string(REPLACE "\\\\" "/" _flag "${_flag}")
+        list(APPEND _vhlt_tidy_args "--extra-arg=${_flag}")
+    endforeach()
+    list(LENGTH _vhlt_tidy_args _vhlt_tidy_count)
+    message(STATUS "clang-tidy: ${_vhlt_tidy_count} system flags taken from the Zig driver")
+    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE}" ${_vhlt_tidy_args})
 endif()
 
 # The project is warning-clean; keep it that way.

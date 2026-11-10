@@ -31,7 +31,8 @@ cmake --build build/windows --target format-check          # gate: fails on unfo
 
 - **Toolchain:**
   - **Required:** CMake 3.16 or newer, Ninja, and Zig 0.17.1, all on `PATH`. Zig can also be passed with `-DZIG_EXECUTABLE=<path>` on the first configure.
-  - **Optional:** Doxygen for `docs`, and clang-tidy (from LLVM) for lint.
+  - **Optional:** Doxygen for `docs`.
+  - **Linter:** clang-tidy **22.1.8** (`pip install clang-tidy==22.1.8`). It must equal Zig's bundled clang version (`zig cc --version`); a newer clang-tidy fails on Zig's built-in intrinsic headers. With `VHLT_CLANG_TIDY=ON`, CMake probes `zig c++ -E -v` and passes Zig's `-isystem` paths and `_LIBCPP_*` macros to clang-tidy as `--extra-arg`. Upgrade both together.
   - **Formatter:** clang-format **23.1.5**, pinned (`pip install clang-format==23.1.5`) because output differs between versions. The style is in `.clang-format`: Microsoft base, Allman braces, 4 spaces, 120 columns. Include sorting, comment reflow and preprocessor indentation are off: include order matters, and commented-out legacy code must not be rewrapped. Format every change before committing.
   - **Toolchain files:** `cmake/toolchains/zig-{windows,linux}-x86_64.cmake`, with shared logic in `zig-common.cmake`.
     - The compiler is passed as a list: `zig c++ -target <triple>`.
