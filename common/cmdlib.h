@@ -13,7 +13,7 @@
 #ifdef _DEBUG
 #define ZHLT_VERSIONSTRING "v3.4 dbg"
 #else
-#define ZHLT_VERSIONSTRING "v3.5"
+#define ZHLT_VERSIONSTRING "v3.5.1"
 #endif
 
 #define HACK_VERSIONSTRING "VL35" //--vluzacn
