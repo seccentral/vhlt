@@ -18,6 +18,16 @@ set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ----------------------------------------------------------------------
+# Linting: clang-tidy runs on every translation unit during the build,
+# with the real per-tool defines (checks configured in .clang-tidy).
+# ----------------------------------------------------------------------
+option(VHLT_CLANG_TIDY "Run clang-tidy on every source file during the build" OFF)
+if(VHLT_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXECUTABLE clang-tidy REQUIRED)
+    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE}")
+endif()
+
+# ----------------------------------------------------------------------
 # Platform-specific configuration
 # ----------------------------------------------------------------------
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -88,18 +98,14 @@ function(add_vhlt_tool target)
         ${TOOL_EXTRA_DEFINITIONS}
     )
 
-    if(MSVC)
-        target_compile_options(${target} PRIVATE /W3)
-    else()
-        target_compile_options(${target} PRIVATE
-            -Wall
-            -Wno-deprecated-declarations
-            -fno-strict-aliasing
-        )
-        if(NOT WIN32)
-            target_compile_options(${target} PRIVATE -pthread)
-            target_link_options(${target} PRIVATE -pthread)
-        endif()
+    target_compile_options(${target} PRIVATE
+        -Wall
+        -Wno-deprecated-declarations
+        -fno-strict-aliasing
+    )
+    if(NOT WIN32)
+        target_compile_options(${target} PRIVATE -pthread)
+        target_link_options(${target} PRIVATE -pthread)
     endif()
 
     set_target_properties(${target} PROPERTIES
@@ -223,23 +229,3 @@ set(CPACK_GENERATOR "ZIP")
 set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY ON)
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/Terms of Use.txt")
 include(CPack)
-
-# ----------------------------------------------------------------------
-# Linting
-# ----------------------------------------------------------------------
-find_program(CPPCHECK_EXECUTABLE cppcheck)
-if(CPPCHECK_EXECUTABLE)
-    add_custom_target(lint
-        COMMAND "${CPPCHECK_EXECUTABLE}" -j 8 --enable=warning,performance,portability
-            --std=c++11 --quiet
-            "${CMAKE_CURRENT_SOURCE_DIR}/common"
-            "${CMAKE_CURRENT_SOURCE_DIR}/hlcsg"
-            "${CMAKE_CURRENT_SOURCE_DIR}/hlbsp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/hlvis"
-            "${CMAKE_CURRENT_SOURCE_DIR}/hlrad"
-            "${CMAKE_CURRENT_SOURCE_DIR}/ripent"
-            "${CMAKE_CURRENT_SOURCE_DIR}/template"
-        COMMENT "Running cppcheck (multicore)"
-        VERBATIM
-    )
-endif()

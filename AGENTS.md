@@ -8,33 +8,16 @@ Vluzacn ZHLT (VHLT) is a set of Half-Life compilation tools: `hlcsg`, `hlbsp`, `
 
 ## Build
 
-Primary build system: CMake (3.16 or newer). If `.env` sets `CMAKE`, use that path in place of `cmake` below; see `.env.example`. `.env` is git-ignored and holds secrets, so never commit it or print its values.
+Primary build system: CMake (3.16 or newer) with Ninja and Zig 0.17.1 as the only compiler, for both Windows and Linux. Do not use or add MinGW GCC, MSVC or any other toolchain. If `.env` sets `CMAKE` or `ZIG`, use those paths (see `.env.example`). `.env` is git-ignored and holds secrets, so never commit it or print its values.
 
 ```sh
-cmake -S . -B build -G "MinGW Makefiles"   # Windows/MinGW
-cmake --build build
+cmake --preset windows && cmake --build --preset windows   # build/windows
+cmake --preset linux   && cmake --build --preset linux     # build/linux (cross-compiled)
+cmake --build build/windows --target docs                  # needs Doxygen
+cmake --build build/windows --target package               # ZIP
 ```
 
-On Linux/macOS:
-
-```sh
-cmake -S . -B build
-cmake --build build
-```
-
-Generate documentation:
-
-```sh
-cmake --build build --target docs
-```
-
-Package deliverables (ZIP):
-
-```sh
-cmake --build build --target package
-```
-
-Outputs are written to `build/bin/`, `build/docs/html/`, and `build/*.zip`.
+Outputs are written to `build/<preset>/bin/`, `build/<preset>/docs/html/`, and `build/<preset>/*.zip`.
 
 ## Coding Standards
 
@@ -59,26 +42,26 @@ Outputs are written to `build/bin/`, `build/docs/html/`, and `build/*.zip`.
 
 Before committing, all of the following must pass:
 
-1. Configure: `cmake -S . -B build`
-2. Build: `cmake --build build` (all five tools)
-3. Docs: `cmake --build build --target docs`
-4. Smoke test: each tool runs with no arguments and prints its version banner (exit code 1 is expected)
-5. Package: `cmake --build build --target package`
-6. Lint: `cmake --build build --target lint` (cppcheck, multicore)
-7. LSP: clangd supported via `.clangd` and `build/compile_commands.json`
+1. Configure and build both presets: `windows` and `linux` (all five tools each)
+2. No new compiler warnings (see `docs/developer/warning-cleanup-plan.md` for the baseline)
+3. Docs: `cmake --build build/windows --target docs`
+4. Smoke test: each Windows tool runs with no arguments and prints its version banner (exit code 1 is expected)
+5. Package: `cmake --build build/<preset> --target package` for both presets
+6. Lint: configure with `-DVHLT_CLANG_TIDY=ON` and build (clang-tidy, checks in `.clang-tidy`)
+7. LSP: clangd supported via `.clangd` and `build/windows/compile_commands.json`
 8. Working tree reviewed for accidental artifacts
 
 ## Outputs
 
-- Binaries: `build/bin/{hlcsg,hlbsp,hlvis,hlrad,ripent}`
-- Documentation: `build/docs/html/index.html`
-- Package: `build/vhlt-<version>-<platform>.zip`
+- Binaries: `build/windows/bin/*.exe`, `build/linux/bin/*`
+- Documentation: `build/windows/docs/html/index.html`
+- Packages: `build/windows/vhlt-<version>-win64.zip`, `build/linux/vhlt-<version>-Linux.zip`
 - Audits: `audits/<date>/`
 
 ## Changelog Lifecycle
 
 - Every user-visible change must be recorded in `CHANGELOG.md` under `[Unreleased]`.
-- On release, move `[Unreleased]` entries into a new version section and update the version in `CMakeLists.txt`, `common/cmdlib.h`, `docs/api/Doxyfile.in`, and the smoke-test version check in `.github/workflows/.github.yml`.
+- On release, move `[Unreleased]` entries into a new version section and update the version in `CMakeLists.txt`, `common/cmdlib.h`, and `docs/api/Doxyfile.in`.
 - Create an annotated git tag `v<major>.<minor>.<patch>`.
 - Commit and tag only after all gates pass.
 

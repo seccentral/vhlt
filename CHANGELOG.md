@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `MAX_MAP_PORTALS` is defined once in `common/bspfile.h` and shared by hlbsp and hlvis.
+- Build toolchain is now Zig 0.17.1 (bundled Clang) with Ninja, for Windows and Linux (cross-compiled, glibc 2.28+). Presets `windows` and `linux`; toolchain files in `cmake/toolchains/`. Release binaries are stripped, and Windows builds depend only on system DLLs.
+- Lint uses clang-tidy (`-DVHLT_CLANG_TIDY=ON`, checks in `.clang-tidy`) instead of cppcheck.
+
+### Removed
+- MinGW GCC build instructions, the legacy POSIX `Makefile`, the MSVC compile options, and the GitHub Actions workflow (`.github/`).
 
 ### Documentation
 - README: links to the manual, developer guide and changelog; lists the package and lint targets, preset, install layout, CI and smoke behaviour; marks the Makefile as POSIX-only.
@@ -25,7 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AGENTS.md: package gate, smoke exit code, CI version check in the release checklist.
 - Manual: `-threads` range.
 - Added `docs/llms.txt`, a complete agent reference linked from AGENTS.md and README.
-- Added `.env.example` (`GITEA_ACCESS_TOKEN`, optional `CMAKE` path) and documented how to select the CMake to use.
+- Added `.env.example` (`GITEA_ACCESS_TOKEN`, optional `CMAKE` and `ZIG` paths) and documented how to select the CMake to use.
+- Added `docs/developer/warning-cleanup-plan.md`: warning baseline and batched plan to reach zero warnings.
 
 ## [3.5.2] - 2026-11-10
 

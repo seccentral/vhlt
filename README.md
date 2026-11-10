@@ -1,8 +1,6 @@
 # Vluzacn ZHLT
 
-[![Build Status](https://github.com/FreeSlave/vhlt/actions/workflows/.github.yml/badge.svg?branch=master)](https://github.com/FreeSlave/vhlt/actions/workflows/.github.yml)
-
-Custom Zoner's Half-Life Compilation Tools created by vluzacn. This repository also adds support for determining the number of threads on POSIX systems, a CMake build, packaging, and input-validation hardening (see [CHANGELOG.md](CHANGELOG.md)).
+Custom Zoner's Half-Life Compilation Tools created by vluzacn. This repository also adds support for determining the number of threads on POSIX systems, a CMake build with a single open-source compiler (Zig) for Windows and Linux, packaging, and input-validation hardening (see [CHANGELOG.md](CHANGELOG.md)).
 
 The project builds five command-line tools:
 
@@ -16,6 +14,7 @@ The project builds five command-line tools:
 
 - [User manual](docs/user/manual.md) - command-line options for every tool
 - [Developer guide](docs/developer/developer.md) - layout, entry points, shared modules
+- [Warning cleanup plan](docs/developer/warning-cleanup-plan.md)
 - [Changelog](CHANGELOG.md)
 - [docs/llms.txt](docs/llms.txt) - complete reference for AI coding agents
 - API reference - generated with Doxygen (see below)
@@ -23,64 +22,57 @@ The project builds five command-line tools:
 
 ## Building
 
-### With CMake (recommended)
+### Requirements
 
-Requires CMake 3.16 or newer and a C++11 compiler (MinGW-w64 GCC on Windows, GCC or Clang on Linux/macOS). If more than one CMake is installed, check `cmake --version`; MinGW-w64 bundles its own copy, which may shadow a newer install. To pin one, copy `.env.example` to `.env` and set `CMAKE` to the full path, then call that path instead of `cmake`. `.env` is git-ignored.
+| Tool | Version | Purpose |
+|------|---------|---------|
+| [CMake](https://cmake.org/download/) | 3.16 or newer | build configuration and packaging |
+| [Ninja](https://github.com/ninja-build/ninja/releases) | any recent | build runner |
+| [Zig](https://ziglang.org/download/) | 0.17.1 | C++ compiler (bundled Clang) for Windows and Linux |
+| [Doxygen](https://www.doxygen.nl/download.html) | optional | API docs |
+| clang-tidy ([LLVM](https://github.com/llvm/llvm-project/releases)) | optional | lint |
+
+`cmake`, `ninja` and `zig` must be on `PATH`. Otherwise pass `-DZIG_EXECUTABLE=<path>` on the first configure, and call CMake by its full path. `.env.example` lists the optional `CMAKE` and `ZIG` paths; copy it to `.env`, which is git-ignored.
+
+### Presets
 
 ```sh
-cmake -S . -B build
-cmake --build build
+cmake --preset windows && cmake --build --preset windows   # build/windows/bin/*.exe
+cmake --preset linux   && cmake --build --preset linux     # build/linux/bin/* (cross-compiled)
 ```
 
-On Windows with MinGW:
+Both presets build Release binaries with Zig, from either Windows or Linux. Linux binaries need glibc 2.28 or newer (most distributions from 2018 on). The toolchain files are in [`cmake/toolchains/`](cmake/toolchains/).
 
-```sh
-cmake -S . -B build -G "MinGW Makefiles"
-cmake --build build
-```
-
-A `default` preset (Release, `build/`) is also provided: `cmake --preset default && cmake --build --preset default`.
-
-Binaries are written to `build/bin/`.
-
-Other targets:
+Other targets (shown for the `windows` preset; use `build/linux` for Linux):
 
 | Target | Command | Output |
 |--------|---------|--------|
-| Single tool | `cmake --build build --target hlcsg` | `build/bin/hlcsg` |
-| API docs (requires Doxygen) | `cmake --build build --target docs` | `build/docs/html/index.html` |
-| ZIP package | `cmake --build build --target package` | `build/vhlt-<version>-<platform>.zip` |
-| Lint (requires cppcheck) | `cmake --build build --target lint` | console |
+| Single tool | `cmake --build build/windows --target hlcsg` | `build/windows/bin/hlcsg.exe` |
+| API docs (requires Doxygen) | `cmake --build build/windows --target docs` | `build/windows/docs/html/index.html` |
+| ZIP package | `cmake --build build/windows --target package` | `build/windows/vhlt-<version>-win64.zip` |
+
+Lint with clang-tidy by configuring with `-DVHLT_CLANG_TIDY=ON`. Every file is then checked during the build with its real defines; the checks are in `.clang-tidy`.
 
 The ZIP contains the five tools, `Terms of Use.txt`, the user manual, and the HTML API docs if the `docs` target was built first.
 
-`build/compile_commands.json` is generated for clangd (configured by `.clangd`).
-
-### With Make (POSIX only)
-
-The `Makefile` is a legacy alternative for Linux/macOS; it hard-codes POSIX definitions and does not build docs or packages.
-
-```sh
-make
-make USER_FLAGS="-static-libstdc++"
-```
+`compile_commands.json` is generated in each build directory for clangd (configured by `.clangd`).
 
 ## Install
 
 ```sh
-cmake --install build --prefix <dir>
+cmake --install build/windows --prefix <dir>
 ```
 
 This installs the tools into `<dir>/bin` and the license and docs into `<dir>/share/doc/vhlt`.
 
 ## Verifying a build
 
-Running any tool without arguments prints its version banner (for example `hlcsg v3.5.2 VL35 64-bit`) followed by usage, and exits with code 1. CI ([`.github/workflows/.github.yml`](.github/workflows/.github.yml)) builds on Linux, macOS and Windows, generates the docs, and checks each banner.
+Running any tool without arguments prints its version banner (for example `hlcsg v3.5.2 VL35 64-bit`) followed by usage, and exits with code 1.
 
 ## Notes
 
 - The tools are derived from Zoner's Half-Life Compilation Tools (v3.4).
 - Please make sure the default maximum stack size on your computer is more than 4 MB before running the tools.
 - `-threads` accepts 1 to 64; larger values (or auto-detected CPU counts above 64) are clamped.
-- When compiling with g++, `-fno-strict-aliasing` is required (the CMake build sets it). Do not change the feature macro definitions in `common/cmdlib.h`; the code was written and checked under those assumptions.
+- `-fno-strict-aliasing` is required; the CMake build sets it. Do not change the feature macro definitions in `common/cmdlib.h`; the code was written and checked under those assumptions.
 - Malformed or oversized input files (BSP, WAD, `.prt`, `.inc`) are rejected with an error rather than processed.

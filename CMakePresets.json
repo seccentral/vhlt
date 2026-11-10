@@ -2,19 +2,30 @@
   "version": 3,
   "configurePresets": [
     {
-      "name": "default",
-      "displayName": "Default (Release)",
-      "binaryDir": "${sourceDir}/build",
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "windows",
+      "inherits": "base",
+      "displayName": "Windows x86_64 (Zig, Release)",
+      "binaryDir": "${sourceDir}/build/windows",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/zig-windows-x86_64.cmake"
+    },
+    {
+      "name": "linux",
+      "inherits": "base",
+      "displayName": "Linux x86_64 (Zig, Release, glibc 2.28+)",
+      "binaryDir": "${sourceDir}/build/linux",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/zig-linux-x86_64.cmake"
     }
   ],
   "buildPresets": [
-    {
-      "name": "default",
-      "configurePreset": "default"
-    }
-  ],
-  "testPresets": []
+    { "name": "windows", "configurePreset": "windows" },
+    { "name": "linux", "configurePreset": "linux" }
+  ]
 }
