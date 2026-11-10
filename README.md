@@ -13,6 +13,7 @@ The project builds five command-line tools:
 ## Documentation
 
 - [User manual](docs/user/manual.md) - command-line options for every tool
+- [Maximum-quality compiles](docs/user/max-quality.md) - final-build preset and what each setting costs
 - [Developer guide](docs/developer/developer.md) - layout, entry points, shared modules
 - [Warning cleanup plan](docs/developer/warning-cleanup-plan.md) (completed)
 - [Lint cleanup plan](docs/developer/lint-cleanup-plan.md)

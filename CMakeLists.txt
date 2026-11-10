@@ -172,6 +172,7 @@ endfunction()
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/Terms of Use.txt"
         DESTINATION "${CMAKE_INSTALL_DOCDIR}")
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/user/manual.md"
+              "${CMAKE_CURRENT_SOURCE_DIR}/docs/user/max-quality.md"
         DESTINATION "${CMAKE_INSTALL_DOCDIR}")
 
 # ----------------------------------------------------------------------

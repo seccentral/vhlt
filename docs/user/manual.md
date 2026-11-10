@@ -13,6 +13,8 @@ hlrad  mapname
 
 Each tool reads `mapname.map` or `mapname.bsp` and writes the next stage. The final `.bsp` is produced by `hlbsp`.
 
+For final builds with the most accurate lighting, see [Maximum-Quality Compiles](max-quality.md).
+
 ## Common Options
 
 These options are accepted by most tools:
