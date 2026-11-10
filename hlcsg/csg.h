@@ -191,6 +191,10 @@ typedef struct
     bface_t*        faces;
 } brushhull_t;
 
+// brush_t owns no C++ resources and is managed manually (hullshapes are
+// duplicated and freed explicitly), but BoundingBox has a user-provided
+// constructor, so the type is not trivially copyable. Raw byte copies in
+// hlcsg/map.cpp are intentional and keep the layout unchanged.
 typedef struct brush_s
 {
 #ifdef HLCSG_COUNT_NEW

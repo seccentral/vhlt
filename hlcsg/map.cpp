@@ -34,7 +34,7 @@ brush_t *CopyCurrentBrush (entity_t *entity, const brush_t *brush)
 	brush_t *newb = &g_mapbrushes[g_nummapbrushes];
 	g_nummapbrushes++;
 	hlassume (g_nummapbrushes <= MAX_MAP_BRUSHES, assume_MAX_MAP_BRUSHES);
-	memcpy (newb, brush, sizeof (brush_t));
+	memcpy (static_cast<void *>(newb), brush, sizeof (brush_t));
 	newb->firstside = g_numbrushsides;
 	g_numbrushsides += brush->numsides;
 	hlassume (g_numbrushsides <= MAX_MAP_SIDES, assume_MAX_MAP_SIDES);
@@ -92,7 +92,7 @@ void DeleteCurrentEntity (entity_t *entity)
 			}
 		}
 	}
-	memset (&g_mapbrushes[entity->firstbrush], 0, entity->numbrushes * sizeof (brush_t));
+	memset (static_cast<void *>(&g_mapbrushes[entity->firstbrush]), 0, entity->numbrushes * sizeof (brush_t));
 	g_nummapbrushes -= entity->numbrushes;
 	while (entity->epairs)
 	{
@@ -725,7 +725,7 @@ static contents_t ParseBrush(entity_t* mapent)
 			}
 		}
 #endif
-		memset (b, 0, sizeof (brush_t));
+		memset (static_cast<void *>(b), 0, sizeof (brush_t));
 		g_nummapbrushes--;
 		mapent->numbrushes--;
 		return;
@@ -1261,11 +1261,11 @@ bool            ParseMapEntity()
             }
 
             // make space to move the brushes (overlapped copy)
-            memmove(g_mapbrushes + worldbrushes + newbrushes,
+            memmove(static_cast<void *>(g_mapbrushes + worldbrushes + newbrushes),
                     g_mapbrushes + worldbrushes, sizeof(brush_t) * (g_nummapbrushes - worldbrushes - newbrushes));
 
             // copy the new brushes down
-            memcpy(g_mapbrushes + worldbrushes, temp, sizeof(brush_t) * newbrushes);
+            memcpy(static_cast<void *>(g_mapbrushes + worldbrushes), temp, sizeof(brush_t) * newbrushes);
 
             // fix up indexes
             g_numentities--;
@@ -1355,7 +1355,7 @@ bool            ParseMapEntity()
         worldbrushes = g_entities[0].numbrushes;
 
         temp = (brush_t*)Alloc(newbrushes * sizeof(brush_t));
-        memcpy(temp, g_mapbrushes + mapent->firstbrush, newbrushes * sizeof(brush_t));
+        memcpy(static_cast<void *>(temp), g_mapbrushes + mapent->firstbrush, newbrushes * sizeof(brush_t));
 
         for (i = 0; i < newbrushes; i++)
         {
@@ -1366,11 +1366,11 @@ bool            ParseMapEntity()
         }
 
         // make space to move the brushes (overlapped copy)
-        memmove(g_mapbrushes + worldbrushes + newbrushes,
+        memmove(static_cast<void *>(g_mapbrushes + worldbrushes + newbrushes),
                 g_mapbrushes + worldbrushes, sizeof(brush_t) * (g_nummapbrushes - worldbrushes - newbrushes));
 
         // copy the new brushes down
-        memcpy(g_mapbrushes + worldbrushes, temp, sizeof(brush_t) * newbrushes);
+        memcpy(static_cast<void *>(g_mapbrushes + worldbrushes), temp, sizeof(brush_t) * newbrushes);
 
         // fix up indexes
         g_numentities--;
