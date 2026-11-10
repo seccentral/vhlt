@@ -675,6 +675,10 @@ void ExpandBrush(brush_t* brush, const int hullnum)
 				case plane_z:
 					axialbevel[plane_z][(current_plane->normal[2] > 0 ? 1 : 0)] = true;
 					break;
+				case plane_anyx:
+				case plane_anyy:
+				case plane_anyz:
+					break;
 				}
 			}
 			continue;
@@ -1667,10 +1671,11 @@ contents_t      CheckBrushContents(const brush_t* const b)
     // check to make sure we dont have an origin brush as part of worldspawn
     if ((b->entitynum == 0) || (strcmp("func_group", ValueForKey(&g_entities[b->entitynum], "classname"))==0))
     {
-        if (contents == CONTENTS_ORIGIN
+        if ((contents == CONTENTS_ORIGIN
 #ifdef HLCSG_FUNCGROUP_FIX
 				&& b->entitynum == 0
 #endif
+			)
 #ifdef HLCSG_HLBSP_CUSTOMBOUNDINGBOX
 			|| contents == CONTENTS_BOUNDINGBOX
 #endif

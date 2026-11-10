@@ -46,9 +46,11 @@ static void     AddScriptToStack(const char* const filename)
     s_script++;
 
     if (s_script == &s_scriptstack[MAX_INCLUDES])
+    {
         Error("s_script file exceeded MAX_INCLUDES");
+    }
 
-	safe_strncpy(s_script->filename, filename, sizeof(s_script->filename));
+    safe_strncpy(s_script->filename, filename, sizeof(s_script->filename));
 
     size = LoadFile(s_script->filename, (char**)&s_script->buffer);
 

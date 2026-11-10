@@ -46,10 +46,12 @@ static void     MakeTnode(const int nodenum)
     VectorCopy(plane->normal, t->normal);
 #ifdef ZHLT_PLANETYPE_FIX //debug
 	if (plane->normal[(plane->type)%3] < 0)
+	{
 		if (plane->type < 3)
 			Warning ("MakeTnode: negative plane");
 		else
 			Developer (DEVELOPER_LEVEL_MESSAGE, "Warning: MakeTnode: negative plane\n");
+	}
 #endif
     t->dist = plane->dist;
 

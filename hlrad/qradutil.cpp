@@ -945,11 +945,14 @@ bool FindNearestPosition (int facenum, const Winding *texwinding, const dplane_t
 
 				if (!found ||
 #ifdef HLRAD_AVOIDWALLBLEED
-					!p->nudged && best_nudged ||
-					p->nudged == best_nudged
-						&&
+					(!p->nudged && best_nudged) ||
+					(p->nudged == best_nudged &&
 #endif
-						d < best_dist - 2 * ON_EPSILON)
+						d < best_dist - 2 * ON_EPSILON
+#ifdef HLRAD_AVOIDWALLBLEED
+					)
+#endif
+						)
 				{
 					found = true;
 					best_is = is;

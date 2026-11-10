@@ -1193,7 +1193,7 @@ static void     CSGBrush(int brushnum)
 #endif
                     if (b1->contents > b2->contents
 #ifdef HLCSG_HLBSP_SOLIDHINT
-						|| b1->contents == b2->contents && !strncasecmp (GetTextureByNumber_CSG (f->texinfo), "SOLIDHINT", 9)
+						|| (b1->contents == b2->contents && !strncasecmp (GetTextureByNumber_CSG (f->texinfo), "SOLIDHINT", 9))
 #endif
 						)
                     {                                      // inside a water brush
@@ -1672,7 +1672,7 @@ static void     CheckForNoClip()
 			(
 				!strcmp(entclassname, "env_bubbles")
 				|| !strcmp(entclassname, "func_illusionary")
-				|| (spawnflags & 8) &&
+				|| ((spawnflags & 8) &&
 				(   /* NOTE: func_doors as far as i can tell may need clipnodes for their
 							player collision detection, so for now, they stay out of it. */
 					!strcmp(entclassname, "func_train")
@@ -1683,11 +1683,11 @@ static void     CheckForNoClip()
 					|| !strcmp(entclassname, "func_train")
 					|| !strcmp(entclassname, "func_tracktrain")
 					|| !strcmp(entclassname, "func_vehicle")
-				)
-				|| (skin != 0) && (!strcmp(entclassname, "func_door") || !strcmp(entclassname, "func_water"))
-				|| (spawnflags & 2) && (!strcmp(entclassname, "func_conveyor"))
-				|| (spawnflags & 1) && (!strcmp(entclassname, "func_rot_button"))
-				|| (spawnflags & 64) && (!strcmp(entclassname, "func_rotating"))
+				))
+				|| ((skin != 0) && (!strcmp(entclassname, "func_door") || !strcmp(entclassname, "func_water")))
+				|| ((spawnflags & 2) && (!strcmp(entclassname, "func_conveyor")))
+				|| ((spawnflags & 1) && (!strcmp(entclassname, "func_rot_button")))
+				|| ((spawnflags & 64) && (!strcmp(entclassname, "func_rotating")))
 			))
 		{
 			MarkEntForNoclip(ent);

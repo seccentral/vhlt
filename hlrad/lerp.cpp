@@ -1083,7 +1083,7 @@ static bool TestLineSegmentIntersectWall (const facetriangulation_t *facetrian, 
 		top = DotProduct (wall->points[1], wall->direction);
 		front = DotProduct (p1, wall->normal) - DotProduct (wall->points[0], wall->normal);
 		back = DotProduct (p2, wall->normal) - DotProduct (wall->points[0], wall->normal);
-		if (front > ON_EPSILON && back > ON_EPSILON || front < -ON_EPSILON && back < -ON_EPSILON)
+		if ((front > ON_EPSILON && back > ON_EPSILON) || (front < -ON_EPSILON && back < -ON_EPSILON))
 		{
 			continue;
 		}
@@ -1284,8 +1284,8 @@ static void PurgePatches (localtriangulation_t *lt)
 		{
 			angle = GetAngle (points[cur].leftdirection, points[next[cur]].leftdirection, lt->normal);
 			if (fabs (angle) <= (1.0*Q_PI/180) ||
-				GetAngleDiff (angle, 0) <= Q_PI + NORMAL_EPSILON
-				&& DotProduct (points[next[cur]].leftspot, v) >= DotProduct (points[cur].leftspot, v) - ON_EPSILON / 2)
+				(GetAngleDiff (angle, 0) <= Q_PI + NORMAL_EPSILON
+				&& DotProduct (points[next[cur]].leftspot, v) >= DotProduct (points[cur].leftspot, v) - ON_EPSILON / 2))
 			{
 				// remove next patch
 				valid[next[cur]] = 0;
@@ -1305,8 +1305,8 @@ static void PurgePatches (localtriangulation_t *lt)
 		{
 			angle = GetAngle (points[prev[cur]].leftdirection, points[cur].leftdirection, lt->normal);
 			if (fabs (angle) <= (1.0*Q_PI/180) ||
-				GetAngleDiff (angle, 0) <= Q_PI + NORMAL_EPSILON
-				&& DotProduct (points[prev[cur]].leftspot, v) >= DotProduct (points[cur].leftspot, v) - ON_EPSILON / 2)
+				(GetAngleDiff (angle, 0) <= Q_PI + NORMAL_EPSILON
+				&& DotProduct (points[prev[cur]].leftspot, v) >= DotProduct (points[cur].leftspot, v) - ON_EPSILON / 2))
 			{
 				// remove previous patch
 				valid[prev[cur]] = 0;

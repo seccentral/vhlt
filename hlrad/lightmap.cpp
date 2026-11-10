@@ -4161,7 +4161,7 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
 #endif
 							// check intensity
 							if (g_indirect_sun <= 0.0 ||
-								VectorCompare (
+								(VectorCompare (
 	#ifdef HLRAD_WHOME
 									l->diffuse_intensity,
 	#else
@@ -4171,7 +4171,7 @@ static void     GatherSampleLight(const vec3_t pos, const byte* const pvs, const
 	#ifdef HLRAD_SUNDIFFUSE
 								&& VectorCompare (l->diffuse_intensity2, vec3_origin)
 	#endif
-								)
+								))
 								continue;
 
 							vec3_t sky_intensity;
