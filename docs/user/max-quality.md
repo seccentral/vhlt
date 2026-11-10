@@ -10,10 +10,12 @@ Append the map path to each line as usual. In an editor's compile dialog this is
 hlcsg  -console 0 -cliptype precise
 hlbsp  -console 0
 hlvis  -console 0 -full
-hlrad  -console 0 -extra -bounce 16 -chop 32 -texchop 16 -dlight 1 -compress 0 -vismatrix normal -estimate
+hlrad  -console 0 -extra -bounce 16 -chop 16 -texchop 8 -dlight 1 -compress 0 -vismatrix normal -estimate
 ```
 
-`-console 0` only disables the pop-up console window; it has no effect on quality.
+These settings give noticeably better results but need much more compute; the costs are in the table below. hlrad prints a "not recommended" warning for `-chop` and `-texchop` values this small. That warning is about compile time, not about errors in the result.
+
+**Add `-console 0` to every tool.** It has no effect on quality, but it makes compiles started from J.A.C.K. (or Hammer) faster. Without it, each tool opens its own console window and writes every line of output twice: once to that window, flushed line by line, and once to the editor's compile log. With `-console 0`, output only goes to the compile log.
 
 ## What each setting does
 
@@ -23,8 +25,8 @@ hlrad  -console 0 -extra -bounce 16 -chop 32 -texchop 16 -dlight 1 -compress 0 -
 | `hlvis -full` | normal | More accurate visibility, so fewer hidden surfaces are drawn | Can take much longer on large open maps |
 | `hlrad -extra` | off | Samples each lighting point 9 times: smooth shadow edges, less stair-stepping | About 2–4× the lighting time |
 | `-bounce 16` | 8 | More light bouncing off walls: brighter, fuller indirect light in deep corners | Roughly linear; diminishing returns past about 12 |
-| `-chop 32` | 64 | Smaller patches for bounced light, so indirect light is more detailed | About 4× the patches and up to about 16× the time and memory. **This is the expensive one.** |
-| `-texchop 16` | 32 | Finer patches on light-texture faces: smoother, more accurate light from texture lights | Modest; scales with the area of light textures |
+| `-chop 16` | 64 | Much smaller patches for bounced light, so indirect light is far more detailed | About 16× the patches; time and memory grow faster than the patch count. **This is the expensive one.** |
+| `-texchop 8` | 32 | Finer patches on light-texture faces: smoother, more accurate light from texture lights | About 16× the patches on light-texture faces; scales with their area |
 | `-dlight 1` | 10 | Counts faint direct light that would otherwise be dropped, so lights reach farther | Small to moderate |
 | `-compress 0` | 1 (16-bit) | Stores light transfers at 32-bit precision instead of 16-bit, reducing banding in soft gradients | Twice the memory for transfers |
 | `-vismatrix normal` | `sparse` | Same result, faster, but uses more RAM | Speed/memory trade-off only; no quality change |
@@ -46,7 +48,7 @@ This increases the lighting data, so run with `-chart` to see whether you're nea
 ## Practical tips
 
 - **Iterate fast, finish slow:** iterate with `hlvis -fast` and `hlrad` without `-extra`, then run this preset for final builds. Save it as a second preset in your editor's compile dialog, for example *Run Map → Expert* in J.A.C.K. or Hammer.
-- **Running out of memory** with `-chop 32 -compress 0`: set `-chop` back to 48 first, or drop `-vismatrix normal` (use the default `sparse`).
+- **Running out of memory or time** with `-chop 16 -compress 0`: raise `-chop` to 32 (and `-texchop` to 16) first, then drop `-vismatrix normal` (use the default `sparse`).
 - **Keep `-texchop` at or below `-chop`.**
 
 See the [user manual](manual.md) for every option of every tool.

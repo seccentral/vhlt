@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+- Maximum-quality guide: the preset uses `-chop 16 -texchop 8`, and explains why `-console 0` speeds up compiles started from J.A.C.K. or Hammer.
+
 ## [3.5.4] - 2026-11-10
 
 ### Changed
