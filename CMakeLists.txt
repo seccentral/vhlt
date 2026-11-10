@@ -76,7 +76,6 @@ set(VHLT_COMMON_SOURCES
 )
 
 set(VHLT_COMMON_INCLUDE_DIRS
-    template
     common
 )
 

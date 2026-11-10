@@ -8,9 +8,9 @@
 
 | Key | Report | Notes |
 |---|---|---|
-| **C** | [`audits/claude-opus-5-5-1157-2026-11-10.md`](claude-opus-5-5-1157-2026-11-10.md) | Six-way subsystem review. It checks the prior "Fixed" claims and covers a scratch MinGW 64-bit build and the smoke gate. |
-| **G** | [`audits/glyph-cluster-2026-11-10.md`](glyph-cluster-2026-11-10.md) | Static review, with emphasis on unsafe macros, parsing, `NDEBUG`, CI and docs. |
-| Prior | [`audits/2026-11-10/consolidated.md`](2026-11-10/consolidated.md), [`handling.md`](2026-11-10/handling.md) | The earlier audit and its fix-status record. This report corrects several of its "Fixed" claims (§3). |
+| **C** | Claude Opus 5.5 subsystem review (merged into this report; the source file is in git history) | Six-way subsystem review. It checks the prior "Fixed" claims and covers a scratch 64-bit build and the smoke gate. |
+| **G** | Glyph Cluster static review (merged into this report; the source file is in git history) | Static review, with emphasis on unsafe macros, parsing, `NDEBUG`, CI and docs. |
+| Prior | [`consolidated.md`](consolidated.md), [`handling.md`](handling.md) | The earlier audit and its fix-status record. This report corrects several of its "Fixed" claims (§3). |
 
 Every **G**-only item was spot-checked against the source before merging. Severities were reconciled to the higher of the two reports unless the code showed otherwise; downgrades are noted.
 

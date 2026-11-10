@@ -2,7 +2,7 @@
 
 ## Project
 
-Vluzacn ZHLT (VHLT) is a set of Half-Life compilation tools: `hlcsg`, `hlbsp`, `hlvis`, `hlrad`, and `ripent`. The repository also contains shared common code, templates, and documentation.
+Vluzacn ZHLT (VHLT) is a set of Half-Life compilation tools: `hlcsg`, `hlbsp`, `hlvis`, `hlrad`, and `ripent`. The repository also contains shared common code (`common/`), build tooling (`cmake/`, `tools/`), documentation and audits.
 
 **Agent context:** read [`docs/llms.txt`](docs/llms.txt) first. It is the complete agent reference: pipeline and file flow, layout, feature macros, limits, core APIs, concurrency, gotchas, and the release checklist. Keep it current when the build, limits, APIs or rules change.
 

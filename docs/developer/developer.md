@@ -13,7 +13,6 @@ VHLT is a set of command-line tools for compiling Half-Life maps (`.map`) into B
 ## Repository Layout
 
 - `common/`: shared code used by all tools (math, BSP I/O, logging, threading, file helpers).
-- `template/`: template math and reference-counting headers.
 - `hlcsg/`, `hlbsp/`, `hlvis/`, `hlrad/`, `ripent/`: tool-specific sources and headers.
 - `docs/`: user manual (`user/manual.md`), developer guide (`developer/developer.md`), and Doxygen template (`api/Doxyfile.in`, configured into the build directory by CMake).
 - `audits/`: audit reports and handling status.

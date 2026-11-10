@@ -11,9 +11,9 @@ Current version: 3.5.2 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `
 - [docs/user/manual.md](user/manual.md): every command-line option of every tool. Keep it in sync with each tool's `Usage()` output.
 - [docs/developer/developer.md](developer/developer.md): layout, entry points, shared modules, validation helpers.
 - [CHANGELOG.md](../CHANGELOG.md): Keep a Changelog format. All user-visible changes go under `[Unreleased]`.
-- [audits/final-audit-2026-11-10.md](../audits/final-audit-2026-11-10.md): canonical audit, with prioritized defects and known risky areas.
+- [audits/2026-11-10/final-audit.md](../audits/2026-11-10/final-audit.md): canonical audit, with prioritized defects and known risky areas.
 - [audits/2026-11-10/handling.md](../audits/2026-11-10/handling.md): status (Fixed/Mitigated/Accepted) of every audit finding.
-- [audits/fixer-handout-2026-11-10.md](../audits/fixer-handout-2026-11-10.md): batch fix plan with per-item fix guidance.
+- [audits/2026-11-10/fixer-handout.md](../audits/2026-11-10/fixer-handout.md): completed batch fix plan with per-item fix guidance.
 - [docs/developer/warning-cleanup-plan.md](developer/warning-cleanup-plan.md): baseline and batched plan to reach zero compiler warnings.
 - [tools/regress.ps1](../tools/regress.ps1): deterministic map-compile regression harness (see Tests in the developer guide).
 
@@ -85,7 +85,7 @@ cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build 
   - `winding.{h,cpp}`: `Winding` class (polygon clipping, `Clip`, `Divide`, `Chop`). Limit: `MAX_POINTS_ON_WINDING` 128.
   - `mathlib.{h,cpp}`, `mathtypes.h`: `vec_t`/`vec3_t`, `DotProduct`, `VectorAdd`, …, `NORMAL_EPSILON` 1e-5, `DIST_EPSILON`.
   - `cmdlinecfg.cpp`: settings-file options. `win32fix.h`: POSIX shims (`_MAX_PATH` is 4096 on POSIX and **260 on Windows**).
-- `template/`: reference-counting and math templates. **Not used by any build source** (dead).
+- `common/basictypes.h`: fixed-width integer typedefs (`INT32`, `UINT64`, …) used by `winding.h` and `hlvis/zones.h`. It was formerly in `template/`, whose other headers were unused and have been removed.
 - `hlcsg/`: `qcsg.cpp` (`main`, options, hull processing, `info_compile_parameters`), `map.cpp` (map parsing, func_group/func_detail merge), `brush.cpp` (brush expansion, `FindIntPlane`, `AddBrushPlane`, hull shapes), `textures.cpp` (WAD loading, `WriteMiptex`, texture name lookups), `wadpath.cpp`, `wadcfg.cpp`, `hullfile.cpp`, `properties.cpp`, `ansitoutf8.cpp`, `brushunion.cpp`. Mostly **dead**: `autowad.cpp`, `wadinclude.cpp`, and `wadcfg.cpp` after ~line 133.
 - `hlbsp/`: `qbsp.cpp` (`main`, reads hlcsg output), `solidbsp.cpp`, `brink.cpp`, `surfaces.cpp`, `merge.cpp`, `tjunc.cpp`, `outside.cpp` (leaks), `portals.cpp` (`WritePortalfile`), `writebsp.cpp`.
 - `hlvis/`: `vis.cpp` (`main`, `LoadPortals` .prt parser), `flow.cpp` (`BasePortalVis`, `RecursiveLeafFlow`, `ChopWinding`, `MaxDistVis`). `zones.cpp` is compiled out (no `ZHLT_ZONES`).
@@ -176,4 +176,4 @@ cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build 
 
 - **Upstream background:** derived from Zoner's Half-Life Compilation Tools 3.4, modified by vluzacn (the `--vluzacn` comments mark his changes). This repository descends from the FreeSlave/vhlt fork on GitHub and is now hosted on Gitea (see the top of this file).
 - **Terms of Use:** `Terms of Use.txt`, which is shipped in the ZIP and installed to `share/doc/vhlt`.
-- **Open audit items:** see `audits/final-audit-2026-11-10.md` §4 and `audits/2026-11-10/handling.md`. The remaining risk areas are hlrad numerical edge cases, threading globals, and the lack of unit tests or fuzzing.
+- **Open audit items:** see `audits/2026-11-10/final-audit.md` §4 and `audits/2026-11-10/handling.md`. The remaining risk areas are hlrad numerical edge cases, threading globals, and the lack of unit tests or fuzzing.
