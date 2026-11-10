@@ -38,41 +38,40 @@ rg -o '\[[\w.,-]+\]$' build/lint-sites.txt | sort | uniq -c | sort -rn
 
 To re-lint one file after editing it, touch it and rebuild its target, for example `cmake --build build/lint --target hlrad`. Headers are reported once per translation unit, so count **unique sites**, not raw lines.
 
-### Baseline (2026-11-10, after commit c91fcfb)
+### Baseline
 
-495 unique findings, 0 errors.
+Before Batch 0: **510 unique findings, 0 errors** (measured 2026-11-10 at `b7881a9`, clang-tidy 22.1.8).
+After Batch 0 (`Error` and `hlassume_fail` marked `[[noreturn]]`): **395 unique findings, 0 errors**.
+
+The table below is the remaining set after Batch 0.
 
 | Check | Sites | Main files |
 |---|---:|---|
-| `bugprone-unchecked-string-to-number-conversion` | 141 | qrad.cpp 68, map.cpp 20, qbsp.cpp 15, vis.cpp 14, qcsg.cpp 9, bspfile.cpp 7 |
-| `clang-analyzer-core.NullDereference` | 76 | lightmap.cpp 20, writebsp.cpp 14, brink.cpp 7, compress.h 7, brush.cpp 6, loadtextures.cpp 6 |
-| `bugprone-suspicious-string-compare` | 55 | map.cpp 17, qrad.cpp 14, qcsg.cpp 10, bspfile.cpp 4 |
+| `bugprone-unchecked-string-to-number-conversion` | 147 | qrad.cpp 68, map.cpp 20, qbsp.cpp 15, vis.cpp 14, qcsg.cpp 9 |
+| `bugprone-suspicious-string-compare` | 55 | map.cpp 17, qrad.cpp 14, qcsg.cpp 10, bspfile.cpp 4, brush.cpp 3 |
 | `bugprone-implicit-widening-of-multiplication-result` | 37 | loadtextures.cpp 10, lightmap.cpp 8, bspfile.cpp 5, vismatrixutil.cpp 3 |
-| `clang-analyzer-security.ArrayBound` | 19 | winding.cpp 3, brink.cpp 3, qcsg.cpp 2, brush.cpp 2, writebsp.cpp 2, bspfile.cpp 2 |
-| `clang-analyzer-security.insecureAPI.strcpy` | 17 | cmdlinecfg.cpp 12, bspfile.cpp 2, log.cpp 2, cmdlib.cpp 1 |
+| `clang-analyzer-security.insecureAPI.strcpy` | 17 | cmdlinecfg.cpp 12, log.cpp 2, bspfile.cpp 2, cmdlib.cpp 1 |
 | `bugprone-assignment-in-if-condition` | 16 | qrad.cpp 7, brush.cpp 3 |
-| `bugprone-multi-level-implicit-pointer-conversion` | 15 | outside.cpp 3, writebsp.cpp 3, brush.cpp 2, qrad.cpp 2 |
-| `clang-analyzer-unix.cstring.NullArg` | 12 | brush.cpp 5, writebsp.cpp 2, bspfile.cpp 2 |
-| `clang-analyzer-optin.portability.UnixAPI` | 11 | brush.cpp 4, loadtextures.cpp 2, lightmap.cpp 2 |
-| `clang-analyzer-core.UndefinedBinaryOperatorResult` | 11 | qrad.cpp 4, lightmap.cpp 3, brush.cpp 2 |
-| `clang-analyzer-core.uninitialized.Assign` | 10 | winding.cpp 3, hullfile.cpp 2, brush.cpp 2 |
-| `clang-analyzer-unix.Stream` | 8 | hullfile.cpp 3, log.cpp, qcsg.cpp, filelib.cpp, qrad.cpp, bspfile.cpp |
-| `bugprone-switch-missing-default-case` | 7 | solidbsp.cpp 2, winding.cpp, qcsg.cpp, qbsp.cpp, lightmap.cpp, qrad.cpp |
-| `bugprone-branch-clone` | 7 | qbsp.cpp 2, qrad.cpp 2, qcsg.cpp, bspfile.cpp, solidbsp.cpp |
-| `clang-analyzer-deadcode.DeadStores` | 6 | bspfile.cpp 2, flow.cpp, qcsg.cpp, solidbsp.cpp, lightmap.cpp |
-| `bugprone-suspicious-realloc-usage` | 5 | transparency.cpp 3, outside.cpp, qrad.cpp |
-| `performance-enum-size` | 5 | lightmap.cpp 2, lerp.cpp, qrad.cpp, cmdlinecfg.cpp |
+| `bugprone-multi-level-implicit-pointer-conversion` | 15 | outside.cpp 3, writebsp.cpp 3, qrad.cpp 2, brush.cpp 2 |
+| `clang-analyzer-security.ArrayBound` | 13 | bspfile.cpp 4, winding.cpp 3, qcsg.cpp 2 |
+| `clang-analyzer-optin.portability.UnixAPI` | 10 | brush.cpp 4, loadtextures.cpp 2 |
+| `clang-analyzer-core.UndefinedBinaryOperatorResult` | 9 | qrad.cpp 4, brush.cpp 2 |
+| `clang-analyzer-core.uninitialized.Assign` | 9 | winding.cpp 3, brush.cpp 2 |
+| `bugprone-switch-missing-default-case` | 7 | solidbsp.cpp 2 |
+| `bugprone-branch-clone` | 7 | qrad.cpp 2, qbsp.cpp 2 |
+| `performance-enum-size` | 6 | lightmap.cpp 2 |
+| `clang-analyzer-deadcode.DeadStores` | 6 | bspfile.cpp 2 |
+| `bugprone-suspicious-realloc-usage` | 5 | transparency.cpp 3 |
 | `bugprone-undefined-memory-manipulation` | 4 | hlcsg/map.cpp 4 (`brush_t`) |
-| `bugprone-integer-division` | 4 | lightmap.cpp 2, brush.cpp, brushunion.cpp |
+| `clang-analyzer-core.NullDereference` | 4 | writebsp.cpp 3, merge.cpp 1 |
+| `clang-analyzer-unix.Malloc` | 4 | qbsp.cpp 2, textures.cpp 1, ripent.cpp 1 |
 | `bugprone-terminating-continue` | 4 | hlrad/lightmap.cpp 4 |
-| `clang-analyzer-core.uninitialized.Branch` | 3 | sparse.cpp 2, brush.cpp |
-| `clang-analyzer-unix.StdCLibraryFunctions` | 3 | hlrad/transfers.cpp 3 |
-| `clang-analyzer-unix.Malloc` | 3 | qbsp.cpp 2, textures.cpp |
-| `clang-analyzer-optin.performance.Padding` | 2 | qradutil.cpp, scriplib.cpp |
+| `bugprone-integer-division` | 4 | lightmap.cpp 2, brush.cpp 1, brushunion.cpp 1 |
 | `clang-analyzer-unix.Errno` | 2 | hlcsg/hullfile.cpp 2 |
-| `bugprone-throwing-static-initialization` | 2 | qcsg.cpp, map.cpp |
-| `bugprone-exception-escape` | 2 | qcsg.cpp, qrad.cpp |
-| 1 site each | 9 | `NonNullParamChecker` writebsp.cpp; `unsafe-functions` hullfile.cpp; `BitwiseShift` compress.h; `no-int-to-ptr` threads.cpp; `CallAndMessage` lightmap.cpp; `DivideZero` vis.cpp; `NewDeleteLeaks` qrad.cpp; `signed-char-misuse` transparency.cpp |
+| `bugprone-exception-escape` | 2 | qrad.cpp 1, qcsg.cpp 1 |
+| `clang-analyzer-optin.performance.Padding` | 2 | scriplib.cpp 1, qradutil.cpp 1 |
+| `bugprone-throwing-static-initialization` | 2 | qcsg.cpp 1, map.cpp 1 |
+| 1 site each | 8 | `uninitialized.Branch` sparse.cpp; `signed-char-misuse` transparency.cpp; `DivideZero` vis.cpp; `unsafe-functions` hullfile.cpp; `BitwiseShift` compress.h; `NewDeleteLeaks` qrad.cpp; `unix.Stream` log.cpp; `no-int-to-ptr` threads.cpp |
 
 ## Gates after every batch
 

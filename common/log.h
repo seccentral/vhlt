@@ -70,7 +70,7 @@ extern void CDECL FORMAT_PRINTF(1, 2) PrintConsole(const char* const message, ..
 #endif
 extern void CDECL FORMAT_PRINTF(1, 2) Verbose(const char* const message, ...);
 extern void CDECL FORMAT_PRINTF(1, 2) Log(const char* const message, ...);
-extern void CDECL FORMAT_PRINTF(1, 2) Error(const char* const error, ...);
+[[noreturn]] extern void CDECL FORMAT_PRINTF(1, 2) Error(const char* const error, ...);
 extern void CDECL FORMAT_PRINTF(2, 3) Fatal(assume_msgs msgid, const char* const error, ...);
 extern void CDECL FORMAT_PRINTF(1, 2) Warning(const char* const warning, ...);
 
@@ -83,6 +83,13 @@ extern void Banner();
 extern void LogTimeElapsed(float elapsed_time);
 
 // Should be in hlassert.h, but well so what
-extern void hlassume(bool exp, assume_msgs msgid);
+[[noreturn]] extern void hlassume_fail(assume_msgs msgid);
+inline void hlassume(bool exp, assume_msgs msgid)
+{
+    if (!exp)
+    {
+        hlassume_fail(msgid);
+    }
+}
 
 #endif // Should be in hlassert.h, but well so what LOG_H__

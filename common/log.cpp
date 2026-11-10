@@ -379,7 +379,7 @@ void CheckFatal()
 //  Error
 //      for formatted error messages, fatals out
 // =====================================================================================
-void CDECL FORMAT_PRINTF(1, 2) Error(const char* const error, ...)
+[[noreturn]] void CDECL FORMAT_PRINTF(1, 2) Error(const char* const error, ...)
 {
     char message[MAX_ERROR];
     char message2[MAX_ERROR];
@@ -419,6 +419,7 @@ void CDECL FORMAT_PRINTF(1, 2) Error(const char* const error, ...)
 
     fatal = 1;
     CheckFatal();
+    exit(1); // CheckFatal always exits here; keeps the [[noreturn]] contract explicit.
 }
 
 // =====================================================================================
@@ -708,21 +709,18 @@ void LogEnd()
 //  hlassume
 //      my assume
 // =====================================================================================
-void hlassume(bool exp, assume_msgs msgid)
+[[noreturn]] void hlassume_fail(assume_msgs msgid)
 {
-    if (!exp)
-    {
-        char message[MAX_MESSAGE];
-        const MessageTable_t* msg = GetAssume(msgid);
+    char message[MAX_MESSAGE];
+    const MessageTable_t* msg = GetAssume(msgid);
 
 #ifdef ZHLT_LANGFILE
-        safe_snprintf(message, MAX_MESSAGE, "%s\n%s%s\n%s%s\n", Localize(msg->title), Localize("Description: "),
-                      Localize(msg->text), Localize("Howto Fix: "), Localize(msg->howto));
+    safe_snprintf(message, MAX_MESSAGE, "%s\n%s%s\n%s%s\n", Localize(msg->title), Localize("Description: "),
+                  Localize(msg->text), Localize("Howto Fix: "), Localize(msg->howto));
 #else
-        safe_snprintf(message, MAX_MESSAGE, "%s\nDescription: %s\nHowto Fix: %s\n", msg->title, msg->text, msg->howto);
+    safe_snprintf(message, MAX_MESSAGE, "%s\nDescription: %s\nHowto Fix: %s\n", msg->title, msg->text, msg->howto);
 #endif
-        Error("%s", message);
-    }
+    Error("%s", message);
 }
 
 // =====================================================================================
