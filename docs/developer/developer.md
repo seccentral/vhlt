@@ -17,6 +17,7 @@ VHLT is a set of command-line tools for compiling Half-Life maps (`.map`) into B
 - `hlcsg/`, `hlbsp/`, `hlvis/`, `hlrad/`, `ripent/`: tool-specific sources and headers.
 - `docs/`: user manual (`user/manual.md`), developer guide (`developer/developer.md`), and Doxygen template (`api/Doxyfile.in`, configured into the build directory by CMake).
 - `audits/`: audit reports and handling status.
+- `tools/regress.ps1`: deterministic map-compile regression check (see Tests).
 - `CMakeLists.txt`, `CMakePresets.json`: build configuration (presets `windows` and `linux`, Ninja generator).
 - `cmake/toolchains/`: Zig toolchain files (`zig-windows-x86_64.cmake`, `zig-linux-x86_64.cmake`, shared `zig-common.cmake`).
 - `.clangd`: clangd configuration (uses `build/windows/compile_commands.json`). `.clang-tidy`: lint checks.
@@ -81,4 +82,24 @@ Before fixing a code path, confirm it is compiled in: the feature macros in `com
 
 ## Tests
 
-There are no automated tests. Verification is via build, docs, packaging, and smoke runs of each binary. Running a tool with no arguments prints its version banner and exits with code 1; smoke checks must accept that exit code.
+There are no unit tests. Verification is via build, docs, packaging, smoke runs, and the map-compile regression harness:
+
+```sh
+# Windows
+powershell -ExecutionPolicy Bypass -File tools/regress.ps1 `
+    -MapDir D:\vhlt-maps -LightsRad D:\vhlt-maps\lights.rad `
+    -WadDir "D:\Half-Life\valve" -UpdateBaseline
+powershell -ExecutionPolicy Bypass -File tools/regress.ps1 `
+    -MapDir D:\vhlt-maps -LightsRad D:\vhlt-maps\lights.rad `
+    -WadDir "D:\Half-Life\valve"
+
+# Linux (same baseline format)
+tools/regress.sh --map-dir /srv/vhlt-maps --lights-rad /srv/vhlt-maps/lights.rad \
+    --wad-dir /srv/half-life/valve --update-baseline
+tools/regress.sh --map-dir /srv/vhlt-maps --lights-rad /srv/vhlt-maps/lights.rad \
+    --wad-dir /srv/half-life/valve
+```
+
+The harness runs `hlcsg`, `hlbsp`, `hlvis -full` and `hlrad -extra` on every `.map` in the map directory, with `-threads 1`, and hashes the `.bsp`, `.prt` and `ripent -export` entity text. It normalises the `compiler` date, so the hashes remain valid across days. `--wad-dir`/`-WadDir` rewrites the worldspawn `wad` key to the local WADs, so the same maps work on any host; only the WAD base names end up in the BSP. Reference maps and WADs are third-party assets and must stay outside the repository. Maps are compiled in parallel; each individual compile is single-threaded because threaded compiles are not byte-identical run to run. The `.prt` layout can differ between the Windows and Linux builds, so keep a separate baseline per platform.
+
+Running a tool with no arguments prints its version banner and exits with code 1; smoke checks must accept that exit code.

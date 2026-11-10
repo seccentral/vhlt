@@ -48,8 +48,9 @@ Before committing, all of the following must pass:
 4. Smoke test: each Windows tool runs with no arguments and prints its version banner (exit code 1 is expected)
 5. Package: `cmake --build build/<preset> --target package` for both presets
 6. Lint: configure with `-DVHLT_CLANG_TIDY=ON` and build (clang-tidy, checks in `.clang-tidy`)
-7. LSP: clangd supported via `.clangd` and `build/windows/compile_commands.json`
-8. Working tree reviewed for accidental artifacts
+7. Map regression: `tools/regress.ps1` matches the recorded baseline (assets live outside the repo)
+8. LSP: clangd supported via `.clangd` and `build/windows/compile_commands.json`
+9. Working tree reviewed for accidental artifacts
 
 ## Outputs
 

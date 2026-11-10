@@ -1,6 +1,6 @@
 # VHLT (Vluzacn's Zoner's Half-Life Tools)
 
-> Legacy C++11 command-line compilers that turn Half-Life `.map` source files into playable `.bsp` levels: `hlcsg` → `hlbsp` → `hlvis` → `hlrad`, plus `ripent` for editing compiled BSPs. About 67k lines across `common/` and one folder per tool. CMake is the primary build. The code uses heavy global state, threads, and fixed-size arrays, and it has no automated tests. This file gives an agent everything it needs to build, navigate, change and verify the code safely.
+> Legacy C++11 command-line compilers that turn Half-Life `.map` source files into playable `.bsp` levels: `hlcsg` → `hlbsp` → `hlvis` → `hlrad`, plus `ripent` for editing compiled BSPs. About 67k lines across `common/` and one folder per tool. CMake is the primary build. The code uses heavy global state, threads, and fixed-size arrays, and it has no unit tests (only the map-compile regression harness in `tools/regress.ps1`). This file gives an agent everything it needs to build, navigate, change and verify the code safely.
 
 Current version: 3.5.2 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `ZHLT_VERSIONSTRING`, `docs/api/Doxyfile.in` `PROJECT_NUMBER`). Main branch: `master`. Remote: `https://git.example.invalid/vhlt` (private Gitea), with releases and their zips on the tags. Targets: Windows x86_64 and Linux x86_64, both built with **Zig 0.17.1** (bundled Clang) through CMake and Ninja. There is no MinGW GCC, MSVC or GitHub CI.
 
@@ -15,6 +15,7 @@ Current version: 3.5.2 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `
 - [audits/2026-11-10/handling.md](../audits/2026-11-10/handling.md): status (Fixed/Mitigated/Accepted) of every audit finding.
 - [audits/fixer-handout-2026-11-10.md](../audits/fixer-handout-2026-11-10.md): batch fix plan with per-item fix guidance.
 - [docs/developer/warning-cleanup-plan.md](developer/warning-cleanup-plan.md): baseline and batched plan to reach zero compiler warnings.
+- [tools/regress.ps1](../tools/regress.ps1): deterministic map-compile regression harness (see Tests in the developer guide).
 
 ## Build and verify
 
@@ -46,7 +47,8 @@ cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build 
   4. Smoke test.
   5. `package` for both presets.
   6. Lint with `-DVHLT_CLANG_TIDY=ON`.
-  7. Review the working tree for stray artifacts.
+  7. Map regression: `tools/regress.ps1` matches the recorded baseline.
+  8. Review the working tree for stray artifacts.
 - **Smoke test:** run each `build/windows/bin/<tool>.exe` with **no arguments**. It prints `<tool> v3.5.2 VL35 64-bit (<date>)` as its first line and then usage. **The exit code is 1 by design**; check the banner, not the exit code. Linux binaries can't run on a Windows host; check them with `file` (expect `ELF 64-bit … x86-64`), or run them on Linux.
 - **Warning baseline:** a clean Zig 0.17.1 build gives 154 unique warning sites (149 on Windows, 132 on Linux). The plan to reach zero, with categories and batches, is in `docs/developer/warning-cleanup-plan.md`. Don't add new warnings in lines you touch.
 - **Debug builds:** `-DCMAKE_BUILD_TYPE=Debug` enables `hlassert`/`assert`. `NDEBUG` comes only from CMake's Release flags.
@@ -174,4 +176,4 @@ cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build 
 
 - **Upstream background:** derived from Zoner's Half-Life Compilation Tools 3.4, modified by vluzacn (the `--vluzacn` comments mark his changes). This repository descends from the FreeSlave/vhlt fork on GitHub and is now hosted on Gitea (see the top of this file).
 - **Terms of Use:** `Terms of Use.txt`, which is shipped in the ZIP and installed to `share/doc/vhlt`.
-- **Open audit items:** see `audits/final-audit-2026-11-10.md` §4 and `audits/2026-11-10/handling.md`. The remaining risk areas are hlrad numerical edge cases, threading globals, and the absence of tests or fuzzing.
+- **Open audit items:** see `audits/final-audit-2026-11-10.md` §4 and `audits/2026-11-10/handling.md`. The remaining risk areas are hlrad numerical edge cases, threading globals, and the lack of unit tests or fuzzing.
