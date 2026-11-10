@@ -14,7 +14,8 @@ Current version: 3.5.3 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `
 - [audits/2026-11-10/final-audit.md](../audits/2026-11-10/final-audit.md): canonical audit, with prioritized defects and known risky areas.
 - [audits/2026-11-10/handling.md](../audits/2026-11-10/handling.md): status (Fixed/Mitigated/Accepted) of every audit finding.
 - [audits/2026-11-10/fixer-handout.md](../audits/2026-11-10/fixer-handout.md): completed batch fix plan with per-item fix guidance.
-- [docs/developer/warning-cleanup-plan.md](developer/warning-cleanup-plan.md): baseline and batched plan to reach zero compiler warnings.
+- [docs/developer/warning-cleanup-plan.md](developer/warning-cleanup-plan.md): baseline and batched plan to reach zero compiler warnings (completed).
+- [docs/developer/lint-cleanup-plan.md](developer/lint-cleanup-plan.md): clang-tidy baseline (495 findings) and batched plan to reach zero.
 - [tools/regress.ps1](../tools/regress.ps1): deterministic map-compile regression harness (see Tests in the developer guide).
 
 ## Build and verify

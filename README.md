@@ -14,7 +14,8 @@ The project builds five command-line tools:
 
 - [User manual](docs/user/manual.md) - command-line options for every tool
 - [Developer guide](docs/developer/developer.md) - layout, entry points, shared modules
-- [Warning cleanup plan](docs/developer/warning-cleanup-plan.md)
+- [Warning cleanup plan](docs/developer/warning-cleanup-plan.md) (completed)
+- [Lint cleanup plan](docs/developer/lint-cleanup-plan.md)
 - [Changelog](CHANGELOG.md)
 - [docs/llms.txt](docs/llms.txt) - complete reference for AI coding agents
 - API reference - generated with Doxygen (see below)
