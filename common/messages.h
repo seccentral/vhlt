@@ -8,11 +8,10 @@
 
 typedef struct
 {
-    const char*     title;
-    const char*     text;
-    const char*     howto;
-}
-MessageTable_t;
+    const char* title;
+    const char* text;
+    const char* howto;
+} MessageTable_t;
 
 typedef enum
 {
@@ -82,24 +81,23 @@ typedef enum
     assume_COMPRESSVIS_OVERFLOW,
     assume_DECOMPRESSVIS_OVERFLOW,
 #ifdef ZHLT_MAX_MAP_LEAFS
-	assume_MAX_MAP_LEAFS,
+    assume_MAX_MAP_LEAFS,
 #endif
     // AJM: added in
     assume_TOOL_CANCEL,
     assume_GENERIC,
-	// KGP: added
-	assume_MAX_MAP_LIGHTING,
-	assume_MAX_INTERNAL_MAP_PLANES,
+    // KGP: added
+    assume_MAX_MAP_LIGHTING,
+    assume_MAX_INTERNAL_MAP_PLANES,
 #ifdef HLRAD_TEXTURE
-	assume_COULD_NOT_LOCATE_WAD,
+    assume_COULD_NOT_LOCATE_WAD,
 #endif
 #ifdef ZHLT_64BIT_FIX
-	assume_NO_EXTENT_FILE,
+    assume_NO_EXTENT_FILE,
 #endif
 
     assume_last
-}
-assume_msgs;
+} assume_msgs;
 
 extern const MessageTable_t* GetAssume(assume_msgs id);
 

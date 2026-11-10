@@ -5,13 +5,13 @@
 #include <unistd.h>
 #endif
 
-void            LoadWadincludeFile(const char* const filename)
+void LoadWadincludeFile(const char* const filename)
 {
-    char*           fname;
-    int             i, x;
-    char*           pData = NULL;
-    char*           pszData;
-    unsigned        len = strlen(filename) + 5;
+    char* fname;
+    int i, x;
+    char* pData = NULL;
+    char* pszData;
+    unsigned len = strlen(filename) + 5;
 
     fname = (char*)Alloc(len);
     safe_snprintf(fname, len, "%s.wic", filename);
@@ -49,12 +49,12 @@ LoadWadincludeFileReturn:;
     }
 }
 
-void            SaveWadincludeFile(const char* const filename)
+void SaveWadincludeFile(const char* const filename)
 {
-    char*           fname;
-    FILE*           file;
-    int             x;
-    unsigned        len = strlen(filename) + 5;
+    char* fname;
+    FILE* file;
+    int x;
+    unsigned len = strlen(filename) + 5;
 
     fname = (char*)Alloc(len);
     safe_snprintf(fname, len, "%s.wic", filename);
@@ -79,12 +79,12 @@ void            SaveWadincludeFile(const char* const filename)
 }
 
 // this function is called in place of tex_initfromwad for onlyents compiles
-void            HandleWadinclude()
+void HandleWadinclude()
 {
-    int             i;
-    char            szTmpWad[1024]; // arbitrary, but needs to be large.
-    char*           pszWadFile;
-    wadpath_t*      currentwad;
+    int i;
+    char szTmpWad[1024]; // arbitrary, but needs to be large.
+    char* pszWadFile;
+    wadpath_t* currentwad;
 
     Log("\n"); // looks cleaner
 
@@ -100,21 +100,21 @@ void            HandleWadinclude()
     // for eachwadpath
     for (i = 0; i < g_iNumWadPaths; i++)
     {
-        bool            bExcludeThisWad = false;
+        bool bExcludeThisWad = false;
 
         currentwad = g_pWadPaths[i];
         pszWadFile = currentwad->path;
 
-#ifdef HLCSG_AUTOWAD/*
+#ifdef HLCSG_AUTOWAD /*
     #ifdef _DEBUG
         Log("[dbg] HandleWIC: attempting to parse wad '%s'\n", currentwad->path);
     #endif*/
         if (g_bWadAutoDetect && !currentwad->usedtextures)
-            continue;/*
+            continue; /*
     #ifdef _DEBUG
         Log("[dbg] HandleWIC: parsing wad\n");
     #endif*/
-#endif // HLCSG_AUTOWAD
+#endif                // HLCSG_AUTOWAD
 
         // look and see if we're supposed to include the textures from this WAD in the bsp.
         WadInclude_i it;
@@ -123,7 +123,7 @@ void            HandleWadinclude()
             if (stristr(pszWadFile, it->c_str()))
             {
                 Log("Including Wadfile: %s\n", pszWadFile);
-                bExcludeThisWad = true;             // wadincluding this one
+                bExcludeThisWad = true; // wadincluding this one
             }
         }
 
@@ -131,8 +131,8 @@ void            HandleWadinclude()
         {
             Log("Using Wadfile: %s\n", pszWadFile);
 #ifdef HLCSG_STRIPWADPATH
-			char tmp[_MAX_PATH];
-			ExtractFile (pszWadFile, tmp);
+            char tmp[_MAX_PATH];
+            ExtractFile(pszWadFile, tmp);
             {
                 char tmpwad[1024];
                 safe_snprintf(tmpwad, 1024, "%s%s;", szTmpWad, tmp);

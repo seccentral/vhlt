@@ -5,14 +5,14 @@
 #ifndef HLCSG_AUTOWAD_NEW
 #ifdef HLCSG_AUTOWAD
 
-#define MAX_AUTOWAD_TEXNAME 32  // 32 char limit in array size in brush_texture_t struct
+#define MAX_AUTOWAD_TEXNAME 32 // 32 char limit in array size in brush_texture_t struct
 
 int g_numUsedTextures = 0;
 
-typedef struct autowad_texname_s         // non-dupicate list of textures used in map
+typedef struct autowad_texname_s // non-dupicate list of textures used in map
 {
-    char        name[MAX_AUTOWAD_TEXNAME];
-    autowad_texname_s*  next;
+    char name[MAX_AUTOWAD_TEXNAME];
+    autowad_texname_s* next;
 } autowad_texname_t;
 
 autowad_texname_t* g_autowad_texname;
@@ -32,9 +32,9 @@ autowad_texname_t* g_autowad_texname;
 //  autowad_PushName
 //      adds passed texname as an entry to autowad_wadnames list, without duplicates
 // =====================================================================================
-void        autowad_PushName(const char* const texname)
+void autowad_PushName(const char* const texname)
 {
-    autowad_texname_t*  tex;
+    autowad_texname_t* tex;
 
     if (!g_autowad_texname)
     {
@@ -53,18 +53,18 @@ void        autowad_PushName(const char* const texname)
     }
 
     // otherwise, see if texname isnt already in the list
-    for (tex = g_autowad_texname; ;tex = tex->next)
+    for (tex = g_autowad_texname;; tex = tex->next)
     {
         if (!strcmp(tex->name, texname))
             return; // dont bother adding it again
 
         if (!tex->next)
-            break;  // end of list
+            break; // end of list
     }
 
     // unique texname
     g_numUsedTextures++;
-    autowad_texname_t*  last;
+    autowad_texname_t* last;
     last = tex;
     tex = (autowad_texname_t*)malloc(sizeof(autowad_texname_t));
     safe_strncpy(tex->name, texname, MAX_AUTOWAD_TEXNAME);
@@ -79,25 +79,25 @@ void        autowad_PushName(const char* const texname)
 // =====================================================================================
 //  autowad_PurgeName
 // =====================================================================================
-void        autowad_PurgeName(const char* const texname)
+void autowad_PurgeName(const char* const texname)
 {
-    autowad_texname_t*  prev;
-    autowad_texname_t*  current;
+    autowad_texname_t* prev;
+    autowad_texname_t* current;
 
     if (!g_autowad_texname)
         return;
 
     current = g_autowad_texname;
     prev = NULL;
-    for (; ;)
+    for (;;)
     {
         if (!strcmp(current->name, texname))
         {
-            if (!prev)      // start of the list
+            if (!prev) // start of the list
             {
                 g_autowad_texname = current->next;
             }
-            else            // middle of list
+            else // middle of list
             {
                 prev->next = current->next;
             }
@@ -123,7 +123,7 @@ void        autowad_PurgeName(const char* const texname)
 //      removes a name from the autowad list, puts it in memory and retuns pointer (which
 //      shoudl be destructed by the calling function later)
 // =====================================================================================
-char*      autowad_PopName()
+char* autowad_PopName()
 {
     // todo: code
     return NULL;
@@ -133,14 +133,14 @@ char*      autowad_PopName()
 //  autowad_cleanup
 //      frees memory used by autowad procedure
 // =====================================================================================
-void        autowad_cleanup()
+void autowad_cleanup()
 {
     if (g_autowad_texname != NULL)
     {
-        autowad_texname_t*  current;
-        autowad_texname_t*  next;
+        autowad_texname_t* current;
+        autowad_texname_t* next;
 
-        for (current = g_autowad_texname; ; current = next)
+        for (current = g_autowad_texname;; current = next)
         {
             if (!current)
                 break;
@@ -156,14 +156,14 @@ void        autowad_cleanup()
 //  autowad_IsUsedTexture
 //      is this texture in the autowad list?
 // =====================================================================================
-bool        autowad_IsUsedTexture(const char* const texname)
+bool autowad_IsUsedTexture(const char* const texname)
 {
-    autowad_texname_t*  current;
+    autowad_texname_t* current;
 
     if (!g_autowad_texname)
         return false;
 
-    for (current = g_autowad_texname; ; current = current->next)
+    for (current = g_autowad_texname;; current = current->next)
     {
         //Log("atw: IUT: Comparing: '%s' with '%s'\n", current->name, texname);
         if (!strcmp(current->name, texname))
@@ -180,10 +180,10 @@ bool        autowad_IsUsedTexture(const char* const texname)
 // =====================================================================================
 //  GetUsedTextures
 // =====================================================================================
-void        GetUsedTextures()
+void GetUsedTextures()
 {
-    int             i;
-    side_t*         bs;
+    int i;
+    side_t* bs;
 
     for (i = 0; i < g_numbrushsides; i++)
     {
@@ -203,28 +203,28 @@ void        GetUsedTextures()
 
 typedef struct
 {
-    char            identification[4];                     // should be WAD2/WAD3
-    int             numlumps;
-    int             infotableofs;
+    char identification[4]; // should be WAD2/WAD3
+    int numlumps;
+    int infotableofs;
 } wadinfo_t;
 
 typedef struct
 {
-    int             filepos;
-    int             disksize;
-    int             size;                                  // uncompressed
-    char            type;
-    char            compression;
-    char            pad1, pad2;
-    char            name[MAXWADNAME];                      // must be null terminated
+    int filepos;
+    int disksize;
+    int size; // uncompressed
+    char type;
+    char compression;
+    char pad1, pad2;
+    char name[MAXWADNAME]; // must be null terminated
 
-    int             iTexFile;                              // index of the wad this texture is located in
+    int iTexFile; // index of the wad this texture is located in
 
 } lumpinfo_t;
 
-static void     CleanupName(const char* const in, char* out)
+static void CleanupName(const char* const in, char* out)
 {
-    int             i;
+    int i;
 
     for (i = 0; i < MAXWADNAME; i++)
     {
@@ -242,18 +242,18 @@ static void     CleanupName(const char* const in, char* out)
     }
 }
 
-void        autowad_UpdateUsedWads()
+void autowad_UpdateUsedWads()
 {
     // see which wadfiles are needed
     // code for this wad loop somewhat copied from below
-    wadinfo_t       thiswad;
-    lumpinfo_t*     thislump = NULL;
-    wadpath_t*      currentwad;
-    char*           pszWadFile;
-    FILE*           texfile;
-    const char*     pszWadroot = getenv("WADROOT");
-    int             i, j;
-    int             nTexLumps = 0;
+    wadinfo_t thiswad;
+    lumpinfo_t* thislump = NULL;
+    wadpath_t* currentwad;
+    char* pszWadFile;
+    FILE* texfile;
+    const char* pszWadroot = getenv("WADROOT");
+    int i, j;
+    int nTexLumps = 0;
 
 #ifdef _DEBUG
     Log("[dbg] Starting wad dependency check\n");
@@ -264,7 +264,7 @@ void        autowad_UpdateUsedWads()
     {
         currentwad = g_pWadPaths[i];
         pszWadFile = currentwad->path;
-        currentwad->usedbymap = false;  // guilty until proven innocent
+        currentwad->usedbymap = false; // guilty until proven innocent
 
 #ifdef _DEBUG
         Log(" Parsing wad: '%s'\n", pszWadFile);
@@ -272,23 +272,23 @@ void        autowad_UpdateUsedWads()
 
         texfile = fopen(pszWadFile, "rb");
 
-        #ifdef SYSTEM_WIN32
+#ifdef SYSTEM_WIN32
         if (!texfile)
         {
             // cant find it, maybe this wad file has a hard code drive
             if (pszWadFile[1] == ':')
             {
-                pszWadFile += 2;                           // skip past the drive
+                pszWadFile += 2; // skip past the drive
                 texfile = fopen(pszWadFile, "rb");
             }
         }
-        #endif
+#endif
 
-        char            szTmp[_MAX_PATH];
+        char szTmp[_MAX_PATH];
         if (!texfile && pszWadroot)
         {
-            char            szFile[_MAX_PATH];
-            char            szSubdir[_MAX_PATH];
+            char szFile[_MAX_PATH];
+            char szSubdir[_MAX_PATH];
 
             ExtractFile(pszWadFile, szFile);
 
@@ -299,62 +299,62 @@ void        autowad_UpdateUsedWads()
             safe_snprintf(szTmp, _MAX_PATH, "%s" SYSTEM_SLASH_STR "%s%s", pszWadroot, szSubdir, szFile);
             texfile = fopen(szTmp, "rb");
 
-            #ifdef SYSTEM_POSIX
+#ifdef SYSTEM_POSIX
             if (!texfile)
             {
                 // cant find it, Convert to lower case and try again
                 strlwr(szTmp);
                 texfile = fopen(szTmp, "rb");
             }
-            #endif
+#endif
         }
 
-		#ifdef HLCSG_SEARCHWADPATH_VL
-        #ifdef SYSTEM_WIN32
-		if (!texfile && pszWadFile[0] == '\\')
-		{
-			char tmp[_MAX_PATH];
-			int l;
-			for (l = 'C'; l <= 'Z'; ++l)
-			{
-				safe_snprintf (tmp, _MAX_PATH, "%c:%s", l, pszWadFile);
-				texfile = fopen (tmp, "rb");
-				if (texfile)
-				{
-					break;
-				}
-			}
-		}
-		#endif
-		#endif
+#ifdef HLCSG_SEARCHWADPATH_VL
+#ifdef SYSTEM_WIN32
+        if (!texfile && pszWadFile[0] == '\\')
+        {
+            char tmp[_MAX_PATH];
+            int l;
+            for (l = 'C'; l <= 'Z'; ++l)
+            {
+                safe_snprintf(tmp, _MAX_PATH, "%c:%s", l, pszWadFile);
+                texfile = fopen(tmp, "rb");
+                if (texfile)
+                {
+                    break;
+                }
+            }
+        }
+#endif
+#endif
 
         if (!texfile) // still cant find it, skip this one
-		{
+        {
 #ifdef HLCSG_SEARCHWADPATH_VL
-			pszWadFile = currentwad->path; // correct it back
+            pszWadFile = currentwad->path; // correct it back
 #endif
-			if(pszWadroot)
-			{
-				Warning("Wad file '%s' not found, also tried '%s'",pszWadFile,szTmp);
-			}
-			else
-			{
-				Warning("Wad file '%s' not found",pszWadFile);
-			}
+            if (pszWadroot)
+            {
+                Warning("Wad file '%s' not found, also tried '%s'", pszWadFile, szTmp);
+            }
+            else
+            {
+                Warning("Wad file '%s' not found", pszWadFile);
+            }
             continue;
-		}
+        }
 
         // look and see if we're supposed to include the textures from this WAD in the bsp.
         {
-            WadInclude_i    it;
-            bool            including = false;
+            WadInclude_i it;
+            bool including = false;
             for (it = g_WadInclude.begin(); it != g_WadInclude.end(); it++)
             {
                 if (stristr(pszWadFile, it->c_str()))
                 {
-                    #ifdef _DEBUG
+#ifdef _DEBUG
                     Log("  - including wad\n");
-                    #endif
+#endif
                     including = true;
                     currentwad->usedbymap = true;
                     break;
@@ -377,14 +377,14 @@ void        autowad_UpdateUsedWads()
             continue;
         }
 
-        thiswad.numlumps        = LittleLong(thiswad.numlumps);
-        thiswad.infotableofs    = LittleLong(thiswad.infotableofs);
+        thiswad.numlumps = LittleLong(thiswad.numlumps);
+        thiswad.infotableofs = LittleLong(thiswad.infotableofs);
 
         // read in lump
         if (fseek(texfile, thiswad.infotableofs, SEEK_SET))
         {
             fclose(texfile);
-            continue;   // had trouble reading, skip this wad
+            continue; // had trouble reading, skip this wad
         }
 
         // memalloc for this lump
@@ -394,7 +394,8 @@ void        autowad_UpdateUsedWads()
         // for each texlump
         for (j = 0; j < thiswad.numlumps; j++, nTexLumps++)
         {
-            SafeRead(texfile, &thislump[nTexLumps], (sizeof(lumpinfo_t) - sizeof(int)) );  // iTexFile is NOT read from file
+            SafeRead(texfile, &thislump[nTexLumps],
+                     (sizeof(lumpinfo_t) - sizeof(int))); // iTexFile is NOT read from file
 
             CleanupName(thislump[nTexLumps].name, thislump[nTexLumps].name);
 
@@ -402,9 +403,9 @@ void        autowad_UpdateUsedWads()
             {
                 currentwad->usedbymap = true;
                 currentwad->usedtextures++;
-                #ifdef _DEBUG
+#ifdef _DEBUG
                 Log("    - Used wadfile: [%s]\n", thislump[nTexLumps].name);
-                #endif
+#endif
                 autowad_PurgeName(thislump[nTexLumps].name);
             }
         }

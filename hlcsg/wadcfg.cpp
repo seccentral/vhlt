@@ -2,184 +2,187 @@
 
 #include "csg.h"
 #ifdef HLCSG_WADCFG_NEW
-void LoadWadconfig (const char *filename, const char *configname)
+void LoadWadconfig(const char* filename, const char* configname)
 {
-	Log ("Loading wad configuration '%s' from '%s' :\n", configname, filename);
-	int found = 0;
-	int size;
-	char *buffer;
-	size = LoadFile (filename, &buffer);
-	ParseFromMemory (buffer, size);
-	while (GetToken (true))
-	{
-		bool skip = true;
-		if (!strcasecmp (g_token, configname))
-		{
-			skip = false;
-			found++;
-		}
-		if (!GetToken (true) || strcasecmp (g_token, "{"))
-		{
-			Error ("parsing '%s': missing '{'.", filename);
-		}
-		while (1)
-		{
-			if (!GetToken (true))
-			{
-				Error ("parsing '%s': unexpected end of file.", filename);
-			}
-			if (!strcasecmp (g_token, "}"))
-			{
-				break;
-			}
-			if (skip)
-			{
-				continue;
-			}
-			Log (" ");
-			bool include = false;
-			if (!strcasecmp (g_token, "include"))
-			{
-				Log ("include ");
-				include = true;
-				if (!GetToken (true))
-				{
-					Error ("parsing '%s': unexpected end of file.", filename);
-				}
-			}
-			Log ("\"%s\"\n", g_token);
-			if (g_iNumWadPaths >= MAX_WADPATHS)
-			{
-				Error ("parsing '%s': too many wad files.", filename);
-			}
+    Log("Loading wad configuration '%s' from '%s' :\n", configname, filename);
+    int found = 0;
+    int size;
+    char* buffer;
+    size = LoadFile(filename, &buffer);
+    ParseFromMemory(buffer, size);
+    while (GetToken(true))
+    {
+        bool skip = true;
+        if (!strcasecmp(g_token, configname))
+        {
+            skip = false;
+            found++;
+        }
+        if (!GetToken(true) || strcasecmp(g_token, "{"))
+        {
+            Error("parsing '%s': missing '{'.", filename);
+        }
+        while (1)
+        {
+            if (!GetToken(true))
+            {
+                Error("parsing '%s': unexpected end of file.", filename);
+            }
+            if (!strcasecmp(g_token, "}"))
+            {
+                break;
+            }
+            if (skip)
+            {
+                continue;
+            }
+            Log(" ");
+            bool include = false;
+            if (!strcasecmp(g_token, "include"))
+            {
+                Log("include ");
+                include = true;
+                if (!GetToken(true))
+                {
+                    Error("parsing '%s': unexpected end of file.", filename);
+                }
+            }
+            Log("\"%s\"\n", g_token);
+            if (g_iNumWadPaths >= MAX_WADPATHS)
+            {
+                Error("parsing '%s': too many wad files.", filename);
+            }
 #ifdef HLCSG_AUTOWAD_NEW
-			PushWadPath (g_token, !include);
+            PushWadPath(g_token, !include);
 #else
-			wadpath_t *current = (wadpath_t *)malloc (sizeof (wadpath_t));
-			hlassume (current != NULL, assume_NoMemory);
-			g_pWadPaths[g_iNumWadPaths] = current;
-			g_iNumWadPaths++;
-			safe_strncpy (current->path, g_token, _MAX_PATH);
-			current->usedbymap = true; // what's this?
-			current->usedtextures = 0;
-			if (include)
-			{
-				Developer (DEVELOPER_LEVEL_MESSAGE, "LoadWadcfgfile: including '%s'.\n", current->path);
-				g_WadInclude.push_back(current->path);
-			}
+            wadpath_t* current = (wadpath_t*)malloc(sizeof(wadpath_t));
+            hlassume(current != NULL, assume_NoMemory);
+            g_pWadPaths[g_iNumWadPaths] = current;
+            g_iNumWadPaths++;
+            safe_strncpy(current->path, g_token, _MAX_PATH);
+            current->usedbymap = true; // what's this?
+            current->usedtextures = 0;
+            if (include)
+            {
+                Developer(DEVELOPER_LEVEL_MESSAGE, "LoadWadcfgfile: including '%s'.\n", current->path);
+                g_WadInclude.push_back(current->path);
+            }
 #endif
-		}
-	}
-	if (found == 0)
-	{
-		Error ("Couldn't find wad configuration '%s' in file '%s'.\n", configname, filename);
-	}
-	if (found >= 2)
-	{
-		Error ("Found more than one wad configuration for '%s' in file '%s'.\n", configname, filename);
-	}
-	free (buffer); // should not be freed because it is still being used as script buffer
-	//Log ("Using custom wadfile configuration: '%s' (with %i wad%s)\n", configname, count, count > 1 ? "s" : "");
+        }
+    }
+    if (found == 0)
+    {
+        Error("Couldn't find wad configuration '%s' in file '%s'.\n", configname, filename);
+    }
+    if (found >= 2)
+    {
+        Error("Found more than one wad configuration for '%s' in file '%s'.\n", configname, filename);
+    }
+    free(buffer); // should not be freed because it is still being used as script buffer
+    //Log ("Using custom wadfile configuration: '%s' (with %i wad%s)\n", configname, count, count > 1 ? "s" : "");
 }
-void LoadWadcfgfile (const char *filename)
+void LoadWadcfgfile(const char* filename)
 {
-	Log ("Loading wad configuration file '%s' :\n", filename);
-	int size;
-	char *buffer;
-	size = LoadFile (filename, &buffer);
-	ParseFromMemory (buffer, size);
-	while (GetToken (true))
-	{
-		Log (" ");
-		bool include = false;
-		if (!strcasecmp (g_token, "include"))
-		{
-			Log ("include ");
-			include = true;
-			if (!GetToken (true))
-			{
-				Error ("parsing '%s': unexpected end of file.", filename);
-			}
-		}
-		Log ("\"%s\"\n", g_token);
-		if (g_iNumWadPaths >= MAX_WADPATHS)
-		{
-			Error ("parsing '%s': too many wad files.", filename);
-		}
+    Log("Loading wad configuration file '%s' :\n", filename);
+    int size;
+    char* buffer;
+    size = LoadFile(filename, &buffer);
+    ParseFromMemory(buffer, size);
+    while (GetToken(true))
+    {
+        Log(" ");
+        bool include = false;
+        if (!strcasecmp(g_token, "include"))
+        {
+            Log("include ");
+            include = true;
+            if (!GetToken(true))
+            {
+                Error("parsing '%s': unexpected end of file.", filename);
+            }
+        }
+        Log("\"%s\"\n", g_token);
+        if (g_iNumWadPaths >= MAX_WADPATHS)
+        {
+            Error("parsing '%s': too many wad files.", filename);
+        }
 #ifdef HLCSG_AUTOWAD_NEW
-		PushWadPath (g_token, !include);
+        PushWadPath(g_token, !include);
 #else
-		wadpath_t *current = (wadpath_t *)malloc (sizeof (wadpath_t));
-		hlassume (current != NULL, assume_NoMemory);
-		g_pWadPaths[g_iNumWadPaths] = current;
-		g_iNumWadPaths++;
-		safe_strncpy (current->path, g_token, _MAX_PATH);
-		current->usedbymap = true; // what's this?
-		current->usedtextures = 0;
-		if (include)
-		{
-			Developer (DEVELOPER_LEVEL_MESSAGE, "LoadWadcfgfile: including '%s'.\n", current->path);
-			g_WadInclude.push_back(current->path);
-		}
+        wadpath_t* current = (wadpath_t*)malloc(sizeof(wadpath_t));
+        hlassume(current != NULL, assume_NoMemory);
+        g_pWadPaths[g_iNumWadPaths] = current;
+        g_iNumWadPaths++;
+        safe_strncpy(current->path, g_token, _MAX_PATH);
+        current->usedbymap = true; // what's this?
+        current->usedtextures = 0;
+        if (include)
+        {
+            Developer(DEVELOPER_LEVEL_MESSAGE, "LoadWadcfgfile: including '%s'.\n", current->path);
+            g_WadInclude.push_back(current->path);
+        }
 #endif
-	}
-	free (buffer); // should not be freed because it is still being used as script buffer
-	//Log ("Using custom wadfile configuration: '%s' (with %i wad%s)\n", filename, count, count > 1 ? "s" : "");
+    }
+    free(buffer); // should not be freed because it is still being used as script buffer
+    //Log ("Using custom wadfile configuration: '%s' (with %i wad%s)\n", filename, count, count > 1 ? "s" : "");
 }
 #else
 #ifdef HLCSG_WADCFG
 
 //#ifdef SYSTEM_WIN32
-#if defined(SYSTEM_WIN32) && !defined( __GNUC__ )
-#   include "atlbase.h" // win32 registry API
+#if defined(SYSTEM_WIN32) && !defined(__GNUC__)
+#include "atlbase.h" // win32 registry API
 #else
-char *g_apppath = NULL; //JK: Stores application path
+char* g_apppath = NULL; //JK: Stores application path
 #endif
 
 #define WAD_CONFIG_FILE "wad.cfg"
 
-typedef struct wadname_s 
+typedef struct wadname_s
 {
-    char                    wadname[_MAX_PATH];
-    bool                    wadinclude;
-    struct wadname_s*       next;
-} wadname_t; 
+    char wadname[_MAX_PATH];
+    bool wadinclude;
+    struct wadname_s* next;
+} wadname_t;
 
 typedef struct wadconfig_s
 {
-    char                    name[_MAX_PATH];
-    int                     entries;
-    wadname_t*              firstentry;
-    wadconfig_s*            next;
+    char name[_MAX_PATH];
+    int entries;
+    wadname_t* firstentry;
+    wadconfig_s* next;
 } wadconfig_t;
 
-wadconfig_t* g_WadCfg;  // anchor for the wadconfigurations linked list
+wadconfig_t* g_WadCfg; // anchor for the wadconfigurations linked list
 
-bool        g_bWadConfigsLoaded = false;
-int         g_wadcfglinecount = 1;
+bool g_bWadConfigsLoaded = false;
+int g_wadcfglinecount = 1;
 
 //JK: added in
-char *g_wadcfgfile = NULL;
+char* g_wadcfgfile = NULL;
 
 // little helper function
-void stripwadpath (char *str)
+void stripwadpath(char* str)
 {
-    char *p = str + strlen (str) - 1;
-    while ((*p == ' ' || *p == '\n' || *p == '\t') && p >= str) *p-- = '\0';
+    char* p = str + strlen(str) - 1;
+    while ((*p == ' ' || *p == '\n' || *p == '\t') && p >= str)
+        *p-- = '\0';
 }
 
 // =====================================================================================
 //  WadCfgParseError
 // =====================================================================================
-void        WadCfgParseError(const char* message, int linenum, char* got)
+void WadCfgParseError(const char* message, int linenum, char* got)
 {
     stripwadpath(got); // strip newlines
 
     Log("Error parsing " WAD_CONFIG_FILE ", line %i:\n"
-        "%s, got '%s'\n", linenum, message, got);
+        "%s, got '%s'\n",
+        linenum, message, got);
 
-    Log("If you need help on usage of the wad.cfg file, be sure to check http://www.zhlt.info/using-wad.cfg.html that came"
-        " in the zip file with these tools.\n"); 
+    Log("If you need help on usage of the wad.cfg file, be sure to check http://www.zhlt.info/using-wad.cfg.html that "
+        "came"
+        " in the zip file with these tools.\n");
 
     g_bWadConfigsLoaded = false;
 }
@@ -187,9 +190,10 @@ void        WadCfgParseError(const char* message, int linenum, char* got)
 // ============================================================================
 //  IsWhitespace
 // ============================================================================
-bool        IsWhitespace(const char ThinkChar)
+bool IsWhitespace(const char ThinkChar)
 {
-    if ((ThinkChar == ' ') || (ThinkChar == '\t') || (ThinkChar == '\n') || (ThinkChar == 13) /* strange whitespace char */)
+    if ((ThinkChar == ' ') || (ThinkChar == '\t') || (ThinkChar == '\n') ||
+        (ThinkChar == 13) /* strange whitespace char */)
         return true;
 
     return false;
@@ -198,51 +202,51 @@ bool        IsWhitespace(const char ThinkChar)
 // ============================================================================
 //  Safe_GetToken
 // ============================================================================
-void        Safe_GetToken(FILE* source, char* TokenBuffer, const unsigned int MaxBufferLength)
+void Safe_GetToken(FILE* source, char* TokenBuffer, const unsigned int MaxBufferLength)
 {
-    char    ThinkChar[1];       // 2 char array = thinkchar and null terminator
-    bool    InToken = false;    // are we getting a token?
-    bool    InQuotes = false;   // are we in quotes?
-    bool    InComment = false;  // are we in a comment (//)?
+    char ThinkChar[1];      // 2 char array = thinkchar and null terminator
+    bool InToken = false;   // are we getting a token?
+    bool InQuotes = false;  // are we in quotes?
+    bool InComment = false; // are we in a comment (//)?
     //fpos_t* sourcepos;
-    long    sourcepos;
+    long sourcepos;
 
     TokenBuffer[0] = '\0';
     ThinkChar[1] = '\0';
-    
-    while(!feof(source))
+
+    while (!feof(source))
     {
         if (strlen(TokenBuffer) >= MaxBufferLength)
-            return;     // we cant add any more chars onto the buffer, its maxed out
+            return; // we cant add any more chars onto the buffer, its maxed out
 
-        ThinkChar[0] = fgetc(source);   
-        
-        if (ThinkChar[0] == '\n')              // newline
+        ThinkChar[0] = fgetc(source);
+
+        if (ThinkChar[0] == '\n') // newline
         {
             g_wadcfglinecount++;
             InComment = false;
         }
 
         if (ThinkChar[0] == 'ÿ')
-            return;  
-                
-        if (IsWhitespace(ThinkChar[0]) && !InToken)
-            continue;   // whitespace before token, ignore
+            return;
 
-        if (ThinkChar[0] == '"')               // quotes
+        if (IsWhitespace(ThinkChar[0]) && !InToken)
+            continue; // whitespace before token, ignore
+
+        if (ThinkChar[0] == '"') // quotes
         {
-            if(InQuotes)
+            if (InQuotes)
                 InQuotes = false;
             else
                 InQuotes = true;
-            continue;   // dont include quotes
+            continue; // dont include quotes
         }
 
-        if (ThinkChar[0] == '/')             
-        {   
+        if (ThinkChar[0] == '/')
+        {
             sourcepos = ftell(source);
             // might be a comment, see if the next char is a forward slash
-            if (fgetc(source) == '/')    // if it is, were in a comment
+            if (fgetc(source) == '/') // if it is, were in a comment
             {
                 InComment = true;
                 continue;
@@ -253,13 +257,12 @@ void        Safe_GetToken(FILE* source, char* TokenBuffer, const unsigned int Ma
             }
         }
 
-        if (
-             (IsWhitespace(ThinkChar[0]) && InToken && !InQuotes) // whitespace AFTER token and not in quotes
-          || (InToken && InComment) // we hit a comment, and we have our token
-           )
+        if ((IsWhitespace(ThinkChar[0]) && InToken && !InQuotes) // whitespace AFTER token and not in quotes
+            || (InToken && InComment)                            // we hit a comment, and we have our token
+        )
         {
             //printf("[gt: %s]\n", TokenBuffer);
-            return;   
+            return;
         }
 
         if (!InComment)
@@ -275,11 +278,11 @@ void        Safe_GetToken(FILE* source, char* TokenBuffer, const unsigned int Ma
 //      return true if we didnt encounter any fatal errors
 #define MAX_TOKENBUFFER _MAX_PATH
 // =====================================================================================
-bool        GetWadConfig(FILE* wadcfg, wadconfig_t* wadconfig)
+bool GetWadConfig(FILE* wadcfg, wadconfig_t* wadconfig)
 {
-    char            TokenBuffer[MAX_TOKENBUFFER];
-    wadname_t*      current;
-    wadname_t*      previous;
+    char TokenBuffer[MAX_TOKENBUFFER];
+    wadname_t* current;
+    wadname_t* previous;
 
     while (!feof(wadcfg))
     {
@@ -287,11 +290,11 @@ bool        GetWadConfig(FILE* wadcfg, wadconfig_t* wadconfig)
 
         if (!strcmp(TokenBuffer, "}"))
             return true; // no more work to do
-        
+
         if (!strcmp(TokenBuffer, ";"))
             continue; // old seperator, no longer used but here for backwards compadibility
 
-        if (!strcmp(TokenBuffer, "{"))  // wtf
+        if (!strcmp(TokenBuffer, "{")) // wtf
         {
             WadCfgParseError("Expected wadpath (Nested blocks illegal)", g_wadcfglinecount, TokenBuffer);
             return false;
@@ -308,9 +311,9 @@ bool        GetWadConfig(FILE* wadcfg, wadconfig_t* wadconfig)
             current->wadinclude = true;
             Safe_GetToken(wadcfg, TokenBuffer, MAX_TOKENBUFFER);
         }
-        
+
         safe_strncpy(current->wadname, TokenBuffer, sizeof(current->wadname));
-        
+
         if (!wadconfig->firstentry)
         {
             wadconfig->firstentry = current;
@@ -324,50 +327,51 @@ bool        GetWadConfig(FILE* wadcfg, wadconfig_t* wadconfig)
         previous->next = NULL;
     }
 
-    safe_snprintf(TokenBuffer, MAX_TOKENBUFFER, "Unexptected end of file encountered while parsing configuration '%s'", wadconfig->name);
+    safe_snprintf(TokenBuffer, MAX_TOKENBUFFER, "Unexptected end of file encountered while parsing configuration '%s'",
+                  wadconfig->name);
     WadCfgParseError(TokenBuffer, g_wadcfglinecount, "(eof)");
-    return false; 
+    return false;
 }
 #undef MAX_TOKENBUFFER
 
 // =====================================================================================
 //  LoadWadConfigFile
 // =====================================================================================
-void        LoadWadConfigFile()
+void LoadWadConfigFile()
 {
-    FILE*           wadcfg;
-    wadconfig_t*    current;
-    wadconfig_t*    previous;
+    FILE* wadcfg;
+    wadconfig_t* current;
+    wadconfig_t* previous;
 
-    char            temp[_MAX_PATH];
+    char temp[_MAX_PATH];
 
     //JK: If exists lets use user-defined file
     if (g_wadcfgfile && q_exists(g_wadcfgfile))
     {
-    	wadcfg = fopen(g_wadcfgfile, "r");
+        wadcfg = fopen(g_wadcfgfile, "r");
     }
     else // find the wad.cfg file
     {
-        char    appdir[_MAX_PATH];
-        char    tmp[_MAX_PATH];
-                
+        char appdir[_MAX_PATH];
+        char tmp[_MAX_PATH];
+
         memset(tmp, 0, sizeof(tmp));
         memset(appdir, 0, sizeof(appdir));
 
-        // Get application directory (only an approximation on posix systems)
-        // try looking in the directory we were run from
-        #ifdef SYSTEM_WIN32
+// Get application directory (only an approximation on posix systems)
+// try looking in the directory we were run from
+#ifdef SYSTEM_WIN32
         GetModuleFileName(NULL, tmp, _MAX_PATH);
-        #else
+#else
         safe_strncpy(tmp, g_apppath, _MAX_PATH);
-        #endif
-    
+#endif
+
         ExtractFilePath(tmp, appdir);
         safe_snprintf(tmp, _MAX_PATH, "%s%s", appdir, WAD_CONFIG_FILE);
 
-        #ifdef _DEBUG
+#ifdef _DEBUG
         Log("[dbg] Trying '%s'\n", tmp);
-        #endif
+#endif
 
         if (!q_exists(tmp))
         {
@@ -401,7 +405,7 @@ void        LoadWadConfigFile()
                 // still cant find it, error out
                 Log("Warning: could not find wad configurations file\n"
                     /*"Make sure that wad.cfg is in the Half-Life directory or the current working directory\n"*/
-                   );
+                );
                 return;
             }
         }
@@ -413,20 +417,18 @@ void        LoadWadConfigFile()
     {
         // cant open it, die
         Log("Warning: could not open the wad configurations file\n"
-            "Make sure that wad.cfg is in the Half-Life directory or the current working directory\n"
-            );
+            "Make sure that wad.cfg is in the Half-Life directory or the current working directory\n");
         return;
     }
 
-    while(!feof(wadcfg))
+    while (!feof(wadcfg))
     {
         Safe_GetToken(wadcfg, temp, MAX_WAD_CFG_NAME);
 
-        if (!strcmp(temp, "HalfLifePath="))  // backwards compadibitly
+        if (!strcmp(temp, "HalfLifePath=")) // backwards compadibitly
         {
-            Safe_GetToken(wadcfg, temp, MAX_WAD_CFG_NAME); 
-            Warning("Redundant line in " WAD_CONFIG_FILE ": \"HalfLifePath= %s\" - Ignoring...\n",
-                temp);
+            Safe_GetToken(wadcfg, temp, MAX_WAD_CFG_NAME);
+            Warning("Redundant line in " WAD_CONFIG_FILE ": \"HalfLifePath= %s\" - Ignoring...\n", temp);
             continue;
         }
 
@@ -477,14 +479,14 @@ void        LoadWadConfigFile()
 // =====================================================================================
 //  ProcessWadConfiguration
 // =====================================================================================
-void        ProcessWadConfiguration()
+void ProcessWadConfiguration()
 {
-    int             usedwads = 0;
-    char            szTmp[1024]; // arbitrary, but needs to be large. probably bigger than this.
-    wadconfig_t*    config;
-    wadname_t*      path;
+    int usedwads = 0;
+    char szTmp[1024]; // arbitrary, but needs to be large. probably bigger than this.
+    wadconfig_t* config;
+    wadname_t* path;
 
-    if(!g_bWadConfigsLoaded) // we did a graceful exit due to some warning/error, so dont complain about it
+    if (!g_bWadConfigsLoaded) // we did a graceful exit due to some warning/error, so dont complain about it
     {
         Log("Using mapfile wad configuration\n");
         return;
@@ -524,7 +526,7 @@ void        ProcessWadConfiguration()
                 // next path
                 path = path->next;
             }
-            break;  // the user can only specify one wad configuration, were done here
+            break; // the user can only specify one wad configuration, were done here
         }
 
         // next config
@@ -532,17 +534,19 @@ void        ProcessWadConfiguration()
         if (!config)
             break;
     }
-    
+
     if (usedwads)
     {
-        Log("Using custom wadfile configuration: '%s' (with %i wad%s)\n", wadconfigname, usedwads, usedwads > 1 ? "s" : "");
+        Log("Using custom wadfile configuration: '%s' (with %i wad%s)\n", wadconfigname, usedwads,
+            usedwads > 1 ? "s" : "");
         SetKeyValue(&g_entities[0], "wad", szTmp);
-        SetKeyValue(&g_entities[0], "_wad", szTmp);    
+        SetKeyValue(&g_entities[0], "_wad", szTmp);
     }
     else
     {
         Warning("no wadfiles are specified in configuration '%s' --\n"
-                "Using map wadfile configuration", wadconfigname);
+                "Using map wadfile configuration",
+                wadconfigname);
         g_bWadConfigsLoaded = false;
     }
 
@@ -552,12 +556,12 @@ void        ProcessWadConfiguration()
 // =====================================================================================
 //  WadCfg_cleanup
 // =====================================================================================
-void        WadCfg_cleanup()
+void WadCfg_cleanup()
 {
-    wadconfig_t*    config;
-    wadconfig_t*    nextconfig;
-    wadname_t*      path;
-    wadname_t*      nextpath;
+    wadconfig_t* config;
+    wadconfig_t* nextconfig;
+    wadname_t* path;
+    wadname_t* nextpath;
 
     config = g_WadCfg;
     while (config)
@@ -575,11 +579,10 @@ void        WadCfg_cleanup()
         config = nextconfig;
     }
 
-	g_WadCfg = NULL;
-	g_bWadConfigsLoaded = false;
+    g_WadCfg = NULL;
+    g_bWadConfigsLoaded = false;
     return;
 }
-
 
 
 #endif // HLCSG_WADCFG

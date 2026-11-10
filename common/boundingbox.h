@@ -4,7 +4,7 @@
 
 // AJM:
 #if defined(_MSC_VER)
-#pragma warning(disable: 4305)                             // truncation from 'const double' to 'float'
+#pragma warning(disable : 4305) // truncation from 'const double' to 'float'
 #endif
 
 
@@ -18,32 +18,25 @@
 
 class BoundingBox
 {
-public:
+  public:
     typedef enum
     {
-        eDisjoint,      // neither boxes touch
-        eUnion,         // this box intersects with the other box
-        eSubset,        // this box is inside the other box
-        eSuperset       // this box is completly envelops the other box
+        eDisjoint, // neither boxes touch
+        eUnion,    // this box intersects with the other box
+        eSubset,   // this box is inside the other box
+        eSuperset  // this box is completly envelops the other box
     } eBoundingState;
 
     // Tests if other box is completely outside of this box
     bool testDisjoint(const BoundingBox& other) const
     {
 #ifdef ZHLT_BOUNDINGBOX_PRECISION_FIX
-        if ((m_Mins[0] > other.m_Maxs[0] + ON_EPSILON) ||
-            (m_Mins[1] > other.m_Maxs[1] + ON_EPSILON) ||
-            (m_Mins[2] > other.m_Maxs[2] + ON_EPSILON) ||
-            (m_Maxs[0] < other.m_Mins[0] - ON_EPSILON) ||
-            (m_Maxs[1] < other.m_Mins[1] - ON_EPSILON) ||
-            (m_Maxs[2] < other.m_Mins[2] - ON_EPSILON))
+        if ((m_Mins[0] > other.m_Maxs[0] + ON_EPSILON) || (m_Mins[1] > other.m_Maxs[1] + ON_EPSILON) ||
+            (m_Mins[2] > other.m_Maxs[2] + ON_EPSILON) || (m_Maxs[0] < other.m_Mins[0] - ON_EPSILON) ||
+            (m_Maxs[1] < other.m_Mins[1] - ON_EPSILON) || (m_Maxs[2] < other.m_Mins[2] - ON_EPSILON))
 #else
-        if ((m_Mins[0] > other.m_Maxs[0]) ||
-            (m_Mins[1] > other.m_Maxs[1]) ||
-            (m_Mins[2] > other.m_Maxs[2]) ||
-            (m_Maxs[0] < other.m_Mins[0]) ||
-            (m_Maxs[1] < other.m_Mins[1]) ||
-            (m_Maxs[2] < other.m_Mins[2]))
+        if ((m_Mins[0] > other.m_Maxs[0]) || (m_Mins[1] > other.m_Maxs[1]) || (m_Mins[2] > other.m_Maxs[2]) ||
+            (m_Maxs[0] < other.m_Mins[0]) || (m_Maxs[1] < other.m_Mins[1]) || (m_Maxs[2] < other.m_Mins[2]))
 #endif
         {
             return true;
@@ -53,14 +46,8 @@ public:
     // returns true if this box is completely inside other box
     bool testSubset(const BoundingBox& other) const
     {
-        if (
-                (m_Mins[0] >= other.m_Mins[0]) &&
-                (m_Maxs[0] <= other.m_Maxs[0]) &&
-                (m_Mins[1] >= other.m_Mins[1]) &&
-                (m_Maxs[1] <= other.m_Maxs[1]) &&
-                (m_Mins[2] >= other.m_Mins[2]) &&
-                (m_Maxs[2] <= other.m_Maxs[2])
-           )
+        if ((m_Mins[0] >= other.m_Mins[0]) && (m_Maxs[0] <= other.m_Maxs[0]) && (m_Mins[1] >= other.m_Mins[1]) &&
+            (m_Maxs[1] <= other.m_Maxs[1]) && (m_Mins[2] >= other.m_Mins[2]) && (m_Maxs[2] <= other.m_Maxs[2]))
         {
             return true;
         }
@@ -82,8 +69,7 @@ public:
         tmpBox.m_Maxs[1] = qmin(m_Maxs[1], other.m_Maxs[1]);
         tmpBox.m_Maxs[2] = qmin(m_Maxs[2], other.m_Maxs[2]);
 
-        if ((tmpBox.m_Mins[0] > tmpBox.m_Maxs[0]) ||
-            (tmpBox.m_Mins[1] > tmpBox.m_Maxs[1]) ||
+        if ((tmpBox.m_Mins[0] > tmpBox.m_Maxs[0]) || (tmpBox.m_Mins[1] > tmpBox.m_Maxs[1]) ||
             (tmpBox.m_Mins[2] > tmpBox.m_Maxs[2]))
         {
             return false;
@@ -119,7 +105,7 @@ public:
     }
     void reset()
     {
-        VectorFill(m_Mins,  999999999.999);
+        VectorFill(m_Mins, 999999999.999);
         VectorFill(m_Maxs, -999999999.999);
     }
     void add(const vec3_t point)
@@ -137,7 +123,7 @@ public:
         add(other.m_Maxs);
     }
 
-public:
+  public:
     // BoundingBox(const BoundingBox& other) // Default copy constructor ok
     // BoundingBox& operator=(const BoundingBox& other); // Default copy operator ok
     BoundingBox()
@@ -149,12 +135,14 @@ public:
         VectorCopy(mins, m_Mins);
         VectorCopy(maxs, m_Maxs);
     }
-    ~BoundingBox() {}
+    ~BoundingBox()
+    {
+    }
 
-public:
+  public:
     // Bounding box
     vec3_t m_Mins;
     vec3_t m_Maxs;
 };
 
-#endif//BOUNDINGBOX_H__
+#endif //BOUNDINGBOX_H__

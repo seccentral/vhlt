@@ -5,26 +5,27 @@
 
 #ifdef HLRAD_HULLU
 
-typedef struct {
-	unsigned x;
-	unsigned y;
-	vec3_t transparency;
-} transparency_t;
-static transparency_t *s_transparency_list=NULL;
-static unsigned long s_transparency_count=0;
-static unsigned long s_max_transparency_count=0;
-
-static void FindOpacity(const unsigned p1, const unsigned p2, vec3_t &out)
+typedef struct
 {
-	for(unsigned long i = 0; i < s_transparency_count; i++)
-	{
-		if(s_transparency_list[i].x==p1 && s_transparency_list[i].y==p2)
-		{
-			VectorCopy(s_transparency_list[i].transparency, out);
-			return;
-		}
-	}
-	VectorFill(out, 1.0);
+    unsigned x;
+    unsigned y;
+    vec3_t transparency;
+} transparency_t;
+static transparency_t* s_transparency_list = NULL;
+static unsigned long s_transparency_count = 0;
+static unsigned long s_max_transparency_count = 0;
+
+static void FindOpacity(const unsigned p1, const unsigned p2, vec3_t& out)
+{
+    for (unsigned long i = 0; i < s_transparency_count; i++)
+    {
+        if (s_transparency_list[i].x == p1 && s_transparency_list[i].y == p2)
+        {
+            VectorCopy(s_transparency_list[i].transparency, out);
+            return;
+        }
+    }
+    VectorFill(out, 1.0);
 }
 
 #endif /*HLRAD_HULLU*/
@@ -33,26 +34,24 @@ static void FindOpacity(const unsigned p1, const unsigned p2, vec3_t &out)
 
 typedef struct
 {
-    unsigned        offset:24;
-    unsigned        values:8;
-}
-sparse_row_t;
+    unsigned offset : 24;
+    unsigned values : 8;
+} sparse_row_t;
 
 typedef struct
 {
-    sparse_row_t*   row;
-    int             count;
-}
-sparse_column_t;
+    sparse_row_t* row;
+    int count;
+} sparse_column_t;
 
 sparse_column_t* s_vismatrix;
 
 // Vismatrix protected
 static unsigned IsVisbitInArray(const unsigned x, const unsigned y)
 {
-    int             first, last, current;
-    int             y_byte = y / 8;
-    sparse_row_t*  row;
+    int first, last, current;
+    int y_byte = y / 8;
+    sparse_row_t* row;
     sparse_column_t* column = s_vismatrix + x;
 
     if (!column->count)
@@ -90,93 +89,93 @@ static unsigned IsVisbitInArray(const unsigned x, const unsigned y)
 }
 
 #ifdef HLRAD_SPARSEVISMATRIX_FAST
-static void		SetVisColumn (int patchnum, bool uncompressedcolumn[MAX_SPARSE_VISMATRIX_PATCHES])
+static void SetVisColumn(int patchnum, bool uncompressedcolumn[MAX_SPARSE_VISMATRIX_PATCHES])
 {
-	sparse_column_t *column;
-	int mbegin;
-	int m;
-	int i;
-	unsigned int bits;
+    sparse_column_t* column;
+    int mbegin;
+    int m;
+    int i;
+    unsigned int bits;
 
-	column = &s_vismatrix[patchnum];
-	if (column->count || column->row)
-	{
-		Error ("SetVisColumn: column has been set");
-	}
+    column = &s_vismatrix[patchnum];
+    if (column->count || column->row)
+    {
+        Error("SetVisColumn: column has been set");
+    }
 
-	for (mbegin = 0; mbegin < g_num_patches; mbegin += 8)
-	{
-		bits = 0;
-		for (m = mbegin; m < mbegin + 8; m++)
-		{
-			if (m >= g_num_patches)
-			{
-				break;
-			}
-			if (uncompressedcolumn[m]) // visible
-			{
-				if (m < patchnum)
-				{
-					Error ("SetVisColumn: invalid parameter: m < patchnum");
-				}
-				bits |= (1 << (m - mbegin));
-			}
-		}
-		if (bits)
-		{
-			column->count++;
-		}
-	}
+    for (mbegin = 0; mbegin < g_num_patches; mbegin += 8)
+    {
+        bits = 0;
+        for (m = mbegin; m < mbegin + 8; m++)
+        {
+            if (m >= g_num_patches)
+            {
+                break;
+            }
+            if (uncompressedcolumn[m]) // visible
+            {
+                if (m < patchnum)
+                {
+                    Error("SetVisColumn: invalid parameter: m < patchnum");
+                }
+                bits |= (1 << (m - mbegin));
+            }
+        }
+        if (bits)
+        {
+            column->count++;
+        }
+    }
 
-	if (!column->count)
-	{
-		return;
-	}
-	column->row = (sparse_row_t *)malloc (column->count * sizeof (sparse_row_t));
-	hlassume (column->row != NULL, assume_NoMemory);
+    if (!column->count)
+    {
+        return;
+    }
+    column->row = (sparse_row_t*)malloc(column->count * sizeof(sparse_row_t));
+    hlassume(column->row != NULL, assume_NoMemory);
 
-	i = 0;
-	for (mbegin = 0; mbegin < g_num_patches; mbegin += 8)
-	{
-		bits = 0;
-		for (m = mbegin; m < mbegin + 8; m++)
-		{
-			if (m >= g_num_patches)
-			{
-				break;
-			}
-			if (uncompressedcolumn[m]) // visible
-			{
-				bits |= (1 << (m - mbegin));
-			}
-		}
-		if (bits)
-		{
-			column->row[i].offset = mbegin / 8;
-			column->row[i].values = bits;
-			i++;
-		}
-	}
-	if (i != column->count)
-	{
-		Error ("SetVisColumn: internal error");
-	}
+    i = 0;
+    for (mbegin = 0; mbegin < g_num_patches; mbegin += 8)
+    {
+        bits = 0;
+        for (m = mbegin; m < mbegin + 8; m++)
+        {
+            if (m >= g_num_patches)
+            {
+                break;
+            }
+            if (uncompressedcolumn[m]) // visible
+            {
+                bits |= (1 << (m - mbegin));
+            }
+        }
+        if (bits)
+        {
+            column->row[i].offset = mbegin / 8;
+            column->row[i].values = bits;
+            i++;
+        }
+    }
+    if (i != column->count)
+    {
+        Error("SetVisColumn: internal error");
+    }
 }
 #else
 // Vismatrix protected
-static void     InsertVisbitIntoArray(const unsigned x, const unsigned y)
+static void InsertVisbitIntoArray(const unsigned x, const unsigned y)
 {
-    unsigned        count;
-    unsigned        y_byte = y / 8;
+    unsigned count;
+    unsigned y_byte = y / 8;
     sparse_column_t* column = s_vismatrix + x;
-    sparse_row_t*   row = column->row;
+    sparse_row_t* row = column->row;
 
     if (!column->count)
     {
         column->count++;
         row = column->row = (sparse_row_t*)malloc(sizeof(sparse_row_t));
 #ifdef HLRAD_HLASSUMENOMEMORY
-		hlassume (row != NULL, assume_NoMemory);
+        hlassume(row != NULL, assume_NoMemory);
 #endif
         row->offset = y_byte;
         row->values = 1 << (y & 7);
@@ -189,10 +188,10 @@ static void     InsertVisbitIntoArray(const unsigned x, const unsigned y)
     {
         if (row->offset > y_byte)
         {
-            unsigned        newsize = (column->count + 1) * sizeof(sparse_row_t);
-            sparse_row_t*   newrow = (sparse_row_t*)malloc(newsize);
+            unsigned newsize = (column->count + 1) * sizeof(sparse_row_t);
+            sparse_row_t* newrow = (sparse_row_t*)malloc(newsize);
 #ifdef HLRAD_HLASSUMENOMEMORY
-			hlassume (newrow != NULL, assume_NoMemory);
+            hlassume(newrow != NULL, assume_NoMemory);
 #endif
 
             memcpy(newrow, column->row, count * sizeof(sparse_row_t));
@@ -214,10 +213,10 @@ static void     InsertVisbitIntoArray(const unsigned x, const unsigned y)
 
     // Append
     {
-        unsigned        newsize = (count + 1) * sizeof(sparse_row_t);
-        sparse_row_t*   newrow = (sparse_row_t*)malloc(newsize);
+        unsigned newsize = (count + 1) * sizeof(sparse_row_t);
+        sparse_row_t* newrow = (sparse_row_t*)malloc(newsize);
 #ifdef HLRAD_HLASSUMENOMEMORY
-		hlassume (newrow != NULL, assume_NoMemory);
+        hlassume(newrow != NULL, assume_NoMemory);
 #endif
 
         memcpy(newrow, column->row, column->count * sizeof(sparse_row_t));
@@ -234,9 +233,9 @@ static void     InsertVisbitIntoArray(const unsigned x, const unsigned y)
 }
 
 // Vismatrix public
-static void     SetVisBit(unsigned x, unsigned y)
+static void SetVisBit(unsigned x, unsigned y)
 {
-    unsigned        offset;
+    unsigned offset;
 
     if (x == y)
     {
@@ -277,21 +276,21 @@ static void     SetVisBit(unsigned x, unsigned y)
 
 // Vismatrix public
 #ifdef HLRAD_TRANSPARENCY_CPP
-static bool     CheckVisBitSparse(unsigned x, unsigned y
+static bool CheckVisBitSparse(unsigned x, unsigned y
 #ifdef HLRAD_HULLU
-								  , vec3_t &transparency_out
-								  , unsigned int &next_index
+                              ,
+                              vec3_t& transparency_out, unsigned int& next_index
 #endif
-								  )
+)
 {
 #ifdef HLRAD_HULLU
-    int                offset;
+    int offset;
 #else
-    unsigned        offset;
+    unsigned offset;
 #endif
 
 #ifdef HLRAD_HULLU
-    	VectorFill(transparency_out, 1.0);
+    VectorFill(transparency_out, 1.0);
 #endif
 
     if (x == y)
@@ -326,29 +325,30 @@ static bool     CheckVisBitSparse(unsigned x, unsigned y
     if ((offset = IsVisbitInArray(x, y)) != -1)
     {
 #ifdef HLRAD_HULLU
-    	if(g_customshadow_with_bouncelight)
-    	{
-    	     GetTransparency(a, b, transparency_out, next_index);
-    	}
+        if (g_customshadow_with_bouncelight)
+        {
+            GetTransparency(a, b, transparency_out, next_index);
+        }
 #endif
         return s_vismatrix[x].row[offset].values & (1 << (y & 7));
     }
 
-	return false;
+    return false;
 }
 #else /*HLRAD_TRANSPARENCY_CPP*/
-static bool     CheckVisBitSparse(unsigned x, unsigned y
+static bool CheckVisBitSparse(unsigned x, unsigned y
 #ifdef HLRAD_HULLU
-								  , vec3_t &transparency_out
+                              ,
+                              vec3_t& transparency_out
 #endif
-								  )
+)
 {
-    unsigned        offset;
+    unsigned offset;
 
     if (x == y)
     {
 #ifdef HLRAD_HULLU
-    	VectorFill(transparency_out, 1.0);
+        VectorFill(transparency_out, 1.0);
 #endif
         return 1;
     }
@@ -373,16 +373,16 @@ static bool     CheckVisBitSparse(unsigned x, unsigned y
     if ((offset = IsVisbitInArray(x, y)) != -1)
     {
 #ifdef HLRAD_HULLU
-    	if(g_customshadow_with_bouncelight)
-    	{
-    	     vec3_t tmp = {1.0, 1.0, 1.0};
-    	     FindOpacity(x, y, tmp);
-    	     VectorCopy(tmp, transparency_out);
-    	}
-    	else
-    	{
-    	     VectorFill(transparency_out, 1.0);
-    	}
+        if (g_customshadow_with_bouncelight)
+        {
+            vec3_t tmp = {1.0, 1.0, 1.0};
+            FindOpacity(x, y, tmp);
+            VectorCopy(tmp, transparency_out);
+        }
+        else
+        {
+            VectorFill(transparency_out, 1.0);
+        }
 #endif
         return s_vismatrix[x].row[offset].values & (1 << (y & 7));
     }
@@ -400,17 +400,19 @@ static bool     CheckVisBitSparse(unsigned x, unsigned y
  * Sets vis bits for all patches in the face
  * ==============
  */
-static void     TestPatchToFace(const unsigned patchnum, const int facenum, const int head
+static void TestPatchToFace(const unsigned patchnum, const int facenum, const int head
 #ifdef HLRAD_ENTITYBOUNCE_FIX
-								, byte *pvs
+                            ,
+                            byte* pvs
 #endif
 #ifdef HLRAD_SPARSEVISMATRIX_FAST
-								, bool uncompressedcolumn[MAX_SPARSE_VISMATRIX_PATCHES]
+                            ,
+                            bool uncompressedcolumn[MAX_SPARSE_VISMATRIX_PATCHES]
 #endif
-								)
+)
 {
-    patch_t*        patch = &g_patches[patchnum];
-    patch_t*        patch2 = g_face_patches[facenum];
+    patch_t* patch = &g_patches[patchnum];
+    patch_t* patch2 = g_face_patches[facenum];
 
     // if emitter is behind that face plane, skip all patches
 
@@ -419,7 +421,7 @@ static void     TestPatchToFace(const unsigned patchnum, const int facenum, cons
         const dplane_t* plane2 = getPlaneFromFaceNumber(facenum);
 
 #ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-		if (DotProduct (patch->origin, plane2->normal) > PatchPlaneDist (patch2) + ON_EPSILON - patch->emitter_range)
+        if (DotProduct(patch->origin, plane2->normal) > PatchPlaneDist(patch2) + ON_EPSILON - patch->emitter_range)
 #else
         if (DotProduct(patch->origin, plane2->normal) > (PatchPlaneDist(patch2) + MINIMUM_PATCH_DISTANCE))
 #endif
@@ -429,13 +431,13 @@ static void     TestPatchToFace(const unsigned patchnum, const int facenum, cons
 
             for (; patch2; patch2 = patch2->next)
             {
-                unsigned        m = patch2 - g_patches;
+                unsigned m = patch2 - g_patches;
 
 #ifdef HLRAD_HULLU
-                vec3_t		transparency = {1.0,1.0,1.0};
+                vec3_t transparency = {1.0, 1.0, 1.0};
 #endif
 #ifdef HLRAD_OPAQUE_STYLE
-				int opaquestyle = -1;
+                int opaquestyle = -1;
 #endif
 
                 // check vis between patch and patch2
@@ -443,128 +445,131 @@ static void     TestPatchToFace(const unsigned patchnum, const int facenum, cons
                 //  && v2 is not behind light plane
                 //  && v2 is visible from v1
                 if (m > patchnum)
-				{
+                {
 #ifdef HLRAD_ENTITYBOUNCE_FIX
-					if (patch2->leafnum == 0 || !(pvs[(patch2->leafnum - 1) >> 3] & (1 << ((patch2->leafnum - 1) & 7))))
-					{
-						continue;
-					}
+                    if (patch2->leafnum == 0 || !(pvs[(patch2->leafnum - 1) >> 3] & (1 << ((patch2->leafnum - 1) & 7))))
+                    {
+                        continue;
+                    }
 #endif
 #ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-					vec3_t origin1, origin2;
-					vec3_t delta;
-					vec_t dist;
-					VectorSubtract (patch->origin, patch2->origin, delta);
-					dist = VectorLength (delta);
-					if (dist < patch2->emitter_range - ON_EPSILON)
-					{
-						GetAlternateOrigin (patch->origin, plane->normal, patch2, origin2);
-					}
-					else
-					{
-						VectorCopy (patch2->origin, origin2);
-					}
-					if (DotProduct (origin2, plane->normal) <= PatchPlaneDist (patch) + MINIMUM_PATCH_DISTANCE)
-					{
-						continue;
-					}
-					if (dist < patch->emitter_range - ON_EPSILON)
-					{
-						GetAlternateOrigin (patch2->origin, plane2->normal, patch, origin1);
-					}
-					else
-					{
-						VectorCopy (patch->origin, origin1);
-					}
-					if (DotProduct (origin1, plane2->normal) <= PatchPlaneDist (patch2) + MINIMUM_PATCH_DISTANCE)
-					{
-						continue;
-					}
+                    vec3_t origin1, origin2;
+                    vec3_t delta;
+                    vec_t dist;
+                    VectorSubtract(patch->origin, patch2->origin, delta);
+                    dist = VectorLength(delta);
+                    if (dist < patch2->emitter_range - ON_EPSILON)
+                    {
+                        GetAlternateOrigin(patch->origin, plane->normal, patch2, origin2);
+                    }
+                    else
+                    {
+                        VectorCopy(patch2->origin, origin2);
+                    }
+                    if (DotProduct(origin2, plane->normal) <= PatchPlaneDist(patch) + MINIMUM_PATCH_DISTANCE)
+                    {
+                        continue;
+                    }
+                    if (dist < patch->emitter_range - ON_EPSILON)
+                    {
+                        GetAlternateOrigin(patch2->origin, plane2->normal, patch, origin1);
+                    }
+                    else
+                    {
+                        VectorCopy(patch->origin, origin1);
+                    }
+                    if (DotProduct(origin1, plane2->normal) <= PatchPlaneDist(patch2) + MINIMUM_PATCH_DISTANCE)
+                    {
+                        continue;
+                    }
 #else
-					if (DotProduct(patch2->origin, plane->normal) <= (PatchPlaneDist(patch) + MINIMUM_PATCH_DISTANCE))
-					{
-						continue;
-					}
+                    if (DotProduct(patch2->origin, plane->normal) <= (PatchPlaneDist(patch) + MINIMUM_PATCH_DISTANCE))
+                    {
+                        continue;
+                    }
 #endif
 #ifdef HLRAD_WATERBLOCKLIGHT
                     if (TestLine(
-	#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-						origin1, origin2
-	#else
-						patch->origin, patch2->origin
-	#endif
-						) != CONTENTS_EMPTY)
+#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
+                            origin1, origin2
+#else
+                            patch->origin, patch2->origin
+#endif
+                            ) != CONTENTS_EMPTY)
 #else
                     if (TestLine_r(head,
-	#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-						origin1, origin2
-	#else
-						patch->origin, patch2->origin
-	#endif
-						) != CONTENTS_EMPTY)
+#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
+                                   origin1, origin2
+#else
+                                   patch->origin, patch2->origin
 #endif
-					{
-						continue;
-					}
+                                   ) != CONTENTS_EMPTY)
+#endif
+                    {
+                        continue;
+                    }
                     if (TestSegmentAgainstOpaqueList(
-	#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-						origin1, origin2
-	#else
-						patch->origin, patch2->origin
-	#endif
+#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
+                            origin1, origin2
+#else
+                            patch->origin, patch2->origin
+#endif
 #ifdef HLRAD_HULLU
-						, transparency
+                            ,
+                            transparency
 #endif
 #ifdef HLRAD_OPAQUE_STYLE
-						, opaquestyle
+                            ,
+                            opaquestyle
 #endif
-					))
-					{
-						continue;
-					}
+                            ))
+                    {
+                        continue;
+                    }
 
 #ifdef HLRAD_OPAQUE_STYLE_BOUNCE
-					if (opaquestyle != -1)
-					{
-						AddStyleToStyleArray (m, patchnum, opaquestyle);
-						AddStyleToStyleArray (patchnum, m, opaquestyle);
-					}
+                    if (opaquestyle != -1)
+                    {
+                        AddStyleToStyleArray(m, patchnum, opaquestyle);
+                        AddStyleToStyleArray(patchnum, m, opaquestyle);
+                    }
 #endif
 
 #ifdef HLRAD_HULLU
-	#ifdef HLRAD_TRANSPARENCY_CPP
-                    if(g_customshadow_with_bouncelight && !VectorCompare(transparency, vec3_one) )
+#ifdef HLRAD_TRANSPARENCY_CPP
+                    if (g_customshadow_with_bouncelight && !VectorCompare(transparency, vec3_one))
                     {
-                    	AddTransparencyToRawArray(patchnum, m, transparency);
+                        AddTransparencyToRawArray(patchnum, m, transparency);
                     }
-	#else
+#else
                     // transparency face fix table
-                    if(g_customshadow_with_bouncelight && fabs(VectorAvg(transparency) - 1.0) < 0.001)
+                    if (g_customshadow_with_bouncelight && fabs(VectorAvg(transparency) - 1.0) < 0.001)
                     {
-                    	while(s_transparency_count>=s_max_transparency_count)
-                    	{
-                    	    //new size
-                    	    unsigned long oldsize = s_max_transparency_count;
-                    	    s_max_transparency_count += 128;
+                        while (s_transparency_count >= s_max_transparency_count)
+                        {
+                            //new size
+                            unsigned long oldsize = s_max_transparency_count;
+                            s_max_transparency_count += 128;
 
-                    	    //realloc
-                    	    s_transparency_list = (transparency_t*)realloc(s_transparency_list, s_max_transparency_count * sizeof(transparency_t));
+                            //realloc
+                            s_transparency_list = (transparency_t*)realloc(
+                                s_transparency_list, s_max_transparency_count * sizeof(transparency_t));
 
-                    	    // clean new memory
-                    	    memset(&s_transparency_list[oldsize], 0, sizeof(transparency_t) * 128);
-                    	}
+                            // clean new memory
+                            memset(&s_transparency_list[oldsize], 0, sizeof(transparency_t) * 128);
+                        }
 
-                    	//add to array
-                    	VectorCopy(transparency, s_transparency_list[s_transparency_count].transparency);
-                	s_transparency_list[s_transparency_count].y = m;
-                    	s_transparency_list[s_transparency_count].x = patchnum;
+                        //add to array
+                        VectorCopy(transparency, s_transparency_list[s_transparency_count].transparency);
+                        s_transparency_list[s_transparency_count].y = m;
+                        s_transparency_list[s_transparency_count].x = patchnum;
 
-                    	s_transparency_count++;
+                        s_transparency_count++;
                     }
-	#endif
+#endif
 #endif /*HLRAD_HULLU*/
 #ifdef HLRAD_SPARSEVISMATRIX_FAST
-					uncompressedcolumn[m] = true;
+                    uncompressedcolumn[m] = true;
 #else
                     SetVisBit(m, patchnum);
 #endif
@@ -582,11 +587,11 @@ static void     TestPatchToFace(const unsigned patchnum, const int facenum, cons
  * Calc vis bits from a single patch
  * ==============
  */
-static void     BuildVisRow(const int patchnum, byte* pvs, const int head)
+static void BuildVisRow(const int patchnum, byte* pvs, const int head)
 {
-    int             j, k, l;
-    byte            face_tested[MAX_MAP_FACES];
-    dleaf_t*        leaf;
+    int j, k, l;
+    byte face_tested[MAX_MAP_FACES];
+    dleaf_t* leaf;
 
     memset(face_tested, 0, g_numfaces);
 
@@ -599,7 +604,7 @@ static void     BuildVisRow(const int patchnum, byte* pvs, const int head)
     {
         if (!(pvs[(j - 1) >> 3] & (1 << ((j - 1) & 7))))
         {
-            continue;                                      // not in pvs
+            continue; // not in pvs
         }
         for (k = 0; k < leaf->nummarksurfaces; k++)
         {
@@ -613,9 +618,10 @@ static void     BuildVisRow(const int patchnum, byte* pvs, const int head)
 
             TestPatchToFace(patchnum, l, head
 #ifdef HLRAD_ENTITYBOUNCE_FIX
-				, pvs
+                            ,
+                            pvs
 #endif
-				);
+            );
         }
     }
 }
@@ -628,22 +634,22 @@ static void     BuildVisRow(const int patchnum, byte* pvs, const int head)
  * This is run by multiple threads
  * ===========
  */
-static void     BuildVisLeafs(int threadnum)
+static void BuildVisLeafs(int threadnum)
 {
-    int             i;
-    int             facenum, facenum2;
+    int i;
+    int facenum, facenum2;
 #ifndef HLRAD_VISMATRIX_NOMARKSURFACES
-    int             lface;
-    dleaf_t*        leaf;
+    int lface;
+    dleaf_t* leaf;
 #endif
-    byte            pvs[(MAX_MAP_LEAFS + 7) / 8];
-    dleaf_t*        srcleaf;
-    patch_t*        patch;
-    int             head;
-    unsigned        patchnum;
+    byte pvs[(MAX_MAP_LEAFS + 7) / 8];
+    dleaf_t* srcleaf;
+    patch_t* patch;
+    int head;
+    unsigned patchnum;
 #ifdef HLRAD_SPARSEVISMATRIX_FAST
-	bool *uncompressedcolumn = (bool *)malloc (MAX_SPARSE_VISMATRIX_PATCHES * sizeof (bool));
-	hlassume (uncompressedcolumn != NULL, assume_NoMemory);
+    bool* uncompressedcolumn = (bool*)malloc(MAX_SPARSE_VISMATRIX_PATCHES * sizeof(bool));
+    hlassume(uncompressedcolumn != NULL, assume_NoMemory);
 #endif
 
     while (1)
@@ -657,30 +663,30 @@ static void     BuildVisLeafs(int threadnum)
         {
             break;
         }
-        i++;                                               // skip leaf 0
+        i++; // skip leaf 0
         srcleaf = &g_dleafs[i];
 #ifdef HLRAD_WITHOUTVIS
         if (!g_visdatasize)
-		{
-	#ifdef ZHLT_DecompressVis_FIX
-			memset (pvs, 255, (g_dmodels[0].visleafs + 7) / 8);
-	#else
+        {
+#ifdef ZHLT_DecompressVis_FIX
+            memset(pvs, 255, (g_dmodels[0].visleafs + 7) / 8);
+#else
             memset(pvs, 255, (g_numleafs + 7) / 8);
-	#endif
-		}
-		else
-		{
+#endif
+        }
+        else
+        {
 #endif
 #ifdef HLRAD_VIS_FIX
-		if (srcleaf->visofs == -1)
-		{
-			Developer (DEVELOPER_LEVEL_ERROR, "Error: No visdata for leaf %d\n", i);
-			continue;
-		}
+            if (srcleaf->visofs == -1)
+            {
+                Developer(DEVELOPER_LEVEL_ERROR, "Error: No visdata for leaf %d\n", i);
+                continue;
+            }
 #endif
-        DecompressVis(&g_dvisdata[srcleaf->visofs], pvs, sizeof(pvs));
+            DecompressVis(&g_dvisdata[srcleaf->visofs], pvs, sizeof(pvs));
 #ifdef HLRAD_WITHOUTVIS
-		}
+        }
 #endif
         head = 0;
 
@@ -690,30 +696,31 @@ static void     BuildVisLeafs(int threadnum)
         // actually have origins inside
         //
 #ifdef HLRAD_VISMATRIX_NOMARKSURFACES
-		for (facenum = 0; facenum < g_numfaces; facenum++)
-		{
-			for (patch = g_face_patches[facenum]; patch; patch = patch->next)
-			{
-				if (patch->leafnum != i)
-					continue;
-				patchnum = patch - g_patches;
-	#ifdef HLRAD_SPARSEVISMATRIX_FAST
-				for (int m = 0; m < g_num_patches; m++)
-				{
-					uncompressedcolumn[m] = false;
-				}
-	#endif
-				for (facenum2 = facenum + 1; facenum2 < g_numfaces; facenum2++)
-					TestPatchToFace (patchnum, facenum2, head, pvs
-	#ifdef HLRAD_SPARSEVISMATRIX_FAST
-									, uncompressedcolumn
-	#endif
-									);
-	#ifdef HLRAD_SPARSEVISMATRIX_FAST
-				SetVisColumn (patchnum, uncompressedcolumn);
-	#endif
-			}
-		}
+        for (facenum = 0; facenum < g_numfaces; facenum++)
+        {
+            for (patch = g_face_patches[facenum]; patch; patch = patch->next)
+            {
+                if (patch->leafnum != i)
+                    continue;
+                patchnum = patch - g_patches;
+#ifdef HLRAD_SPARSEVISMATRIX_FAST
+                for (int m = 0; m < g_num_patches; m++)
+                {
+                    uncompressedcolumn[m] = false;
+                }
+#endif
+                for (facenum2 = facenum + 1; facenum2 < g_numfaces; facenum2++)
+                    TestPatchToFace(patchnum, facenum2, head, pvs
+#ifdef HLRAD_SPARSEVISMATRIX_FAST
+                                    ,
+                                    uncompressedcolumn
+#endif
+                    );
+#ifdef HLRAD_SPARSEVISMATRIX_FAST
+                SetVisColumn(patchnum, uncompressedcolumn);
+#endif
+            }
+        }
 #else
         for (lface = 0; lface < srcleaf->nummarksurfaces; lface++)
         {
@@ -721,10 +728,10 @@ static void     BuildVisLeafs(int threadnum)
             for (patch = g_face_patches[facenum]; patch; patch = patch->next)
             {
 #ifdef HLRAD_ENTITYBOUNCE_FIX
-				if (patch->leafnum != i)
-				{
-					continue;
-				}
+                if (patch->leafnum != i)
+                {
+                    continue;
+                }
 #else
                 leaf = PointInLeaf(patch->origin);
                 if (leaf != srcleaf)
@@ -746,34 +753,34 @@ static void     BuildVisLeafs(int threadnum)
                 {
                     TestPatchToFace(patchnum, facenum2, head
 #ifdef HLRAD_ENTITYBOUNCE_FIX
-						, pvs
+                                    ,
+                                    pvs
 #endif
-						);
+                    );
                 }
             }
         }
 #ifdef HLRAD_ENTITYBOUNCE_FIX
-		if (g_nummodels >= 2)
-		{
-			for (facenum = g_dmodels[1].firstface; facenum < g_numfaces; facenum++)
-			{
-				for (patch = g_face_patches[facenum]; patch; patch = patch->next)
-				{
-					if (patch->leafnum != i)
-						continue;
-					patchnum = patch - g_patches;
-					// skip BuildVisRow here because entity patchnums are always bigger than world patchnums.
-					for (facenum2 = g_dmodels[1].firstface; facenum2 < g_numfaces; facenum2++)
-						TestPatchToFace(patchnum, facenum2, head, pvs);
-				}
-			}
-		}
+        if (g_nummodels >= 2)
+        {
+            for (facenum = g_dmodels[1].firstface; facenum < g_numfaces; facenum++)
+            {
+                for (patch = g_face_patches[facenum]; patch; patch = patch->next)
+                {
+                    if (patch->leafnum != i)
+                        continue;
+                    patchnum = patch - g_patches;
+                    // skip BuildVisRow here because entity patchnums are always bigger than world patchnums.
+                    for (facenum2 = g_dmodels[1].firstface; facenum2 < g_numfaces; facenum2++)
+                        TestPatchToFace(patchnum, facenum2, head, pvs);
+                }
+            }
+        }
 #endif
 #endif
-
     }
 #ifdef HLRAD_SPARSEVISMATRIX_FAST
-	free (uncompressedcolumn);
+    free(uncompressedcolumn);
 #endif
 }
 
@@ -783,7 +790,7 @@ static void     BuildVisLeafs(int threadnum)
  * BuildVisMatrix
  * ==============
  */
-static void     BuildVisMatrix()
+static void BuildVisMatrix()
 {
     s_vismatrix = (sparse_column_t*)AllocBlock(g_num_patches * sizeof(sparse_column_t));
 
@@ -800,11 +807,11 @@ static void     BuildVisMatrix()
 #endif
 }
 
-static void     FreeVisMatrix()
+static void FreeVisMatrix()
 {
     if (s_vismatrix)
     {
-        unsigned        x;
+        unsigned x;
         sparse_column_t* item;
 
         for (x = 0, item = s_vismatrix; x < g_num_patches; x++, item++)
@@ -826,26 +833,25 @@ static void     FreeVisMatrix()
 
 #ifndef HLRAD_TRANSPARENCY_CPP
 #ifdef HLRAD_HULLU
-    if(s_transparency_list)
+    if (s_transparency_list)
     {
-    	free(s_transparency_list);
-    	s_transparency_list = NULL;
+        free(s_transparency_list);
+        s_transparency_list = NULL;
     }
     s_transparency_count = s_max_transparency_count = 0;
 #endif
 #endif
-
 }
 
-static void     DumpVismatrixInfo()
+static void DumpVismatrixInfo()
 {
-    unsigned        totals[8];
+    unsigned totals[8];
 #ifdef ZHLT_64BIT_FIX
-    size_t          total_vismatrix_memory;
+    size_t total_vismatrix_memory;
 #else
-    unsigned        total_vismatrix_memory;
+    unsigned total_vismatrix_memory;
 #endif
-	total_vismatrix_memory = sizeof(sparse_column_t) * g_num_patches;
+    total_vismatrix_memory = sizeof(sparse_column_t) * g_num_patches;
 
     sparse_column_t* column_end = s_vismatrix + g_num_patches;
     sparse_column_t* column = s_vismatrix;
@@ -865,14 +871,14 @@ static void     DumpVismatrixInfo()
 // end old vismat.c
 ////////////////////////////
 
-void            MakeScalesSparseVismatrix()
+void MakeScalesSparseVismatrix()
 {
-    char            transferfile[_MAX_PATH];
+    char transferfile[_MAX_PATH];
 
     hlassume(g_num_patches < MAX_SPARSE_VISMATRIX_PATCHES, assume_MAX_PATCHES);
 
 #ifdef ZHLT_DEFAULTEXTENSION_FIX
-	safe_snprintf(transferfile, _MAX_PATH, "%s.inc", g_Mapname);
+    safe_snprintf(transferfile, _MAX_PATH, "%s.inc", g_Mapname);
 #else
     safe_strncpy(transferfile, g_source, _MAX_PATH);
     StripExtension(transferfile);
@@ -887,29 +893,35 @@ void            MakeScalesSparseVismatrix()
         g_CheckVisBit = CheckVisBitSparse;
 
 #ifdef HLRAD_HULLU
-	#ifdef HLRAD_TRANSPARENCY_CPP
+#ifdef HLRAD_TRANSPARENCY_CPP
         CreateFinalTransparencyArrays("custom shadow array");
-	#else
-        if((s_max_transparency_count*sizeof(transparency_t))>=(1024 * 1024))
-        	Log("%-20s: %5.1f megs\n", "custom shadow array", (s_max_transparency_count*sizeof(transparency_t)) / (1024 * 1024.0));
-        else if(s_transparency_count)
-        	Log("%-20s: %5.1f kilos\n", "custom shadow array", (s_max_transparency_count*sizeof(transparency_t)) / 1024.0);
-	#endif
+#else
+        if ((s_max_transparency_count * sizeof(transparency_t)) >= (1024 * 1024))
+            Log("%-20s: %5.1f megs\n", "custom shadow array",
+                (s_max_transparency_count * sizeof(transparency_t)) / (1024 * 1024.0));
+        else if (s_transparency_count)
+            Log("%-20s: %5.1f kilos\n", "custom shadow array",
+                (s_max_transparency_count * sizeof(transparency_t)) / 1024.0);
+#endif
 #endif
 
 #ifndef HLRAD_HULLU
         NamedRunThreadsOn(g_num_patches, g_estimate, MakeScales);
 #else
-	if(g_rgb_transfers)
-		{NamedRunThreadsOn(g_num_patches, g_estimate, MakeRGBScales);}
-	else
-		{NamedRunThreadsOn(g_num_patches, g_estimate, MakeScales);}
+        if (g_rgb_transfers)
+        {
+            NamedRunThreadsOn(g_num_patches, g_estimate, MakeRGBScales);
+        }
+        else
+        {
+            NamedRunThreadsOn(g_num_patches, g_estimate, MakeScales);
+        }
 #endif
         FreeVisMatrix();
 #ifdef HLRAD_HULLU
-	#ifdef HLRAD_TRANSPARENCY_CPP
+#ifdef HLRAD_TRANSPARENCY_CPP
         FreeTransparencyArrays();
-	#endif
+#endif
 #endif
 
 #ifndef HLRAD_NOSWAP
@@ -917,10 +929,14 @@ void            MakeScalesSparseVismatrix()
 #ifndef HLRAD_HULLU
         NamedRunThreadsOnIndividual(g_num_patches, g_estimate, SwapTransfers);
 #else
-	if(g_rgb_transfers)
-		{NamedRunThreadsOnIndividual(g_num_patches, g_estimate, SwapRGBTransfers);}
-	else
-		{NamedRunThreadsOnIndividual(g_num_patches, g_estimate, SwapTransfers);}
+        if (g_rgb_transfers)
+        {
+            NamedRunThreadsOnIndividual(g_num_patches, g_estimate, SwapRGBTransfers);
+        }
+        else
+        {
+            NamedRunThreadsOnIndividual(g_num_patches, g_estimate, SwapTransfers);
+        }
 #endif
 #endif /*HLRAD_NOSWAP*/
         if (g_incremental)
@@ -934,7 +950,7 @@ void            MakeScalesSparseVismatrix()
         // release visibility matrix
         DumpTransfersMemoryUsage();
 #ifdef HLRAD_OPAQUE_STYLE_BOUNCE
-		CreateFinalStyleArrays ("dynamic shadow array");
+        CreateFinalStyleArrays("dynamic shadow array");
 #endif
     }
 }

@@ -34,29 +34,29 @@ q_threadpriority g_threadpriority = DEFAULT_THREAD_PRIORITY;
 #define THREADTIMES_SIZE 100
 #define THREADTIMES_SIZEf (float)(THREADTIMES_SIZE)
 
-static int      dispatch = 0;
-static int      workcount = 0;
-static int      oldf = 0;
-static bool     pacifier = false;
-static bool     threaded = false;
-static double   threadstart = 0;
-static double   threadtimes[THREADTIMES_SIZE];
+static int dispatch = 0;
+static int workcount = 0;
+static int oldf = 0;
+static bool pacifier = false;
+static bool threaded = false;
+static double threadstart = 0;
+static double threadtimes[THREADTIMES_SIZE];
 
-int             GetThreadWork()
+int GetThreadWork()
 {
-    int             r, f, i;
-    double          ct, finish, finish2, finish3;
+    int r, f, i;
+    double ct, finish, finish2, finish3;
 #ifdef ZHLT_LANGFILE
-	static const char *s1 = NULL; // avoid frequent call of Localize() in PrintConsole
-	static const char *s2 = NULL;
+    static const char* s1 = NULL; // avoid frequent call of Localize() in PrintConsole
+    static const char* s2 = NULL;
 #endif
 
     ThreadLock();
 #ifdef ZHLT_LANGFILE
-	if (s1 == NULL)
-		s1 = Localize ("  (%d%%: est. time to completion %ld/%ld/%ld secs)   ");
-	if (s2 == NULL)
-		s2 = Localize ("  (%d%%: est. time to completion <1 sec)   ");
+    if (s1 == NULL)
+        s1 = Localize("  (%d%%: est. time to completion %ld/%ld/%ld secs)   ");
+    if (s2 == NULL)
+        s2 = Localize("  (%d%%: est. time to completion <1 sec)   ");
 #endif
 
     if (dispatch == 0)
@@ -87,16 +87,14 @@ int             GetThreadWork()
     if (pacifier)
     {
 #ifdef ZHLT_CONSOLE
-		PrintConsole
+        PrintConsole
 #else
         printf
 #endif
-			("\r%6d /%6d", dispatch, workcount);
+            ("\r%6d /%6d", dispatch, workcount);
 #ifdef ZHLT_PROGRESSFILE // AJM
         if (g_progressfile)
         {
-
-
         }
 #endif
 
@@ -122,43 +120,38 @@ int             GetThreadWork()
                 if (finish > 1.0)
                 {
 #ifdef ZHLT_CONSOLE
-					PrintConsole
+                    PrintConsole
 #else
                     printf
 #endif
 #ifdef ZHLT_LANGFILE
-						(s1, f, (long)(finish), (long)(finish2),
-                           (long)(finish3));
+                        (s1, f, (long)(finish), (long)(finish2), (long)(finish3));
 #else
-						("  (%d%%: est. time to completion %ld/%ld/%ld secs)   ", f, (long)(finish), (long)(finish2),
-                           (long)(finish3));
+                        ("  (%d%%: est. time to completion %ld/%ld/%ld secs)   ", f, (long)(finish), (long)(finish2),
+                         (long)(finish3));
 #endif
 #ifdef ZHLT_PROGRESSFILE // AJM
                     if (g_progressfile)
                     {
-
-
                     }
 #endif
                 }
                 else
                 {
 #ifdef ZHLT_CONSOLE
-					PrintConsole
+                    PrintConsole
 #else
                     printf
 #endif
 #ifdef ZHLT_LANGFILE
-						(s2, f);
+                        (s2, f);
 #else
-						("  (%d%%: est. time to completion <1 sec)   ", f);
+                        ("  (%d%%: est. time to completion <1 sec)   ", f);
 #endif
 
 #ifdef ZHLT_PROGRESSFILE // AJM
                     if (g_progressfile)
                     {
-
-
                     }
 #endif
                 }
@@ -195,11 +188,11 @@ int             GetThreadWork()
             case 95:
 */
 #ifdef ZHLT_CONSOLE
-				PrintConsole
+                PrintConsole
 #else
                 printf
 #endif
-					("%d%%...", f);
+                    ("%d%%...", f);
             default:
                 break;
             }
@@ -215,9 +208,9 @@ int             GetThreadWork()
 
 q_threadfunction workfunction;
 
-static void     ThreadWorkerFunction(int unused)
+static void ThreadWorkerFunction(int unused)
 {
-    int             work;
+    int work;
 
     while ((work = GetThreadWork()) != -1)
     {
@@ -226,7 +219,7 @@ static void     ThreadWorkerFunction(int unused)
 }
 
 
-void            RunThreadsOnIndividual(int workcnt, bool showpacifier, q_threadfunction func)
+void RunThreadsOnIndividual(int workcnt, bool showpacifier, q_threadfunction func)
 {
     workfunction = func;
     RunThreadsOn(workcnt, showpacifier, ThreadWorkerFunction);
@@ -239,16 +232,16 @@ void            RunThreadsOnIndividual(int workcnt, bool showpacifier, q_threadf
 =*/
 #ifdef SYSTEM_WIN32
 
-#define	USED
+#define USED
 #include <windows.h>
 
-int             g_numthreads = DEFAULT_NUMTHREADS;
+int g_numthreads = DEFAULT_NUMTHREADS;
 static CRITICAL_SECTION crit;
-static int      enter;
+static int enter;
 
-void            ThreadSetPriority(q_threadpriority type)
+void ThreadSetPriority(q_threadpriority type)
 {
-    int             val;
+    int val;
 
     g_threadpriority = type;
 
@@ -295,11 +288,11 @@ static void     AdjustPriority(HANDLE hThread)
 }
 #endif
 
-void            ThreadSetDefault()
+void ThreadSetDefault()
 {
-    SYSTEM_INFO     info;
+    SYSTEM_INFO info;
 
-    if (g_numthreads == -1)                                // not set manually
+    if (g_numthreads == -1) // not set manually
     {
         GetSystemInfo(&info);
         g_numthreads = (int)info.dwNumberOfProcessors;
@@ -310,13 +303,14 @@ void            ThreadSetDefault()
         }
         else if (g_numthreads > MAX_THREADS)
         {
-            Warning("ThreadSetDefault: processor count %d exceeds MAX_THREADS, clamping to %d", g_numthreads, MAX_THREADS);
+            Warning("ThreadSetDefault: processor count %d exceeds MAX_THREADS, clamping to %d", g_numthreads,
+                    MAX_THREADS);
             g_numthreads = MAX_THREADS;
         }
     }
 }
 
-void            ThreadLock()
+void ThreadLock()
 {
     if (!threaded)
     {
@@ -330,7 +324,7 @@ void            ThreadLock()
     enter++;
 }
 
-void            ThreadUnlock()
+void ThreadUnlock()
 {
     if (!threaded)
     {
@@ -352,9 +346,9 @@ static DWORD WINAPI ThreadEntryStub(LPVOID pParam)
     return 0;
 }
 
-static int      critRefCount = 0;
+static int critRefCount = 0;
 
-void            threads_InitCrit()
+void threads_InitCrit()
 {
     if (critRefCount == 0)
     {
@@ -364,7 +358,7 @@ void            threads_InitCrit()
     threaded = true;
 }
 
-void            threads_UninitCrit()
+void threads_UninitCrit()
 {
     if (critRefCount > 0)
     {
@@ -377,12 +371,12 @@ void            threads_UninitCrit()
     }
 }
 
-void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction func)
+void RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction func)
 {
-    DWORD           threadid[MAX_THREADS];
-    HANDLE          threadhandle[MAX_THREADS];
-    int             i;
-    double          start, end;
+    DWORD threadid[MAX_THREADS];
+    HANDLE threadhandle[MAX_THREADS];
+    int i;
+    double start, end;
 
     threadstart = I_FloatTime();
     start = threadstart;
@@ -424,12 +418,8 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
     }
     for (i = 0; i < g_numthreads; i++)
     {
-        HANDLE          hThread = CreateThread(NULL,
-                                               0,
-                                               (LPTHREAD_START_ROUTINE) ThreadEntryStub,
-                                               (LPVOID)(intptr_t) i,
-                                               CREATE_SUSPENDED,
-                                               &threadid[i]);
+        HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ThreadEntryStub, (LPVOID)(intptr_t)i,
+                                      CREATE_SUSPENDED, &threadid[i]);
 
         if (hThread != NULL)
         {
@@ -437,12 +427,11 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
         }
         else
         {
-            LPVOID          lpMsgBuf;
+            LPVOID lpMsgBuf;
 
-            FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                          FORMAT_MESSAGE_FROM_SYSTEM |
-                          FORMAT_MESSAGE_IGNORE_INSERTS, NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
-                          (LPTSTR) & lpMsgBuf, 0, NULL);
+            FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                          NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
+                          (LPTSTR)&lpMsgBuf, 0, NULL);
             // Process any inserts in lpMsgBuf.
             // ...
             // Display the string.
@@ -459,16 +448,16 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
     {
         if (ResumeThread(threadhandle[i]) == 0xFFFFFFFF)
         {
-            LPVOID          lpMsgBuf;
+            LPVOID lpMsgBuf;
 
-            FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                          FORMAT_MESSAGE_FROM_SYSTEM |
-                          FORMAT_MESSAGE_IGNORE_INSERTS, NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
-                          (LPTSTR) & lpMsgBuf, 0, NULL);
+            FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                          NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
+                          (LPTSTR)&lpMsgBuf, 0, NULL);
             // Process any inserts in lpMsgBuf.
             // ...
             // Display the string.
-            Developer(DEVELOPER_LEVEL_ERROR, "ResumeThread #%d [%p] failed : %s\n", i, (void*)threadhandle[i], lpMsgBuf);
+            Developer(DEVELOPER_LEVEL_ERROR, "ResumeThread #%d [%p] failed : %s\n", i, (void*)threadhandle[i],
+                      lpMsgBuf);
             Fatal(assume_THREAD_ERROR, "Unable to start thread #%d", i);
             // Free the buffer.
             LocalFree(lpMsgBuf);
@@ -492,11 +481,11 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
     if (pacifier)
     {
 #ifdef ZHLT_CONSOLE
-		PrintConsole
+        PrintConsole
 #else
         printf
 #endif
-			("\r%60s\r", "");
+            ("\r%60s\r", "");
     }
     Log(" (%.2f seconds)\n", end - start);
 }
@@ -512,13 +501,13 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
 =*/
 #ifdef SYSTEM_POSIX
 
-#define	USED
+#define USED
 
-int             g_numthreads = DEFAULT_NUMTHREADS;
+int g_numthreads = DEFAULT_NUMTHREADS;
 
-void            ThreadSetPriority(q_threadpriority type)
+void ThreadSetPriority(q_threadpriority type)
 {
-    int             val;
+    int val;
 
     g_threadpriority = type;
 
@@ -549,7 +538,8 @@ void            ThreadSetPriority(q_threadpriority type)
 static int UnixThreadDefault()
 {
     long sysconfResult = sysconf(_SC_NPROCESSORS_ONLN);
-    if (sysconfResult > 0) {
+    if (sysconfResult > 0)
+    {
         return (int)sysconfResult;
     }
     return -1;
@@ -564,9 +554,12 @@ static int PlatformThreadDefault()
 #ifdef _GNU_SOURCE
     cpu_set_t cs;
     CPU_ZERO(&cs);
-    if (sched_getaffinity(0, sizeof(cs), &cs) != 0) {
+    if (sched_getaffinity(0, sizeof(cs), &cs) != 0)
+    {
         return UnixThreadDefault();
-    } else {
+    }
+    else
+    {
         int i;
         int count = 0;
         for (i = 0; i < CPU_SETSIZE; i++)
@@ -597,9 +590,12 @@ static int PlatformThreadDefault()
 #endif
     unsigned int number;
     size_t len = sizeof(unsigned int);
-    if (sysctlbyname(name, &number, &len, NULL, 0) != 0 || number < 1) {
+    if (sysctlbyname(name, &number, &len, NULL, 0) != 0 || number < 1)
+    {
         return UnixThreadDefault();
-    } else {
+    }
+    else
+    {
         return (int)number;
     }
 }
@@ -615,7 +611,7 @@ static int PlatformThreadDefault()
 }
 #endif
 
-void            ThreadSetDefault()
+void ThreadSetDefault()
 {
     if (g_numthreads == -1)
     {
@@ -632,10 +628,10 @@ void            ThreadSetDefault()
     }
 }
 
-typedef void*    pthread_addr_t;
+typedef void* pthread_addr_t;
 pthread_mutex_t* my_mutex;
 
-void            ThreadLock()
+void ThreadLock()
 {
     if (my_mutex)
     {
@@ -643,7 +639,7 @@ void            ThreadLock()
     }
 }
 
-void            ThreadUnlock()
+void ThreadUnlock()
 {
     if (my_mutex)
     {
@@ -653,7 +649,7 @@ void            ThreadUnlock()
 
 q_threadfunction q_entry;
 
-static void*    CDECL ThreadEntryStub(void* pParam)
+static void* CDECL ThreadEntryStub(void* pParam)
 {
 #ifdef ZHLT_64BIT_FIX
     q_entry((int)(intptr_t)pParam);
@@ -663,9 +659,9 @@ static void*    CDECL ThreadEntryStub(void* pParam)
     return NULL;
 }
 
-static int      critRefCount = 0;
+static int critRefCount = 0;
 
-void            threads_InitCrit()
+void threads_InitCrit()
 {
     pthread_mutexattr_t mattrib;
 
@@ -685,7 +681,7 @@ void            threads_InitCrit()
     critRefCount++;
 }
 
-void            threads_UninitCrit()
+void threads_UninitCrit()
 {
     if (critRefCount > 0)
     {
@@ -704,13 +700,13 @@ void            threads_UninitCrit()
  * RunThreadsOn
  * =============
  */
-void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction func)
+void RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction func)
 {
-    intptr_t        i;
-    pthread_t       work_threads[MAX_THREADS];
-    pthread_addr_t  status;
-    pthread_attr_t  attrib;
-    double          start, end;
+    intptr_t i;
+    pthread_t work_threads[MAX_THREADS];
+    pthread_addr_t status;
+    pthread_attr_t attrib;
+    double start, end;
 
     threadstart = I_FloatTime();
     start = threadstart;
@@ -782,11 +778,11 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
     if (pacifier)
     {
 #ifdef ZHLT_CONSOLE
-		PrintConsole
+        PrintConsole
 #else
         printf
 #endif
-			("\r%60s\r", "");
+            ("\r%60s\r", "");
     }
 
     Log(" (%.2f seconds)\n", end - start);
@@ -805,37 +801,37 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
 =*/
 #ifdef SINGLE_THREADED
 
-int             g_numthreads = 1;
+int g_numthreads = 1;
 
-void            ThreadSetPriority(q_threadpriority type)
+void ThreadSetPriority(q_threadpriority type)
 {
 }
 
-void            threads_InitCrit()
+void threads_InitCrit()
 {
 }
 
-void            threads_UninitCrit()
+void threads_UninitCrit()
 {
 }
 
-void            ThreadSetDefault()
+void ThreadSetDefault()
 {
     g_numthreads = 1;
 }
 
-void            ThreadLock()
+void ThreadLock()
 {
 }
 
-void            ThreadUnlock()
+void ThreadUnlock()
 {
 }
 
-void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction func)
+void RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction func)
 {
-    int             i;
-    double          start, end;
+    int i;
+    double start, end;
 
     dispatch = 0;
     workcount = workcnt;
@@ -859,11 +855,11 @@ void            RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction fu
     if (pacifier)
     {
 #ifdef ZHLT_CONSOLE
-		PrintConsole
+        PrintConsole
 #else
         printf
 #endif
-			("\r%60s\r", "");
+            ("\r%60s\r", "");
     }
 
     Log(" (%.2f seconds)\n", end - start);

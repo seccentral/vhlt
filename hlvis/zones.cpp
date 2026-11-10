@@ -16,7 +16,7 @@ void Zones::set(UINT32 zone, const BoundingBox& bounds)
 UINT32 Zones::getZoneFromBounds(const BoundingBox& bounds)
 {
     UINT32 x;
-    for (x=0; x<m_ZoneCount; x++)
+    for (x = 0; x < m_ZoneCount; x++)
     {
         if (m_ZoneBounds[x].testSuperset(bounds))
         {
@@ -28,10 +28,10 @@ UINT32 Zones::getZoneFromBounds(const BoundingBox& bounds)
 
 UINT32 Zones::getZoneFromWinding(const Winding& winding)
 {
-    UINT32          x;
-    BoundingBox     bounds;
+    UINT32 x;
+    BoundingBox bounds;
 
-    for (x=0; x<winding.m_NumPoints; x++)
+    for (x = 0; x < winding.m_NumPoints; x++)
     {
         bounds.add(winding.m_Points[x]);
     }
@@ -41,13 +41,13 @@ UINT32 Zones::getZoneFromWinding(const Winding& winding)
 
 // BORROWED FROM HLRAD
 // TODO: Consolite into common sometime
-static Winding*      WindingFromFace(const dface_t* f)
+static Winding* WindingFromFace(const dface_t* f)
 {
-    int             i;
-    int             se;
-    dvertex_t*      dv;
-    int             v;
-    Winding*        w = new Winding(f->numedges);
+    int i;
+    int se;
+    dvertex_t* dv;
+    int v;
+    Winding* w = new Winding(f->numedges);
 
     for (i = 0; i < f->numedges; i++)
     {
@@ -78,9 +78,9 @@ Zones* MakeZones(void)
     // Note: we arent looping through entities because we only care if it has a winding/bounding box
 
     // First count the number of func_vis's
-    for (x=0; x<g_nummodels; x++)
+    for (x = 0; x < g_nummodels; x++)
     {
-        entity_t*       ent = EntityForModel(x);
+        entity_t* ent = EntityForModel(x);
 
         if (!strcasecmp(ValueForKey(ent, "classname"), "func_vis"))
         {
@@ -103,10 +103,10 @@ Zones* MakeZones(void)
 
     Zones* zones = new Zones(func_vis_count);
 
-    for (x=0; x<g_nummodels; x++)
+    for (x = 0; x < g_nummodels; x++)
     {
-        dmodel_t*       mod = g_dmodels + x;
-        entity_t*       ent = EntityForModel(x);
+        dmodel_t* mod = g_dmodels + x;
+        entity_t* ent = EntityForModel(x);
 
         if (!strcasecmp(ValueForKey(ent, "classname"), "func_vis"))
         {
@@ -126,14 +126,14 @@ Zones* MakeZones(void)
             }
 
             {
-                UINT32          j;
-                BoundingBox     bounds;
-                dface_t*        f = g_dfaces + mod->firstface;
+                UINT32 j;
+                BoundingBox bounds;
+                dface_t* f = g_dfaces + mod->firstface;
 
                 for (j = 0; j < mod->numfaces; j++, f++)
                 {
-                    Winding*        w = WindingFromFace(f);
-                    UINT32          k;
+                    Winding* w = WindingFromFace(f);
+                    UINT32 k;
 
                     for (k = 0; k < w->m_NumPoints; k++)
                     {
@@ -144,9 +144,8 @@ Zones* MakeZones(void)
 
                 zones->set(func_vis_id, bounds);
 
-                Log("Adding zone %u : mins(%4.3f %4.3f %4.3f) maxs(%4.3f %4.3f %4.3f)\n", func_vis_id,
-                    bounds.m_Mins[0],bounds.m_Mins[1],bounds.m_Mins[2],
-                    bounds.m_Maxs[0],bounds.m_Maxs[1],bounds.m_Maxs[2]);
+                Log("Adding zone %u : mins(%4.3f %4.3f %4.3f) maxs(%4.3f %4.3f %4.3f)\n", func_vis_id, bounds.m_Mins[0],
+                    bounds.m_Mins[1], bounds.m_Mins[2], bounds.m_Maxs[0], bounds.m_Maxs[1], bounds.m_Maxs[2]);
             }
         }
     }

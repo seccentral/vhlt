@@ -2,23 +2,23 @@
 
 #include "csg.h"
 
-wadpath_t*  g_pWadPaths[MAX_WADPATHS];
-int         g_iNumWadPaths = 0;
+wadpath_t* g_pWadPaths[MAX_WADPATHS];
+int g_iNumWadPaths = 0;
 
 
 // =====================================================================================
 //  PushWadPath
 //      adds a wadpath into the wadpaths list, without duplicates
 // =====================================================================================
-void        PushWadPath(const char* const path, bool inuse)
+void PushWadPath(const char* const path, bool inuse)
 {
 #ifndef HLCSG_AUTOWAD_NEW
-    int         i;
+    int i;
 #endif
-    wadpath_t*  current;
+    wadpath_t* current;
 
 #ifdef HLCSG_AUTOWAD_NEW
-	hlassume (g_iNumWadPaths < MAX_WADPATHS, assume_MAX_TEXFILES);
+    hlassume(g_iNumWadPaths < MAX_WADPATHS, assume_MAX_TEXFILES);
 #else
     if (!strlen(path))
         return; // no path
@@ -37,9 +37,9 @@ void        PushWadPath(const char* const path, bool inuse)
 
     safe_strncpy(current->path, path, _MAX_PATH);
     current->usedbymap = inuse;
-    current->usedtextures = 0;  // should be updated later in autowad procedures
+    current->usedtextures = 0; // should be updated later in autowad procedures
 #ifdef HLCSG_AUTOWAD_NEW
-	current->totaltextures = 0;
+    current->totaltextures = 0;
 #endif
 
     g_pWadPaths[g_iNumWadPaths++] = current;
@@ -53,10 +53,10 @@ void        PushWadPath(const char* const path, bool inuse)
 // =====================================================================================
 //  IsUsedWadPath
 // =====================================================================================
-bool        IsUsedWadPath(const char* const path)
+bool IsUsedWadPath(const char* const path)
 {
-    int         i;
-    wadpath_t*  current;
+    int i;
+    wadpath_t* current;
 
     for (i = 0; i < g_iNumWadPaths; i++)
     {
@@ -76,10 +76,10 @@ bool        IsUsedWadPath(const char* const path)
 // =====================================================================================
 //  IsListedWadPath
 // =====================================================================================
-bool        IsListedWadPath(const char* const path)
+bool IsListedWadPath(const char* const path)
 {
-    int         i;
-    wadpath_t*  current;
+    int i;
+    wadpath_t* current;
 
     for (i = 0; i < g_iNumWadPaths; i++)
     {
@@ -95,10 +95,10 @@ bool        IsListedWadPath(const char* const path)
 // =====================================================================================
 //  FreeWadPaths
 // =====================================================================================
-void        FreeWadPaths()
+void FreeWadPaths()
 {
-    int         i;
-    wadpath_t*  current;
+    int i;
+    wadpath_t* current;
 
     for (i = 0; i < g_iNumWadPaths; i++)
     {
@@ -111,49 +111,49 @@ void        FreeWadPaths()
 //  GetUsedWads
 //      parse the "wad" keyvalue into wadpath_t structs
 // =====================================================================================
-void        GetUsedWads()
+void GetUsedWads()
 {
     const char* pszWadPaths;
-    char        szTmp[_MAX_PATH];
-    int         i, j;
+    char szTmp[_MAX_PATH];
+    int i, j;
 
     pszWadPaths = ValueForKey(&g_entities[0], "wad");
 
 #ifdef HLCSG_AUTOWAD_NEW
-	for (i = 0; ; )
-	{
-		for (j = i; pszWadPaths[j] != '\0'; j++)
-		{
-			if (pszWadPaths[j] == ';')
-			{
-				break;
-			}
-		}
-		if (j - i > 0)
-		{
-			int count = qmin (j - i, _MAX_PATH - 1);
-			memcpy (szTmp, &pszWadPaths[i], count);
-			szTmp[count] = '\0';
-
-			if (g_iNumWadPaths >= MAX_WADPATHS)
-			{
-				Error ("Too many wad files");
-			}
-			PushWadPath (szTmp, true);
-		}
-		if (pszWadPaths[j] == '\0')
-		{
-			break;
-		}
-		else
-		{
-			i = j + 1;
-		}
-	}
-#else
-    for(i = 0; i < MAX_WADPATHS; i++)
+    for (i = 0;;)
     {
-        memset(szTmp, 0, sizeof(szTmp));    // are you happy zipster?
+        for (j = i; pszWadPaths[j] != '\0'; j++)
+        {
+            if (pszWadPaths[j] == ';')
+            {
+                break;
+            }
+        }
+        if (j - i > 0)
+        {
+            int count = qmin(j - i, _MAX_PATH - 1);
+            memcpy(szTmp, &pszWadPaths[i], count);
+            szTmp[count] = '\0';
+
+            if (g_iNumWadPaths >= MAX_WADPATHS)
+            {
+                Error("Too many wad files");
+            }
+            PushWadPath(szTmp, true);
+        }
+        if (pszWadPaths[j] == '\0')
+        {
+            break;
+        }
+        else
+        {
+            i = j + 1;
+        }
+    }
+#else
+    for (i = 0; i < MAX_WADPATHS; i++)
+    {
+        memset(szTmp, 0, sizeof(szTmp)); // are you happy zipster?
         for (j = 0; j < _MAX_PATH; j++, pszWadPaths++)
         {
             if (pszWadPaths[0] == ';')

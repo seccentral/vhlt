@@ -17,7 +17,7 @@
 // Simple class of visibily flags and zone id's.  No concept of location is in this class
 class Zones
 {
-public:
+  public:
     inline void flag(UINT32 src, UINT32 dst)
     {
         if ((src < m_ZoneCount) && (dst < m_ZoneCount))
@@ -39,10 +39,10 @@ public:
     UINT32 getZoneFromBounds(const BoundingBox& bounds);
     UINT32 getZoneFromWinding(const Winding& winding);
 
-public:
+  public:
     Zones(UINT32 ZoneCount)
     {
-        m_ZoneCount = ZoneCount + 1;    // Zone 0 is used for all points outside all nodes
+        m_ZoneCount = ZoneCount + 1; // Zone 0 is used for all points outside all nodes
         m_ZoneVisMatrix = new bool[m_ZoneCount * m_ZoneCount];
         memset(m_ZoneVisMatrix, 0, sizeof(bool) * m_ZoneCount * m_ZoneCount);
         m_ZonePtrs = new bool*[m_ZoneCount];
@@ -51,7 +51,7 @@ public:
         UINT32 x;
         bool* dstPtr = m_ZoneVisMatrix;
         bool** srcPtr = m_ZonePtrs;
-        for (x=0; x<m_ZoneCount; x++, srcPtr++, dstPtr += m_ZoneCount)
+        for (x = 0; x < m_ZoneCount; x++, srcPtr++, dstPtr += m_ZoneCount)
         {
             *srcPtr = dstPtr;
         }
@@ -63,10 +63,10 @@ public:
         delete[] m_ZoneBounds;
     }
 
-protected:
-    UINT32       m_ZoneCount;
-    bool*        m_ZoneVisMatrix;  // Size is (m_ZoneCount * m_ZoneCount) and data is duplicated for efficiency
-    bool**       m_ZonePtrs;    // Lookups into m_ZoneMatrix for m_ZonePtrs[x][y] style;
+  protected:
+    UINT32 m_ZoneCount;
+    bool* m_ZoneVisMatrix; // Size is (m_ZoneCount * m_ZoneCount) and data is duplicated for efficiency
+    bool** m_ZonePtrs;     // Lookups into m_ZoneMatrix for m_ZonePtrs[x][y] style;
     BoundingBox* m_ZoneBounds;
 };
 
