@@ -36,13 +36,13 @@
 
 .PARAMETER OutDir
     Output root. Defaults to build/regress. Runs are written to
-    <OutDir>/<RunName> and the reference to <OutDir>/baseline.json.
+    <OutDir>/<RunName> and the reference to <OutDir>/baseline.tsv.
 
 .PARAMETER RunName
     Name of this run. Defaults to the current date and time.
 
 .PARAMETER UpdateBaseline
-    Write this run's hashes to <OutDir>/baseline.json instead of comparing.
+    Write this run's hashes to <OutDir>/baseline.tsv instead of comparing.
 
 .PARAMETER Jobs
     Number of maps to compile at the same time. Defaults to 3.

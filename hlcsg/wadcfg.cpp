@@ -223,7 +223,7 @@ void        Safe_GetToken(FILE* source, char* TokenBuffer, const unsigned int Ma
             InComment = false;
         }
 
-        if (ThinkChar[0] == 'ï¿½')
+        if (ThinkChar[0] == 'ÿ')
             return;  
                 
         if (IsWhitespace(ThinkChar[0]) && !InToken)
