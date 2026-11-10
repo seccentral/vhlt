@@ -58,7 +58,7 @@ Other targets (shown for the `windows` preset; use `build/linux` for Linux):
 
 The style is in `.clang-format`. The bulk reformat commit is listed in `.git-blame-ignore-revs`; run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once so `git blame` skips it.
 
-Lint with clang-tidy by configuring a separate build directory with `-DVHLT_CLANG_TIDY=ON`, for example `cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build build/lint`. Every file is then checked during the build with its real defines; the checks are in `.clang-tidy`. CMake asks the Zig driver for its system include paths and libc++ macros and passes them to clang-tidy. clang-tidy must match Zig's clang version (22.1.8 for Zig 0.17.1), otherwise Zig's built-in headers fail to parse.
+Lint with clang-tidy by configuring a separate build directory with `-DVHLT_CLANG_TIDY=ON`, for example `cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build build/lint`. Every file is then checked during the build with its real defines; the checks are in `.clang-tidy`, warnings are errors, and the current baseline is zero findings. CMake asks the Zig driver for its system include paths and libc++ macros and passes them to clang-tidy. clang-tidy must match Zig's clang version (22.1.8 for Zig 0.17.1), otherwise Zig's built-in headers fail to parse.
 
 The ZIP contains the five tools, `Terms of Use.txt`, the user manual, and the HTML API docs if the `docs` target was built first.
 

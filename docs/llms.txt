@@ -15,7 +15,7 @@ Current version: 3.5.3 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `
 - [audits/2026-11-10/handling.md](../audits/2026-11-10/handling.md): status (Fixed/Mitigated/Accepted) of every audit finding.
 - [audits/2026-11-10/fixer-handout.md](../audits/2026-11-10/fixer-handout.md): completed batch fix plan with per-item fix guidance.
 - [docs/developer/warning-cleanup-plan.md](developer/warning-cleanup-plan.md): baseline and batched plan to reach zero compiler warnings (completed).
-- [docs/developer/lint-cleanup-plan.md](developer/lint-cleanup-plan.md): clang-tidy baseline (495 findings) and batched plan to reach zero.
+- [docs/developer/lint-cleanup-plan.md](developer/lint-cleanup-plan.md): completed clang-tidy cleanup plan (zero findings, 0 errors).
 - [tools/regress.ps1](../tools/regress.ps1): deterministic map-compile regression harness (see Tests in the developer guide).
 
 ## Build and verify
@@ -33,7 +33,7 @@ cmake --build build/windows --target format-check          # gate: fails on unfo
 - **Toolchain:**
   - **Required:** CMake 3.16 or newer, Ninja, and Zig 0.17.1, all on `PATH`. Zig can also be passed with `-DZIG_EXECUTABLE=<path>` on the first configure.
   - **Optional:** Doxygen for `docs`.
-  - **Linter:** clang-tidy **22.1.8** (`pip install clang-tidy==22.1.8`). It must equal Zig's bundled clang version (`zig cc --version`); a newer clang-tidy fails on Zig's built-in intrinsic headers. With `VHLT_CLANG_TIDY=ON`, CMake probes `zig c++ -E -v` and passes Zig's `-isystem` paths and `_LIBCPP_*` macros to clang-tidy as `--extra-arg`. Upgrade both together.
+  - **Linter:** clang-tidy **22.1.8** (`pip install clang-tidy==22.1.8`). It must equal Zig's bundled clang version (`zig cc --version`); a newer clang-tidy fails on Zig's built-in intrinsic headers. With `VHLT_CLANG_TIDY=ON`, CMake probes `zig c++ -E -v` and passes Zig's `-isystem` paths and `_LIBCPP_*` macros to clang-tidy as `--extra-arg`. `WarningsAsErrors: '*'` makes any finding fail the build; the current baseline is zero. Upgrade both together.
   - **Formatter:** clang-format **23.1.5**, pinned (`pip install clang-format==23.1.5`) because output differs between versions. The style is in `.clang-format`: Microsoft base, Allman braces, 4 spaces, 120 columns. Include sorting, comment reflow and preprocessor indentation are off: include order matters, and commented-out legacy code must not be rewrapped. Format every change before committing.
   - **Toolchain files:** `cmake/toolchains/zig-{windows,linux}-x86_64.cmake`, with shared logic in `zig-common.cmake`.
     - The compiler is passed as a list: `zig c++ -target <triple>`.
@@ -51,7 +51,7 @@ cmake --build build/windows --target format-check          # gate: fails on unfo
   3. `docs`.
   4. Smoke test.
   5. `package` for both presets.
-  6. Lint with `-DVHLT_CLANG_TIDY=ON`.
+  6. Lint: zero findings with `-DVHLT_CLANG_TIDY=ON` (`WarningsAsErrors: '*'`).
   7. `format-check` passes.
   8. Map regression: `tools/regress.ps1` matches the recorded baseline.
   9. Review the working tree for stray artifacts.

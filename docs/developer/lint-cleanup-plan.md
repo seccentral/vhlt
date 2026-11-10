@@ -4,6 +4,8 @@
 
 **Estimate:** 12–20 hours of agent time. Batch 0 is expected to remove a large share of the analyzer findings, which are false positives from functions the analyzer doesn't know never return. Re-estimate after batch 0.
 
+**Status (2026-11-10): complete.** A full clean clang-tidy run reports **0 findings, 0 errors** with `WarningsAsErrors: '*'`. The code has 78 `NOLINT` lines (80 check instances): 60 `bugprone-unchecked-string-to-number-conversion`, 12 `clang-analyzer-security.ArrayBound`, 4 `bugprone-branch-clone`, 2 `clang-analyzer-unix.Errno`, 1 `clang-analyzer-unix.Stream`, and 1 `performance-no-int-to-ptr`. Five checks are disabled in `.clang-tidy` (Batch 4). This document remains the record of the baselines and batch decisions.
+
 ## Rules for this work
 
 - **Read first:** [`docs/llms.txt`](../llms.txt) and [`AGENTS.md`](../../AGENTS.md). All their rules apply:

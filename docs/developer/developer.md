@@ -19,7 +19,7 @@ VHLT is a set of command-line tools for compiling Half-Life maps (`.map`) into B
 - `tools/regress.ps1`: deterministic map-compile regression check (see Tests).
 - `CMakeLists.txt`, `CMakePresets.json`: build configuration (presets `windows` and `linux`, Ninja generator).
 - `cmake/toolchains/`: Zig toolchain files (`zig-windows-x86_64.cmake`, `zig-linux-x86_64.cmake`, shared `zig-common.cmake`).
-- `.clangd`: clangd configuration (uses `build/windows/compile_commands.json`). `.clang-tidy`: lint checks. `.clang-format`: code style (clang-format 23.1.5). `.git-blame-ignore-revs`: the bulk reformat commit.
+- `.clangd`: clangd configuration (uses `build/windows/compile_commands.json`). `.clang-tidy`: lint checks with `WarningsAsErrors: '*'` (baseline: zero findings). `.clang-format`: code style (clang-format 23.1.5). `.git-blame-ignore-revs`: the bulk reformat commit.
 
 ## Build
 
