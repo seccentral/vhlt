@@ -42,7 +42,7 @@ cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build 
 - **Secrets:** `.env` (git-ignored) holds `GITEA_ACCESS_TOKEN` for `git.example.invalid`. Pass it as a header (`git -c http.extraHeader="Authorization: token …"`, `curl -H "Authorization: token …"`). Never write it into a remote URL, a file, or output.
 - **Gates (must pass before committing):**
   1. Configure and build both presets (`windows` and `linux`).
-  2. Add no new warnings.
+  2. Zero compiler warnings (`-Werror` via `VHLT_WERROR`, ON by default).
   3. `docs`.
   4. Smoke test.
   5. `package` for both presets.
@@ -50,7 +50,7 @@ cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build 
   7. Map regression: `tools/regress.ps1` matches the recorded baseline.
   8. Review the working tree for stray artifacts.
 - **Smoke test:** run each `build/windows/bin/<tool>.exe` with **no arguments**. It prints `<tool> v3.5.2 VL35 64-bit (<date>)` as its first line and then usage. **The exit code is 1 by design**; check the banner, not the exit code. Linux binaries can't run on a Windows host; check them with `file` (expect `ELF 64-bit … x86-64`), or run them on Linux.
-- **Warning baseline:** a clean Zig 0.17.1 build gives 154 unique warning sites (149 on Windows, 132 on Linux). The plan to reach zero, with categories and batches, is in `docs/developer/warning-cleanup-plan.md`. Don't add new warnings in lines you touch.
+- **Warning baseline:** zero. Both presets compile with `-Wall -Werror` (`VHLT_WERROR`, ON by default). Fix new warnings in code; do not add flags or pragmas. The completed cleanup plan and the original 154-site baseline are in `docs/developer/warning-cleanup-plan.md`.
 - **Debug builds:** `-DCMAKE_BUILD_TYPE=Debug` enables `hlassert`/`assert`. `NDEBUG` comes only from CMake's Release flags.
 - **No CI:** there is no hosted CI and no `.github/`; the gates are run locally.
 - **Code navigation:** `compile_commands.json` is generated in each build directory, and `.clangd` points clangd at `build/windows`. Configure first if you need LSP.

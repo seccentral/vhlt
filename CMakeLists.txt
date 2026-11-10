@@ -27,6 +27,9 @@ if(VHLT_CLANG_TIDY)
     set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE}")
 endif()
 
+# The project is warning-clean; keep it that way.
+option(VHLT_WERROR "Treat compiler warnings as errors" ON)
+
 # ----------------------------------------------------------------------
 # Platform-specific configuration
 # ----------------------------------------------------------------------
@@ -103,6 +106,9 @@ function(add_vhlt_tool target)
         -Wno-deprecated-declarations
         -fno-strict-aliasing
     )
+    if(VHLT_WERROR)
+        target_compile_options(${target} PRIVATE -Werror)
+    endif()
     if(NOT WIN32)
         target_compile_options(${target} PRIVATE -pthread)
         target_link_options(${target} PRIVATE -pthread)

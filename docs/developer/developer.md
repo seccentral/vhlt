@@ -34,7 +34,7 @@ cmake --build build/windows --target package                # build/windows/vhlt
 cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build build/lint   # clang-tidy
 ```
 
-The Zig toolchain sets `-Wno-date-time`, because Zig makes that warning an error and the version banners use `__DATE__`, and `-s`, which strips Release binaries. Windows binaries depend only on system DLLs (`kernel32`, `ucrtbase`). Zig's Windows target uses the open-source mingw-w64 headers internally, which is why `__MINGW32__` is defined and the `#ifdef __MINGW32__` guards in `common/` remain.
+Both presets build with `-Wall -Werror`; `-DVHLT_WERROR=OFF` disables `-Werror` for a one-off diagnostic build. The Zig toolchain sets `-Wno-date-time`, because Zig makes that warning an error and the version banners use `__DATE__`, and `-s`, which strips Release binaries. Windows binaries depend only on system DLLs (`kernel32`, `ucrtbase`). Zig's Windows target uses the open-source mingw-w64 headers internally, which is why `__MINGW32__` is defined and the `#ifdef __MINGW32__` guards in `common/` remain.
 
 ## Entry Points
 

@@ -4,6 +4,8 @@
 
 **Estimate:** 9–13 hours of agent time for the current `-Wall` set (batches 0–5). Raising to `-Wextra` (batch 6) is a separate decision, to be estimated after measuring it.
 
+**Status (2026-11-10):** complete. Clean Windows and Linux builds report zero warnings, and `VHLT_WERROR` (ON by default) adds `-Werror`. This document remains the record of the original 154-site baseline and the batch decisions.
+
 ## Rules for this work
 
 - Read [`docs/llms.txt`](../llms.txt) and [`AGENTS.md`](../../AGENTS.md) first. Every rule there applies: CMake, Ninja and Zig only; `safe_*` string helpers; minimal changes; CHANGELOG entries.

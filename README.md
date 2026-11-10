@@ -41,7 +41,7 @@ cmake --preset windows && cmake --build --preset windows   # build/windows/bin/*
 cmake --preset linux   && cmake --build --preset linux     # build/linux/bin/* (cross-compiled)
 ```
 
-Both presets build Release binaries with Zig, from either Windows or Linux. Linux binaries need glibc 2.28 or newer (most distributions from 2018 on). The toolchain files are in [`cmake/toolchains/`](cmake/toolchains/).
+Both presets build Release binaries with Zig, from either Windows or Linux. Linux binaries need glibc 2.28 or newer (most distributions from 2018 on). The toolchain files are in [`cmake/toolchains/`](cmake/toolchains/). Warnings are errors by default; configure with `-DVHLT_WERROR=OFF` for a diagnostic build that tolerates them.
 
 Other targets (shown for the `windows` preset; use `build/linux` for Linux):
 

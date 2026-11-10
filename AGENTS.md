@@ -43,7 +43,7 @@ Outputs are written to `build/<preset>/bin/`, `build/<preset>/docs/html/`, and `
 Before committing, all of the following must pass:
 
 1. Configure and build both presets: `windows` and `linux` (all five tools each)
-2. No new compiler warnings (see `docs/developer/warning-cleanup-plan.md` for the baseline)
+2. Zero compiler warnings; both presets build with `-Werror` (`VHLT_WERROR`, ON by default)
 3. Docs: `cmake --build build/windows --target docs`
 4. Smoke test: each Windows tool runs with no arguments and prints its version banner (exit code 1 is expected)
 5. Package: `cmake --build build/<preset> --target package` for both presets
