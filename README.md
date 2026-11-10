@@ -10,13 +10,37 @@ The project builds five command-line tools:
 - `hlrad` - compute lighting/radiosity
 - `ripent` - edit entity and texture data in compiled BSP files
 
+## What changed since the GitHub version
+
+This fork started from [FreeSlave/vhlt](https://github.com/FreeSlave/vhlt) (last updated 2021). The map compile output is unchanged unless a fix below says otherwise; the regression check compares compiled test maps byte for byte.
+
+**Easier to build**
+- One small, free compiler ([Zig](https://ziglang.org/)) builds Windows and Linux binaries from either OS. Visual Studio and MinGW are no longer needed.
+- A CMake build with simple presets (`windows`, `linux`) and a one-command ZIP package. Ready-made binaries for both platforms are attached to each release.
+
+**More robust**
+- Broken or hostile input files (BSP, WAD, `.prt`, `.inc`, `lights.rad`, transfer files) are rejected with a clear error instead of crashing or corrupting memory.
+- Dozens of memory bugs fixed: buffer overflows, out-of-bounds reads, leaks, use of uninitialized values and unsafe string handling. Error messages that contain `%` can no longer be misread as format strings.
+- Thread handling is safer, and `-threads` is clamped to 1–64.
+- Mistyped numbers on the command line now stop the tool (`invalid value 'abc' for -bounce`) instead of silently becoming 0.
+
+**Bug fixes you might notice**
+- hlbsp honours `-threads` (it was ignored).
+- `ripent -textureexport` no longer reports textures from external WADs as missing.
+- Very large `-texdata` / `-lightdata` values no longer overflow into a broken limit.
+
+**For contributors**
+- The code builds with zero compiler warnings and zero clang-tidy findings, both enforced as errors, and uses one consistent clang-format style.
+- A map regression script (`tools/regress.ps1`, `tools/regress.sh`) proves a change doesn't alter compiled maps.
+- New docs: [user manual](docs/user/manual.md), [maximum-quality guide](docs/user/max-quality.md), [developer guide](docs/developer/developer.md), and [docs/llms.txt](docs/llms.txt) for AI agents. The full list is in the [changelog](CHANGELOG.md).
+
 ## Documentation
 
 - [User manual](docs/user/manual.md) - command-line options for every tool
 - [Maximum-quality compiles](docs/user/max-quality.md) - final-build preset and what each setting costs
 - [Developer guide](docs/developer/developer.md) - layout, entry points, shared modules
 - [Warning cleanup plan](docs/developer/warning-cleanup-plan.md) (completed)
-- [Lint cleanup plan](docs/developer/lint-cleanup-plan.md)
+- [Lint cleanup plan](docs/developer/lint-cleanup-plan.md) (completed)
 - [Changelog](CHANGELOG.md)
 - [docs/llms.txt](docs/llms.txt) - complete reference for AI coding agents
 - API reference - generated with Doxygen (see below)
@@ -74,7 +98,7 @@ This installs the tools into `<dir>/bin` and the license and docs into `<dir>/sh
 
 ## Verifying a build
 
-Running any tool without arguments prints its version banner (for example `hlcsg v3.5.3 VL35 64-bit`) followed by usage, and exits with code 1.
+Running any tool without arguments prints its version banner (for example `hlcsg v3.5.4 VL35 64-bit`) followed by usage, and exits with code 1.
 
 ## Notes
 

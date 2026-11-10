@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.4] - 2026-11-10
+
+### Changed
+- clang-tidy findings are now errors (`WarningsAsErrors: '*'`); a full clean lint run reports zero findings.
+- Command-line numeric options are parsed strictly: an invalid value stops the tool with `invalid value '<value>' for <option>` instead of silently becoming 0. Map, entity and data-file numbers keep their lenient parsing.
+
 ### Documentation
+- README: a short, plain-language summary of what changed since the GitHub version.
+- Developer guide: the strict command-line parsing helpers.
+- API docs (Doxygen) include the changelog, AGENTS.md, the maximum-quality guide and the cleanup plans, so every README link resolves and the build reports no Doxygen warnings. The release ZIPs contain the HTML docs.
+- Docs and audits no longer contain local machine paths; the regression examples use generic paths.
+- Added `docs/developer/lint-cleanup-plan.md` (completed): lint baseline and batch decisions.
 - Added `docs/user/max-quality.md`, a final-quality compile preset that explains each setting's effect, default and cost. It is linked from the manual and README and installed in the release ZIP.
 
 ### Fixed
@@ -43,8 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ripent: range-check the WAD `infotableofs` before using it in size arithmetic.
 
 ### Changed
-- clang-tidy findings are now errors (`WarningsAsErrors: '*'`); a full clean lint run reports zero findings.
-- Command-line numeric options are parsed strictly: an invalid value stops the tool with `invalid value '<value>' for <option>` instead of silently becoming 0. Map, entity and data-file numbers keep their lenient parsing.
 - Both presets now build with `-Werror` (CMake option `VHLT_WERROR`, ON by default); the 154 compiler warning sites in the cleanup baseline are fixed.
 - `MAX_MAP_PORTALS` is defined once in `common/bspfile.h` and shared by hlbsp and hlvis.
 - Build toolchain is now Zig 0.17.1 (bundled Clang) with Ninja, for Windows and Linux (cross-compiled, glibc 2.28+). Presets `windows` and `linux`; toolchain files in `cmake/toolchains/`. Release binaries are stripped, and Windows builds depend only on system DLLs.

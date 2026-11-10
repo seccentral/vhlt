@@ -1,6 +1,6 @@
 # Fixer Handout — VHLT hardening pass (from audit 2026-11-10)
 
-You are fixing confirmed defects in VHLT, a set of legacy C++ Half-Life map compile tools (`hlcsg`, `hlbsp`, `hlvis`, `hlrad`, `ripent` plus the shared `common/`), at `<repo>`.
+You are fixing confirmed defects in VHLT, a set of legacy C++ Half-Life map compile tools (`hlcsg`, `hlbsp`, `hlvis`, `hlrad`, `ripent` plus the shared `common/`).
 
 The full evidence is in `audits/2026-11-10/final-audit.md`. Read §2 (themes) and §3 (corrections to prior fixes) of it first. IDs below (H1, M3, …) refer to that file.
 

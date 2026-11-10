@@ -64,13 +64,13 @@ The five Batch 4 checks are disabled in `.clang-tidy` with written reasons:
 
    ```powershell
    powershell -ExecutionPolicy Bypass -File tools\regress.ps1 `
-     -MapDir  "C:\Users\<user>\AppData\Local\Temp\opencode\vhlt-regress\prepared" `
-     -LightsRad "C:\Users\<user>\AppData\Local\Temp\opencode\vhlt-regress\prepared\lights.rad" `
-     -WadDir  "G:\SteamLibrary\steamapps\common\Half-Life\valve" `
-     -OutDir  "C:\Users\<user>\AppData\Local\Temp\opencode\vhlt-regress\regress"
+     -MapDir  "D:\vhlt-maps" `
+     -LightsRad "D:\vhlt-maps\lights.rad" `
+     -WadDir  "D:\Half-Life\valve" `
+     -OutDir  "D:\vhlt-regress"
    ```
 
-   These assets are in a temp directory. If they're missing, **stop and ask the user**; don't record a new baseline from modified code.
+   The maps, `lights.rad`, WADs and baseline are kept outside the repository; the paths above are examples. If they're missing, **stop and ask the user**; don't record a new baseline from modified code.
 6. **Working tree:** `git status` shows only the intended files. Commit, but don't push.
 
 ## Batches

@@ -48,7 +48,7 @@ PROJECT_NAME           = "Vluzacn ZHLT"
 # could be handy for archiving the generated documentation or if some version
 # control system is used.
 
-PROJECT_NUMBER         = 3.5.3
+PROJECT_NUMBER         = 3.5.4
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description
 # for a project that appears at the top of each page and should give viewers a
@@ -1026,7 +1026,7 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = "../../README.md" "../../docs/user/manual.md" "../../docs/developer/developer.md" "../../common" "../../hlcsg" "../../hlbsp" "../../hlvis" "../../hlrad" "../../ripent"
+INPUT                  = "../../README.md" "../../CHANGELOG.md" "../../AGENTS.md" "../../docs/user/manual.md" "../../docs/user/max-quality.md" "../../docs/developer/developer.md" "../../docs/developer/warning-cleanup-plan.md" "../../docs/developer/lint-cleanup-plan.md" "../../common" "../../hlcsg" "../../hlbsp" "../../hlvis" "../../hlrad" "../../ripent"
 
 # This tag can be used to specify the character encoding of the source files
 # that Doxygen parses. Internally Doxygen uses the UTF-8 encoding. Doxygen uses

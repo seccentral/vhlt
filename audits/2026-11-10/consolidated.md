@@ -4,7 +4,7 @@
 
 **Title:** Consolidated Audit Report — VHLT (Vluzacn Half-Life Tools)
 
-**Scope:** The VHLT toolset and shared common library under `<repo>`, covering `common/`, `hlcsg/`, `hlbsp/`, `hlvis/`, `hlrad/`, `ripent/`, `template/`, plus build/CI/configuration files (`CMakeLists.txt`, `Makefile`, `.github/workflows/`). Six specialized audits (security/input handling, memory/lifetime, concurrency/thread safety, build/portability/hygiene, design/maintainability/documentation, code correctness/quality) were synthesized. No source code was changed by any audit or by this report.
+**Scope:** The VHLT toolset and shared common library in this repository, covering `common/`, `hlcsg/`, `hlbsp/`, `hlvis/`, `hlrad/`, `ripent/`, `template/`, plus build/CI/configuration files (`CMakeLists.txt`, `Makefile`, `.github/workflows/`). Six specialized audits (security/input handling, memory/lifetime, concurrency/thread safety, build/portability/hygiene, design/maintainability/documentation, code correctness/quality) were synthesized. No source code was changed by any audit or by this report.
 
 **Audience:** Maintainers and contributors planning hardening, refactoring, and release work.
 
@@ -24,7 +24,7 @@ The common library is the highest-leverage fix target: every tool depends on `cm
 
 ## Audit Coverage
 
-Source reports synthesized (all in `<repo>\audits/`):
+Source reports synthesized (all in `audits/`):
 
 | # | File | Focus | Findings |
 |---|------|-------|----------|

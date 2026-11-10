@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(vhlt
-    VERSION 3.5.3
+    VERSION 3.5.4
     LANGUAGES CXX
 )
 

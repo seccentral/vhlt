@@ -11,9 +11,9 @@
 #define MODIFICATIONS_STRING "Submit detailed bug reports to (vluzacn@163.com)\n" //--vluzacn
 
 #ifdef _DEBUG
-#define ZHLT_VERSIONSTRING "v3.5.3 dbg"
+#define ZHLT_VERSIONSTRING "v3.5.4 dbg"
 #else
-#define ZHLT_VERSIONSTRING "v3.5.3"
+#define ZHLT_VERSIONSTRING "v3.5.4"
 #endif
 
 #define HACK_VERSIONSTRING "VL35" //--vluzacn
