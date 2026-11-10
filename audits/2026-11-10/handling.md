@@ -165,3 +165,16 @@ All findings have been either fixed, mitigated, or explicitly accepted with rati
 
 All handout IDs are fixed; nothing was skipped and no finding was judged incorrect.
 Details of the second pass are in `audits/2026-11-10/final-report.md`.
+
+## 3.5.3 Corrections
+
+Verified independently after the 3.5.2 release:
+
+| ID | Corrected status | Notes |
+|----|------------------|-------|
+| H12 | Fixed in 3.5.3 | It was marked Fixed above, but `hlrad/qrad.cpp` still read `%4095s` into a 260-byte `_MAX_PATH` buffer. Now a `MAXTOKEN` buffer (commit 5213384). |
+| Low: brush.cpp plane equivalence | Reverted, not a defect | Treating reversed planes as equivalent made `AddBrushPlane` drop opposite-facing hull faces. Reverted in commit 1058bf1. |
+| M6 / ripent texture export | Regression fixed in 3.5.3 | The 3.5.2 validation marked header-only (external WAD) miptex entries as missing. Fixed in commit 1058bf1. |
+| M17 (CI) | Superseded | The GitHub Actions workflow was removed. Gates run locally (`AGENTS.md`). |
+
+Compiled output was confirmed unchanged across the 3.5.3 warning cleanup. The pre-cleanup (c39fbc0) and post-cleanup builds produce identical `.bsp`, `.prt` and entity hashes for the regression maps.

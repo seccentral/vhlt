@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.3] - 2026-11-10
+
+### Added
+- Release binaries for Linux x86_64 (glibc 2.28+), built from the same sources and compiler as Windows.
+- clang-format 23.1.5 style (`.clang-format`) with `format` and `format-check` targets. The whole codebase is formatted; the reformat commit is in `.git-blame-ignore-revs`. Compiled output is unchanged.
+- `tools/regress.ps1` and `tools/regress.sh`: map-compile regression harness. It hashes `.bsp`, `.prt` and entity output of single-threaded compiles against a recorded baseline; the assets stay outside the repository.
+
 ### Fixed
 - hlrad: the `-smooth2` defaults are logged without passing an unused format argument.
 - hlrad: bad-face diagnostics print face indices with the correct type on 64-bit builds.
@@ -29,15 +36,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - MinGW GCC build instructions, the legacy POSIX `Makefile`, the MSVC compile options, and the GitHub Actions workflow (`.github/`).
+- Unused headers: `template/` (`BaseMath.h`, `EndianMath.h`, `Reference*.h`) and `common/TimeCounter.h`. The one used header, `basictypes.h`, moved to `common/`.
+- Individual audit reports already merged into `audits/2026-11-10/final-audit.md`. Root-level audit files moved under `audits/2026-11-10/`.
 
 ### Documentation
-- README: links to the manual, developer guide and changelog; lists the package and lint targets, preset, install layout, CI and smoke behaviour; marks the Makefile as POSIX-only.
-- Developer guide: `Doxyfile.in`, CI and clangd notes, thread clamp, and shared input-validation helpers.
-- AGENTS.md: package gate, smoke exit code, CI version check in the release checklist.
+- README: Zig/Ninja requirements, `windows` and `linux` presets, targets, install layout, smoke behaviour, `-Werror` and clang-tidy.
+- Developer guide: toolchain files, `Doxyfile.in`, clangd, thread clamp, shared input-validation helpers, regression harness.
+- AGENTS.md: toolchain rule (Zig only), gates for both presets, zero warnings, map regression, package.
 - Manual: `-threads` range.
 - Added `docs/llms.txt`, a complete agent reference linked from AGENTS.md and README.
-- Added `.env.example` (`GITEA_ACCESS_TOKEN`, optional `CMAKE` and `ZIG` paths) and documented how to select the CMake to use.
-- Added `docs/developer/warning-cleanup-plan.md`: warning baseline and batched plan to reach zero warnings.
+- Added `.env.example` (`GITEA_ACCESS_TOKEN`, optional `CMAKE` and `ZIG` paths).
+- Added `docs/developer/warning-cleanup-plan.md` (completed): warning baseline and the batch decisions.
+- Audit status (`audits/2026-11-10/handling.md`) corrected for H12, the reverted `IPlaneEquiv` change, and CI removal.
 
 ## [3.5.2] - 2026-11-10
 

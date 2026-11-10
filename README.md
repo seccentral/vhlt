@@ -31,6 +31,7 @@ The project builds five command-line tools:
 | [Zig](https://ziglang.org/download/) | 0.17.1 | C++ compiler (bundled Clang) for Windows and Linux |
 | [Doxygen](https://www.doxygen.nl/download.html) | optional | API docs |
 | clang-tidy ([LLVM](https://github.com/llvm/llvm-project/releases)) | optional | lint |
+| clang-format | 23.1.5 (`pip install clang-format==23.1.5`) | code formatting (required for contributions) |
 
 `cmake`, `ninja` and `zig` must be on `PATH`. Otherwise pass `-DZIG_EXECUTABLE=<path>` on the first configure, and call CMake by its full path. `.env.example` lists the optional `CMAKE` and `ZIG` paths; copy it to `.env`, which is git-ignored.
 
@@ -50,6 +51,10 @@ Other targets (shown for the `windows` preset; use `build/linux` for Linux):
 | Single tool | `cmake --build build/windows --target hlcsg` | `build/windows/bin/hlcsg.exe` |
 | API docs (requires Doxygen) | `cmake --build build/windows --target docs` | `build/windows/docs/html/index.html` |
 | ZIP package | `cmake --build build/windows --target package` | `build/windows/vhlt-<version>-win64.zip` |
+| Format sources | `cmake --build build/windows --target format` | sources rewritten in place |
+| Check formatting | `cmake --build build/windows --target format-check` | fails if any file is unformatted |
+
+The style is in `.clang-format`. The bulk reformat commit is listed in `.git-blame-ignore-revs`; run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once so `git blame` skips it.
 
 Lint with clang-tidy by configuring with `-DVHLT_CLANG_TIDY=ON`. Every file is then checked during the build with its real defines; the checks are in `.clang-tidy`.
 
@@ -67,7 +72,7 @@ This installs the tools into `<dir>/bin` and the license and docs into `<dir>/sh
 
 ## Verifying a build
 
-Running any tool without arguments prints its version banner (for example `hlcsg v3.5.2 VL35 64-bit`) followed by usage, and exits with code 1.
+Running any tool without arguments prints its version banner (for example `hlcsg v3.5.3 VL35 64-bit`) followed by usage, and exits with code 1.
 
 ## Notes
 

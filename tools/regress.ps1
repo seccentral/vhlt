@@ -13,9 +13,10 @@
     in parallel instead (see -Jobs), which uses the available cores while
     keeping each individual output stable.
 
-    The .bsp entity lump contains a "compiler" key with __DATE__. The script
-    normalises that date in the BSP bytes and drops the key from the exported
-    .ent before hashing, so hashes stay comparable across days.
+    The .bsp entity lump contains a "compiler" key with the tool version and
+    __DATE__. The script replaces both in the BSP bytes with a constant and
+    drops the key from the exported .ent before hashing, so hashes stay
+    comparable across days and across version bumps of the same length.
 
     Maps and WADs are third-party assets and must stay outside the repository.
     Put the .map files in a directory somewhere else and point -MapDir at it.
@@ -159,8 +160,8 @@ $worker = {
         $text = $latin1.GetString([IO.File]::ReadAllBytes($Path))
         $text = [regex]::Replace(
             $text,
-            'ZHLT v([^()]*?)\([A-Z][a-z]{2} [ 0-9]{2} [0-9]{4}\)',
-            'ZHLT v$1(XXXXXXXXXXX)')
+            'ZHLT v[^()]*?\([A-Z][a-z]{2} [ 0-9]{2} [0-9]{4}\)',
+            'ZHLT vX (XXXXXXXXXXX)')
         return Get-HexHash ($latin1.GetBytes($text))
     }
 

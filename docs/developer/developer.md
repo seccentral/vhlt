@@ -19,7 +19,7 @@ VHLT is a set of command-line tools for compiling Half-Life maps (`.map`) into B
 - `tools/regress.ps1`: deterministic map-compile regression check (see Tests).
 - `CMakeLists.txt`, `CMakePresets.json`: build configuration (presets `windows` and `linux`, Ninja generator).
 - `cmake/toolchains/`: Zig toolchain files (`zig-windows-x86_64.cmake`, `zig-linux-x86_64.cmake`, shared `zig-common.cmake`).
-- `.clangd`: clangd configuration (uses `build/windows/compile_commands.json`). `.clang-tidy`: lint checks.
+- `.clangd`: clangd configuration (uses `build/windows/compile_commands.json`). `.clang-tidy`: lint checks. `.clang-format`: code style (clang-format 23.1.5). `.git-blame-ignore-revs`: the bulk reformat commit.
 
 ## Build
 
@@ -31,6 +31,8 @@ cmake --preset linux   && cmake --build --preset linux      # build/linux (cross
 cmake --build build/windows --target docs                   # build/windows/docs/html (needs Doxygen)
 cmake --build build/windows --target package                # build/windows/vhlt-<version>-win64.zip
 cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build build/lint   # clang-tidy
+cmake --build build/windows --target format                 # clang-format in place
+cmake --build build/windows --target format-check           # formatting gate
 ```
 
 Both presets build with `-Wall -Werror`; `-DVHLT_WERROR=OFF` disables `-Werror` for a one-off diagnostic build. The Zig toolchain sets `-Wno-date-time`, because Zig makes that warning an error and the version banners use `__DATE__`, and `-s`, which strips Release binaries. Windows binaries depend only on system DLLs (`kernel32`, `ucrtbase`). Zig's Windows target uses the open-source mingw-w64 headers internally, which is why `__MINGW32__` is defined and the `#ifdef __MINGW32__` guards in `common/` remain.
@@ -99,6 +101,6 @@ tools/regress.sh --map-dir /srv/vhlt-maps --lights-rad /srv/vhlt-maps/lights.rad
     --wad-dir /srv/half-life/valve
 ```
 
-The harness runs `hlcsg`, `hlbsp`, `hlvis -full` and `hlrad -extra` on every `.map` in the map directory, with `-threads 1`, and hashes the `.bsp`, `.prt` and `ripent -export` entity text. It normalises the `compiler` date, so the hashes remain valid across days. `--wad-dir`/`-WadDir` rewrites the worldspawn `wad` key to the local WADs, so the same maps work on any host; only the WAD base names end up in the BSP. Reference maps and WADs are third-party assets and must stay outside the repository. Maps are compiled in parallel; each individual compile is single-threaded because threaded compiles are not byte-identical run to run. The `.prt` layout can differ between the Windows and Linux builds, so keep a separate baseline per platform.
+The harness runs `hlcsg`, `hlbsp`, `hlvis -full` and `hlrad -extra` on every `.map` in the map directory, with `-threads 1`, and hashes the `.bsp`, `.prt` and `ripent -export` entity text. It replaces the `compiler` version and date with a constant, so the hashes remain valid across days and across version bumps of the same length. `--wad-dir`/`-WadDir` rewrites the worldspawn `wad` key to the local WADs, so the same maps work on any host; only the WAD base names end up in the BSP. Reference maps and WADs are third-party assets and must stay outside the repository. Maps are compiled in parallel; each individual compile is single-threaded because threaded compiles are not byte-identical run to run. The `.prt` layout can differ between the Windows and Linux builds, so keep a separate baseline per platform.
 
 Running a tool with no arguments prints its version banner and exits with code 1; smoke checks must accept that exit code.

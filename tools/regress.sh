@@ -10,9 +10,10 @@
 # files. Maps are compiled in parallel instead (--jobs), which uses the
 # available cores while keeping each individual output stable.
 #
-# The compiler date in the BSP entity lump is normalised and the "compiler"
-# key is dropped from the exported .ent before hashing, so hashes stay
-# comparable across days.
+# The compiler version and date in the BSP entity lump are replaced with a
+# constant and the "compiler" key is dropped from the exported .ent before
+# hashing, so hashes stay comparable across days and across version bumps
+# of the same length.
 #
 # Maps and WADs are third-party assets and must stay outside the repository.
 #
@@ -136,8 +137,8 @@ import sys
 
 data = open(sys.argv[1], 'rb').read()
 data = re.sub(
-    rb'ZHLT v([^()]*?)\([A-Z][a-z]{2} [ 0-9]{2} [0-9]{4}\)',
-    rb'ZHLT v\1(XXXXXXXXXXX)',
+    rb'ZHLT v[^()]*?\([A-Z][a-z]{2} [ 0-9]{2} [0-9]{4}\)',
+    rb'ZHLT vX (XXXXXXXXXXX)',
     data)
 sys.stdout.buffer.write(data)
 PY
@@ -148,13 +149,13 @@ import sys
 
 data = open(sys.argv[1], 'rb').read()
 data = re.sub(
-    rb'ZHLT v([^()]*?)\([A-Z][a-z]{2} [ 0-9]{2} [0-9]{4}\)',
-    rb'ZHLT v\1(XXXXXXXXXXX)',
+    rb'ZHLT v[^()]*?\([A-Z][a-z]{2} [ 0-9]{2} [0-9]{4}\)',
+    rb'ZHLT vX (XXXXXXXXXXX)',
     data)
 sys.stdout.buffer.write(data)
 PY
     elif perl -e 'exit 0' >/dev/null 2>&1; then
-        perl -0777 -pe 's/(ZHLT v[^()]*?)\([A-Z][a-z]{2} [ 0-9]{2} [0-9]{4}\)/$1(XXXXXXXXXXX)/' "$file" \
+        perl -0777 -pe 's/ZHLT v[^()]*?\([A-Z][a-z]{2} [ 0-9]{2} [0-9]{4}\)/ZHLT vX (XXXXXXXXXXX)/' "$file" \
             | sha256sum | cut -d' ' -f1
     else
         echo "regress: python3, python and perl are missing; hashing the raw .bsp" >&2
