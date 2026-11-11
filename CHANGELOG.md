@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Binaries and the HTML API docs no longer embed the local source path (`-ffile-prefix-map`, Doxygen `STRIP_FROM_PATH`).
+- `.env.example` no longer has a release-host token; it lists only the optional `CMAKE` and `ZIG` paths.
+
 ### Documentation
+- Added `LICENSE` (summary pointing to `Terms of Use.txt`) and a README License section.
+- The project is published as a GitHub fork of FreeSlave/vhlt.
 - `AGENTS.md` and `docs/llms.txt`: a working-style rule for agents. Implement the whole request, verify it with one sanity run against the criterion the user stated, and run the full gates once at the end instead of testing in loops.
 
 ## [3.6.0] - 2026-11-11

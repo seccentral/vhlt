@@ -160,6 +160,7 @@ function(add_vhlt_tool target)
         -Wall
         -Wno-deprecated-declarations
         -fno-strict-aliasing
+        "-ffile-prefix-map=${CMAKE_SOURCE_DIR}/="
     )
     if(VHLT_WERROR)
         target_compile_options(${target} PRIVATE -Werror)
@@ -180,7 +181,7 @@ function(add_vhlt_tool target)
     endif()
 endfunction()
 
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/Terms of Use.txt"
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/Terms of Use.txt" "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
         DESTINATION "${CMAKE_INSTALL_DOCDIR}")
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/user/manual.md"
               "${CMAKE_CURRENT_SOURCE_DIR}/docs/user/max-quality.md"

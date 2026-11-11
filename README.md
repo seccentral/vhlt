@@ -114,3 +114,7 @@ Running any tool without arguments prints its version banner (for example `hlcsg
 - `-fno-strict-aliasing` is required; the CMake build sets it. Do not change the feature macro definitions in `common/cmdlib.h`; the code was written and checked under those assumptions.
 - Malformed or oversized input files (BSP, WAD, `.prt`, `.inc`) are rejected with an error rather than processed.
 - `hlrad-ng` needs no extra files: it opens the Vulkan loader that graphics drivers install (`vulkan-1.dll`, `libvulkan.so.1`) at run time and works without it. `-DVHLT_HLRAD_NG=OFF` leaves the tool out of a build. The Linux build of `hlrad-ng` is cross-compiled like the other tools and has not been run on Linux yet.
+
+## License
+
+GPL, with the Valve SDK 2.3 EULA and the Quake II licence taking precedence where needed. See [LICENSE](LICENSE) and [Terms of Use.txt](Terms%20of%20Use.txt).

@@ -1,0 +1,17 @@
+Vluzacn's ZHLT (VHLT) - licence
+
+This code is distributed under the terms in "Terms of Use.txt" in this
+repository (also installed to share/doc/vhlt with every release):
+
+  0) The code is protected by the GNU General Public License (GPL):
+     https://www.gnu.org/licenses/gpl.html
+  1) In addition to the GPL, the Valve SDK 2.3 EULA overrides any rights
+     you may have obtained in the GPL, when needed.
+  2) The id Software Quake II licence overrides portions of both the Valve
+     EULA and the GPL where needed.
+
+See "Terms of Use.txt" for the full text and links.
+
+Third-party code:
+  third_party/vulkan - Khronos Vulkan headers, Apache-2.0 OR MIT
+  (see third_party/vulkan/README.md and the header of each file).

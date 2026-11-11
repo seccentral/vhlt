@@ -2,7 +2,7 @@
 
 > Legacy C++11 command-line compilers that turn Half-Life `.map` source files into playable `.bsp` levels: `hlcsg` → `hlbsp` → `hlvis` → `hlrad` (or `hlrad-ng`, the fast GPU-capable one), plus `ripent` for editing compiled BSPs. About 67k lines across `common/` and one folder per tool. CMake is the primary build. The code uses heavy global state, threads, and fixed-size arrays, and it has no unit tests (only the map-compile regression harness in `tools/regress.ps1`). This file gives an agent everything it needs to build, navigate, change and verify the code safely.
 
-Current version: 3.6.0 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `ZHLT_VERSIONSTRING`, `docs/api/Doxyfile.in` `PROJECT_NUMBER`). Main branch: `master`. Remote: `https://git.example.invalid/vhlt` (Gitea), with releases and their zips on the tags. Targets: Windows x86_64 and Linux x86_64, both built with **Zig 0.17.1** (bundled Clang) through CMake and Ninja. There is no MinGW GCC, MSVC or GitHub CI.
+Current version: 3.6.0 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `ZHLT_VERSIONSTRING`, `docs/api/Doxyfile.in` `PROJECT_NUMBER`). Main branch: `master`. Hosted on GitHub as a fork of [FreeSlave/vhlt](https://github.com/FreeSlave/vhlt), with releases and their zips on the tags. Targets: Windows x86_64 and Linux x86_64, both built with **Zig 0.17.1** (bundled Clang) through CMake and Ninja. There is no MinGW GCC, MSVC or GitHub CI.
 
 ## Docs
 
@@ -60,7 +60,7 @@ cmake --build build/windows --target format-check          # gate: fails on unfo
   - Windows `.exe` files need only system DLLs (`kernel32`, `ucrtbase`).
   - Linux binaries link glibc 2.28 dynamically and libc++ statically.
   - Zig's Windows target uses the open-source mingw-w64 headers, so `__MINGW32__` is defined; keep the existing `#ifdef __MINGW32__` guards.
-- **Secrets:** `.env` (git-ignored) holds `GITEA_ACCESS_TOKEN` for `git.example.invalid`. Pass it as a header (`git -c http.extraHeader="Authorization: token …"`, `curl -H "Authorization: token …"`). Never write it into a remote URL, a file, or output.
+- **`.env`:** git-ignored; holds optional local tool paths (`CMAKE`, `ZIG`). Never commit it or print its values, and never commit personal data (names, emails, usernames, local paths, private hosts).
 - **Gates (must pass before committing):**
   1. Configure and build both presets (`windows` and `linux`).
   2. Zero compiler warnings (`-Werror` via `VHLT_WERROR`, ON by default).
@@ -133,7 +133,7 @@ cmake --build build/windows --target format-check          # gate: fails on unfo
   - Defined by default for hlrad: `HLRAD_GROWSAMPLE`, `HLRAD_BLUR`, `HLRAD_AUTOCORING`, `HLRAD_LOCALTRIANGULATION`, `HLRAD_AVOIDWALLBLEED`.
   - **Not** defined: `ZHLT_XASH`, `ZHLT_XASH2` (Xash engine variants), `ZHLT_ZONES`.
 - **Before editing any `#ifdef` region, confirm it is compiled in.** Several earlier "fixes" landed in dead code.
-- **Compiler flags:** `-Wall -Wno-deprecated-declarations -fno-strict-aliasing` (**strict aliasing must stay off**), plus `-pthread` for Linux. The Zig toolchain adds `-Wno-date-time` and the Release `-s`. The language standard is C++11 with GNU extensions.
+- **Compiler flags:** `-Wall -Wno-deprecated-declarations -fno-strict-aliasing` (**strict aliasing must stay off**), `-ffile-prefix-map=<source>/=` (keeps the local path out of `__FILE__`), plus `-pthread` for Linux. The Zig toolchain adds `-Wno-date-time` and the Release `-s`. The language standard is C++11 with GNU extensions.
 
 ## Key limits (common/bspfile.h unless noted)
 
@@ -198,6 +198,6 @@ cmake --build build/windows --target format-check          # gate: fails on unfo
 
 ## Optional
 
-- **Upstream background:** derived from Zoner's Half-Life Compilation Tools 3.4, modified by vluzacn (the `--vluzacn` comments mark his changes). This repository descends from the FreeSlave/vhlt fork on GitHub and is now hosted on Gitea (see the top of this file).
+- **Upstream background:** derived from Zoner's Half-Life Compilation Tools 3.4, modified by vluzacn (the `--vluzacn` comments mark his changes). This repository is a GitHub fork of FreeSlave/vhlt (see the top of this file).
 - **Terms of Use:** `Terms of Use.txt`, which is shipped in the ZIP and installed to `share/doc/vhlt`.
 - **Open audit items:** see `audits/2026-11-10/final-audit.md` §4 and `audits/2026-11-10/handling.md`. The remaining risk areas are hlrad numerical edge cases, threading globals, and the lack of unit tests or fuzzing.
