@@ -165,6 +165,7 @@ cmake --build build/windows --target format-check          # gate: fails on unfo
 - `hlassume` is always active. `hlassert` is debug-only, so don't rely on it for safety.
 
 **Change discipline:**
+- **Deliver first, verify once** (`AGENTS.md`, Working Style). Implement the whole request, do one sanity run, then hand the result over to be judged by the criterion the user stated; do not invent a stricter one. No comparison series, profiling experiments or side investigations unless a result is visibly wrong or the user asks. Build and test only what changed; run the full gates once, at the end.
 - Keep changes minimal (YAGNI). Don't refactor global state or long functions as a side effect. Preserve output for valid inputs, because compiled maps must not change.
 - Update `docs/user/manual.md` **and** the tool's `Usage()` text together when options change. Add Doxygen comments for shared helpers.
 - Record user-visible changes in `CHANGELOG.md` `[Unreleased]` (Fixed / Security / Changed / Documentation).

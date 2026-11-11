@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+- `AGENTS.md` and `docs/llms.txt`: a working-style rule for agents. Implement the whole request, verify it with one sanity run against the criterion the user stated, and run the full gates once at the end instead of testing in loops.
+
 ## [3.6.0] - 2026-11-11
 
 ### Added

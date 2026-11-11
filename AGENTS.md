@@ -6,6 +6,11 @@ Vluzacn ZHLT (VHLT) is a set of Half-Life compilation tools: `hlcsg`, `hlbsp`, `
 
 **Agent context:** read [`docs/llms.txt`](docs/llms.txt) first. It is the complete agent reference: pipeline and file flow, layout, feature macros, limits, core APIs, concurrency, gotchas, and the release checklist. Keep it current when the build, limits, APIs or rules change.
 
+## Working Style
+
+**Deliver first, verify once.** Implement the whole request, do one sanity run, then hand the result over to be judged by the success criterion the user stated. Do not invent a stricter one (for example bit-exact parity when "looks right and runs faster" was asked).
+Do not run comparison series, profiling experiments or side investigations unless a result is visibly wrong or the user asks for them. Build and test only what changed, and run the full gates once, at the end.
+
 ## Build
 
 Primary build system: CMake (3.16 or newer) with Ninja and Zig 0.17.1 as the only compiler, for both Windows and Linux. Do not use or add MinGW GCC, MSVC or any other toolchain. One dev-time exception, not part of the build: the `hlrad-ng/*_spv.inc` files are generated from the `hlrad-ng/*.comp` shaders with `glslangValidator` from the Vulkan SDK (commands in `docs/llms.txt`) and committed. If `.env` sets `CMAKE` or `ZIG`, use those paths (see `.env.example`). `.env` is git-ignored and holds secrets, so never commit it or print its values.
