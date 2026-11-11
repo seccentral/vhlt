@@ -1,6 +1,10 @@
 # Vluzacn ZHLT
 
-Custom Zoner's Half-Life Compilation Tools created by vluzacn. This repository also adds support for determining the number of threads on POSIX systems, a CMake build with a single open-source compiler (Zig) for Windows and Linux, packaging, and input-validation hardening (see [CHANGELOG.md](CHANGELOG.md)).
+Custom Zoner's Half-Life Compilation Tools created by vluzacn, for GoldSrc (Half-Life 1) maps. This fork adds `hlrad-ng`, a lighting compiler that runs on the graphics card through Vulkan and is many times faster than `hlrad`. It also hardens every tool against broken input and ships ready-made Windows and Linux builds (see [CHANGELOG.md](CHANGELOG.md)).
+
+![hlrad-ng lights the stalkyard test map 17 times faster than hlrad at the maximum-quality preset: 95.4 s with hlrad, 17.7 s with hlrad-ng on the CPU and 5.6 s on an RTX 2080](docs/assets/hlrad-ng-speed.svg)
+
+![Terminal replay of both tools lighting stalkyard: hlrad finishes in 95.44 s, hlrad-ng in 5.62 s](docs/assets/hlrad-ng-terminal.svg)
 
 The project builds six command-line tools:
 
@@ -20,7 +24,7 @@ This fork started from [FreeSlave/vhlt](https://github.com/FreeSlave/vhlt) (last
 - A CMake build with simple presets (`windows`, `linux`) and a one-command ZIP package. Ready-made binaries for both platforms are attached to each release.
 
 **Much faster lighting**
-- `hlrad-ng` is a new lighting tool next to `hlrad`. It takes the same options and keeps the same lighting model, and runs direct lighting, patch visibility and the light bounces on the graphics card (Vulkan; nothing to install). A card with hardware ray tracing gives the largest gain; without a usable card it runs on the CPU and is still several times faster than `hlrad` at high settings.
+- `hlrad-ng` is a new lighting tool next to `hlrad`. It takes the same options and keeps the same lighting model, and runs direct lighting, patch visibility and the light bounces on the graphics card (Vulkan; nothing to install). A card with hardware ray tracing gives the largest gain; without a usable card it runs on the CPU and is still several times faster than `hlrad` at high settings. Set `HLRAD_NG_GPU=0` to keep it on the CPU.
 - With the [maximum-quality preset](docs/user/max-quality.md) on an 8-core CPU and an RTX 2080: a 57,000-patch map takes 95 s in `hlrad` and under 6 s in `hlrad-ng`; a 111,000-patch map that `hlrad` cannot light at all (patch limit) takes 24 s.
 - Its lightmaps are not byte-identical to `hlrad`'s: they differ by a brightness level here and there and at a few shadow edges. `hlrad` is unchanged and remains the reference. See the [user manual](docs/user/manual.md#hlrad-ng).
 
@@ -104,7 +108,7 @@ This installs the tools into `<dir>/bin` and the license and docs into `<dir>/sh
 
 ## Verifying a build
 
-Running any tool without arguments prints its version banner (for example `hlcsg v3.6.0 VL35 64-bit`; `hlrad-ng` introduces itself as `hlrad`) followed by usage, and exits with code 1.
+Running any tool without arguments prints its version banner (for example `hlcsg v3.6.1 VL35 64-bit`; `hlrad-ng` introduces itself as `hlrad`) followed by usage, and exits with code 1.
 
 ## Notes
 

@@ -2,7 +2,7 @@
 
 > Legacy C++11 command-line compilers that turn Half-Life `.map` source files into playable `.bsp` levels: `hlcsg` → `hlbsp` → `hlvis` → `hlrad` (or `hlrad-ng`, the fast GPU-capable one), plus `ripent` for editing compiled BSPs. About 67k lines across `common/` and one folder per tool. CMake is the primary build. The code uses heavy global state, threads, and fixed-size arrays, and it has no unit tests (only the map-compile regression harness in `tools/regress.ps1`). This file gives an agent everything it needs to build, navigate, change and verify the code safely.
 
-Current version: 3.6.0 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `ZHLT_VERSIONSTRING`, `docs/api/Doxyfile.in` `PROJECT_NUMBER`). Main branch: `master`. Hosted on GitHub as a fork of [FreeSlave/vhlt](https://github.com/FreeSlave/vhlt), with releases and their zips on the tags. Targets: Windows x86_64 and Linux x86_64, both built with **Zig 0.17.1** (bundled Clang) through CMake and Ninja. There is no MinGW GCC, MSVC or GitHub CI.
+Current version: 3.6.1 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `ZHLT_VERSIONSTRING`, `docs/api/Doxyfile.in` `PROJECT_NUMBER`). Main branch: `master`. Hosted on GitHub as a fork of [FreeSlave/vhlt](https://github.com/FreeSlave/vhlt), with releases and their zips on the tags. Targets: Windows x86_64 and Linux x86_64, both built with **Zig 0.17.1** (bundled Clang) through CMake and Ninja. There is no MinGW GCC, MSVC or GitHub CI.
 
 ## Docs
 
@@ -71,7 +71,7 @@ cmake --build build/windows --target format-check          # gate: fails on unfo
   7. `format-check` passes.
   8. Map regression: `tools/regress.ps1` matches the recorded baseline.
   9. Review the working tree for stray artifacts.
-- **Smoke test:** run each `build/windows/bin/<tool>.exe` with **no arguments**. It prints `<tool> v3.6.0 VL35 64-bit (<date>)` (`hlrad-ng` prints `hlrad`) as its first line and then usage. **The exit code is 1 by design**; check the banner, not the exit code. Linux binaries can't run on a Windows host; check them with `file` (expect `ELF 64-bit … x86-64`), or run them on Linux.
+- **Smoke test:** run each `build/windows/bin/<tool>.exe` with **no arguments**. It prints `<tool> v3.6.1 VL35 64-bit (<date>)` (`hlrad-ng` prints `hlrad`) as its first line and then usage. **The exit code is 1 by design**; check the banner, not the exit code. Linux binaries can't run on a Windows host; check them with `file` (expect `ELF 64-bit … x86-64`), or run them on Linux.
 - **Warning baseline:** zero. Both presets compile with `-Wall -Werror` (`VHLT_WERROR`, ON by default). Fix new warnings in code; do not add flags or pragmas. The completed cleanup plan and the original 154-site baseline are in `docs/developer/warning-cleanup-plan.md`.
 - **Debug builds:** `-DCMAKE_BUILD_TYPE=Debug` enables `hlassert`/`assert`. `NDEBUG` comes only from CMake's Release flags.
 - **No CI:** there is no hosted CI and no `.github/`; the gates are run locally.

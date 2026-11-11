@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-label="Terminal replay: hlrad takes 95 seconds, hlrad-ng 5.6 seconds">
+<title>Terminal replay: hlrad takes 95 seconds, hlrad-ng 5.6 seconds</title>
+<style>
+.s{font-family:'Segoe UI Variable Display','Segoe UI',-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif} .m{font-family:'Cascadia Mono','Cascadia Code',SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono','Liberation Mono',monospace;font-size:13px}
+.bar{transform-box:fill-box;transform-origin:left center}
+@keyframes a0{0%,74.562%{opacity:0}74.762%,100%{opacity:1}}
+@keyframes a1{0%,18.344%{opacity:0}18.544%,100%{opacity:1}}
+@keyframes a2{0%,0.0%{transform:translateX(0)}18.344%,100%{transform:translateX(763.4px)}}
+@keyframes a3{0%,18.344%{opacity:0}18.544%,100%{opacity:1}}
+@keyframes a4{0%,53.445%{opacity:0}53.645%,100%{opacity:1}}
+@keyframes a5{0%,18.344%{transform:translateX(0)}53.445%,100%{transform:translateX(779.0px)}}
+@keyframes a6{0%,53.445%{opacity:0}53.645%,100%{opacity:1}}
+@keyframes a7{0%,62.352%{opacity:0}62.552%,100%{opacity:1}}
+@keyframes a8{0%,53.445%{transform:translateX(0)}62.352%,100%{transform:translateX(802.4px)}}
+@keyframes a9{0%,62.352%{opacity:0}62.552%,100%{opacity:1}}
+@keyframes a10{0%,74.562%{opacity:0}74.762%,100%{opacity:1}}
+@keyframes a11{0%,4.391%{opacity:0}4.591%,100%{opacity:1}}
+@keyframes a12{0%,0.062%{opacity:0}0.262%,100%{opacity:1}}
+@keyframes a13{0%,0.453%{opacity:0}0.653%,100%{opacity:1}}
+@keyframes a14{0%,0.609%{opacity:0}0.8089999999999999%,100%{opacity:1}}
+@keyframes a15{0%,1.539%{opacity:0}1.7389999999999999%,100%{opacity:1}}
+@keyframes a16{0%,1.953%{opacity:0}2.153%,100%{opacity:1}}
+@keyframes a17{0%,2.18%{opacity:0}2.3800000000000003%,100%{opacity:1}}
+@keyframes a18{0%,2.18%{opacity:0}2.3800000000000003%,100%{opacity:1}}
+@keyframes a19{0%,3.352%{opacity:0}3.552%,100%{opacity:1}}
+@keyframes a20{0%,3.469%{opacity:0}3.669%,100%{opacity:1}}
+@keyframes a21{0%,4.055%{opacity:0}4.255%,100%{opacity:1}}
+@keyframes a22{0%,4.062%{opacity:0}4.2620000000000005%,100%{opacity:1}}
+@keyframes a23{0%,4.391%{opacity:0}4.591%,100%{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+<rect width="960" height="600" rx="14" fill="#0D1322"/>
+<text class="m" x="40" y="36" fill="#97A4BB" textLength="678.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve">$ FLAGS='-extra -bounce 16 -chop 16 -texchop 8 -dlight 1 -compress 0 -vismatrix normal'</text>
+<rect x="24" y="56" width="912" height="172" rx="10" fill="#111827" stroke="#2A3550"/>
+<text class="s" x="40" y="83" font-size="14" font-weight="650" fill="#D5DCE8" text-anchor="start">hlrad (classic, CPU)</text>
+<text class="s" x="920" y="83" font-size="14" font-weight="700" fill="#97A4BB" text-anchor="end" style="animation:a0 16.0s linear infinite">95.44 s</text>
+<clipPath id="cp"><rect x="24" y="56" width="912" height="172"/></clipPath>
+<text class="m" x="40" y="112" fill="#D5DCE8" textLength="187.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">$ hlrad $FLAGS stalkyard</text>
+<g style=""><text class="m" x="40" y="132" fill="#D5DCE8" textLength="678.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve">BuildFacelights: 10%...20%...30%...40%...50%...60%...70%...80%...90%...<tspan style="animation:a1 16.0s linear infinite"> (23.48 seconds)</tspan></text></g>
+<g clip-path="url(#cp)"><rect x="172.6" y="117" width="763.4" height="20" fill="#111827" style="transform:translateX(763.4px);animation:a2 16.0s linear infinite"/></g>
+<g style="animation:a3 16.0s linear infinite"><text class="m" x="40" y="152" fill="#D5DCE8" textLength="663.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">BuildVisLeafs: 10%...20%...30%...40%...50%...60%...70%...80%...90%...<tspan style="animation:a4 16.0s linear infinite"> (44.93 seconds)</tspan></text></g>
+<g clip-path="url(#cp)"><rect x="157.0" y="137" width="779.0" height="20" fill="#111827" style="transform:translateX(779.0px);animation:a5 16.0s linear infinite"/></g>
+<g style="animation:a6 16.0s linear infinite"><text class="m" x="40" y="172" fill="#D5DCE8" textLength="639.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve">MakeScales: 10%...20%...30%...40%...50%...60%...70%...80%...90%...<tspan style="animation:a7 16.0s linear infinite"> (11.40 seconds)</tspan></text></g>
+<g clip-path="url(#cp)"><rect x="133.6" y="157" width="802.4" height="20" fill="#111827" style="transform:translateX(802.4px);animation:a8 16.0s linear infinite"/></g>
+<text class="m" x="40" y="192" fill="#97A4BB" textLength="514.8" lengthAdjust="spacingAndGlyphs" style="animation:a9 16.0s linear infinite" xml:space="preserve">Bounces 1-16, CreateTriangulations, AddPatchLights, FinalLightFace</text>
+<text class="m" x="40" y="212" fill="#D5DCE8" textLength="163.8" lengthAdjust="spacingAndGlyphs" style="animation:a10 16.0s linear infinite" xml:space="preserve">95.44 seconds elapsed</text>
+<rect x="24" y="248" width="912" height="312" rx="10" fill="#111827" stroke="#2A3550"/>
+<text class="s" x="40" y="275" font-size="14" font-weight="650" fill="#D5DCE8" text-anchor="start">hlrad-ng (Vulkan, RTX 2080)</text>
+<text class="s" x="920" y="275" font-size="14" font-weight="700" fill="#FFB25C" text-anchor="end" style="animation:a11 16.0s linear infinite">5.62 s</text>
+<text class="m" x="40" y="304" fill="#D5DCE8" textLength="210.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve">$ hlrad-ng $FLAGS stalkyard</text>
+<text class="m" x="40" y="324" fill="#D5DCE8" textLength="678.6" lengthAdjust="spacingAndGlyphs" style="animation:a12 16.0s linear infinite" xml:space="preserve">Sample positions: 10%...20%...30%...40%...50%...60%...70%...80%...90%... (0.08 seconds)</text>
+<text class="m" x="40" y="344" fill="#D5DCE8" textLength="507.0" lengthAdjust="spacingAndGlyphs" style="animation:a13 16.0s linear infinite" xml:space="preserve">GPU: NVIDIA GeForce RTX 2080, hardware ray tracing (0.50 seconds)</text>
+<text class="m" x="40" y="364" fill="#D5DCE8" textLength="709.8" lengthAdjust="spacingAndGlyphs" style="animation:a14 16.0s linear infinite" xml:space="preserve">Patch lighting (GPU): 10%...20%...30%...40%...50%...60%...70%...80%...90%... (0.20 seconds)</text>
+<text class="m" x="40" y="384" fill="#D5DCE8" textLength="717.6" lengthAdjust="spacingAndGlyphs" style="animation:a15 16.0s linear infinite" xml:space="preserve">Direct lighting (GPU): 10%...20%...30%...40%...50%...60%...70%...80%...90%... (1.19 seconds)</text>
+<text class="m" x="40" y="404" fill="#D5DCE8" textLength="725.4" lengthAdjust="spacingAndGlyphs" style="animation:a16 16.0s linear infinite" xml:space="preserve">Patch visibility (GPU): 10%...20%...30%...40%...50%...60%...70%...80%...90%... (0.53 seconds)</text>
+<text class="m" x="40" y="424" fill="#D5DCE8" textLength="670.8" lengthAdjust="spacingAndGlyphs" style="animation:a17 16.0s linear infinite" xml:space="preserve">Transfers (GPU): 10%...20%...30%...40%...50%...60%...70%...80%...90%... (0.29 seconds)</text>
+<text class="m" x="40" y="444" fill="#D5DCE8" textLength="530.4" lengthAdjust="spacingAndGlyphs" style="animation:a18 16.0s linear infinite" xml:space="preserve">Transfers on the GPU: 249.42M, 868.4 megs with the visibility matrix</text>
+<text class="m" x="40" y="464" fill="#D5DCE8" textLength="733.2" lengthAdjust="spacingAndGlyphs" style="animation:a19 16.0s linear infinite" xml:space="preserve">Light bounces (16, GPU): 10%...20%...30%...40%...50%...60%...70%...80%...90%... (1.50 seconds)</text>
+<text class="m" x="40" y="484" fill="#D5DCE8" textLength="702.0" lengthAdjust="spacingAndGlyphs" style="animation:a20 16.0s linear infinite" xml:space="preserve">Patch triangulation: 10%...20%...30%...40%...50%...60%...70%...80%...90%... (0.15 seconds)</text>
+<text class="m" x="40" y="504" fill="#D5DCE8" textLength="756.6" lengthAdjust="spacingAndGlyphs" style="animation:a21 16.0s linear infinite" xml:space="preserve">Bounced light on lightmaps: 10%...20%...30%...40%...50%...60%...70%...80%...90%... (0.75 seconds)</text>
+<text class="m" x="40" y="524" fill="#D5DCE8" textLength="670.8" lengthAdjust="spacingAndGlyphs" style="animation:a22 16.0s linear infinite" xml:space="preserve">Final lightmaps: 10%...20%...30%...40%...50%...60%...70%...80%...90%... (0.01 seconds)</text>
+<text class="m" x="40" y="544" fill="#FFB25C" textLength="156.0" lengthAdjust="spacingAndGlyphs" style="animation:a23 16.0s linear infinite" xml:space="preserve">5.62 seconds elapsed</text>
+<text class="s" x="40" y="586" font-size="12.5" font-weight="400" fill="#97A4BB" text-anchor="start">Real output from stalkyard runs (classic progress lines condensed), replayed at 8× speed.</text>
+</svg>

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="520" viewBox="0 0 960 520" role="img" aria-label="hlrad-ng lights stalkyard 17 times faster than hlrad">
+<title>hlrad-ng lights stalkyard 17 times faster than hlrad</title>
+<style>
+.s{font-family:'Segoe UI Variable Display','Segoe UI',-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif} .m{font-family:'Cascadia Mono','Cascadia Code',SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono','Liberation Mono',monospace;font-size:13px}
+.bar{transform-box:fill-box;transform-origin:left center}
+@keyframes a0{0%{transform:scaleX(0)}74.562%,100%{transform:scaleX(1)}}
+@keyframes a1{0%,74.562%{opacity:0}74.762%,100%{opacity:1}}
+@keyframes a2{0%{transform:scaleX(0)}13.797%,100%{transform:scaleX(1)}}
+@keyframes a3{0%,13.797%{opacity:0}13.997%,100%{opacity:1}}
+@keyframes a4{0%{transform:scaleX(0)}4.391%,100%{transform:scaleX(1)}}
+@keyframes a5{0%,4.391%{opacity:0}4.591%,100%{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+<defs><linearGradient id="hot" x1="0" x2="1"><stop offset="0" stop-color="#FFD27A"/><stop offset="1" stop-color="#FF8A3D"/></linearGradient></defs>
+<rect width="960" height="520" rx="16" fill="#151C2E"/>
+<text class="s" x="38" y="118" font-size="88" font-weight="800" fill="#F3F5FA" text-anchor="start" style="letter-spacing:-2px">17× faster</text>
+<text class="s" x="42" y="158" font-size="26" font-weight="600" fill="#F3F5FA" text-anchor="start">lighting with hlrad-ng</text>
+<text class="s" x="42" y="190" font-size="15.5" font-weight="400" fill="#97A4BB" text-anchor="start">stalkyard at the maximum-quality preset, same options in both tools</text>
+<text class="s" x="40" y="246" font-size="15" font-weight="500" fill="#D5DCE8" text-anchor="start">hlrad (classic, CPU)</text>
+<rect x="40" y="256" width="470" height="16" rx="8" fill="#1F2840"/>
+<rect class="bar" x="40" y="256" width="470.0" height="16" rx="8" fill="#5B6882" style="animation:a0 16.0s linear infinite"/>
+<text class="s" x="522" y="270" font-size="16" font-weight="700" fill="#5B6882" text-anchor="start" style="animation:a1 16.0s linear infinite">95.4 s</text>
+<text class="s" x="40" y="304" font-size="15" font-weight="500" fill="#D5DCE8" text-anchor="start">hlrad-ng, CPU only</text>
+<rect x="40" y="314" width="470" height="16" rx="8" fill="#1F2840"/>
+<rect class="bar" x="40" y="314" width="87.0" height="16" rx="8" fill="#E0A458" style="animation:a2 16.0s linear infinite"/>
+<text class="s" x="139" y="328" font-size="16" font-weight="700" fill="#E0A458" text-anchor="start" style="animation:a3 16.0s linear infinite">17.7 s</text>
+<text class="s" x="40" y="362" font-size="15" font-weight="500" fill="#D5DCE8" text-anchor="start">hlrad-ng, GPU (RTX 2080)</text>
+<rect x="40" y="372" width="470" height="16" rx="8" fill="#1F2840"/>
+<rect class="bar" x="40" y="372" width="27.7" height="16" rx="8" fill="url(#hot)" style="animation:a4 16.0s linear infinite"/>
+<text class="s" x="80" y="386" font-size="16" font-weight="700" fill="#FFB25C" text-anchor="start" style="animation:a5 16.0s linear infinite">5.6 s</text>
+<text class="s" x="600" y="72" font-size="17" font-weight="650" fill="#F3F5FA" text-anchor="start">What hlrad-ng runs on the GPU</text>
+<text class="s" x="832" y="100" font-size="12.5" font-weight="500" fill="#97A4BB" text-anchor="end">hlrad</text>
+<text class="s" x="920" y="100" font-size="12.5" font-weight="500" fill="#97A4BB" text-anchor="end">hlrad-ng</text>
+<text class="s" x="600" y="128" font-size="15" font-weight="500" fill="#D5DCE8" text-anchor="start">Direct lighting</text>
+<text class="s" x="832" y="128" font-size="15" font-weight="500" fill="#97A4BB" text-anchor="end">23.5 s</text>
+<text class="s" x="920" y="128" font-size="15" font-weight="700" fill="#FFB25C" text-anchor="end">1.19 s</text>
+<text class="s" x="600" y="146" font-size="12.5" font-weight="400" fill="#97A4BB" text-anchor="start">sun, sky, point, spot and texture lights</text>
+<line x1="600" x2="920" y1="156" y2="156" stroke="#2A3550"/>
+<text class="s" x="600" y="184" font-size="15" font-weight="500" fill="#D5DCE8" text-anchor="start">Patch visibility</text>
+<text class="s" x="832" y="184" font-size="15" font-weight="500" fill="#97A4BB" text-anchor="end">44.9 s</text>
+<text class="s" x="920" y="184" font-size="15" font-weight="700" fill="#FFB25C" text-anchor="end">0.53 s</text>
+<line x1="600" x2="920" y1="200" y2="200" stroke="#2A3550"/>
+<text class="s" x="600" y="228" font-size="15" font-weight="500" fill="#D5DCE8" text-anchor="start">Transfers</text>
+<text class="s" x="832" y="228" font-size="15" font-weight="500" fill="#97A4BB" text-anchor="end">11.4 s</text>
+<text class="s" x="920" y="228" font-size="15" font-weight="700" fill="#FFB25C" text-anchor="end">0.29 s</text>
+<line x1="600" x2="920" y1="244" y2="244" stroke="#2A3550"/>
+<text class="s" x="600" y="272" font-size="15" font-weight="500" fill="#D5DCE8" text-anchor="start">16 light bounces</text>
+<text class="s" x="832" y="272" font-size="15" font-weight="500" fill="#97A4BB" text-anchor="end">on CPU</text>
+<text class="s" x="920" y="272" font-size="15" font-weight="700" fill="#FFB25C" text-anchor="end">1.50 s</text>
+<line x1="600" x2="920" y1="288" y2="288" stroke="#2A3550"/>
+<text class="s" x="600" y="312" font-size="15.5" font-weight="650" fill="#8FD3FF" text-anchor="start">Vulkan compute with SPIR-V shaders</text>
+<text class="s" x="600" y="334" font-size="13" font-weight="400" fill="#97A4BB" text-anchor="start">Hardware ray tracing (VK_KHR_ray_query), or a</text>
+<text class="s" x="600" y="353" font-size="13" font-weight="400" fill="#97A4BB" text-anchor="start">BSP walk on cards without it. Nothing to install;</text>
+<text class="s" x="600" y="372" font-size="13" font-weight="400" fill="#97A4BB" text-anchor="start">with no usable GPU it runs on the CPU instead.</text>
+<line x1="40" x2="920" y1="404" y2="404" stroke="#2A3550"/>
+<text class="s" x="40" y="436" font-size="15" font-weight="400" fill="#D5DCE8" text-anchor="start"><tspan font-weight="700" fill="#F3F5FA">Hardened throughout.</tspan> BSP, WAD, .prt, .vis and lights.rad input is validated and dozens of</text>
+<text class="s" x="40" y="458" font-size="15" font-weight="400" fill="#D5DCE8" text-anchor="start">memory bugs are fixed; every tool builds with zero warnings and zero clang-tidy findings.</text>
+<text class="s" x="40" y="494" font-size="12.5" font-weight="400" fill="#97A4BB" text-anchor="start">Measured on a Ryzen 7 2700X (16 threads) with an RTX 2080. The bars replay the run times at 8× speed.</text>
+</svg>
