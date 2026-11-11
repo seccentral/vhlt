@@ -1,0 +1,438 @@
+// hlrad-ng GPU direct lighting (Vulkan compute).
+//
+// One invocation gathers the direct light of one point: what GatherSampleLight
+// (lightmap.cpp) computes for a lightmap sample (step 0) or a patch (step 1).
+// It adds, per light style:
+//   - the sun of every light_environment, over its spread directions,
+//   - the diffuse sky light of every light_environment, over the sky normals,
+//   - every point light, spotlight and texlight patch in the leaves the point's
+//     leaf can see, with the same formulas as the CPU.
+// A texlight patch closer than its emitter range needs the patch's shape
+// (CalcSightArea, GetAlternateOrigin); such pairs are written to a list and
+// the CPU adds them. A point that needs more than four styles, or whose pairs
+// do not fit the list, is flagged and the CPU gathers it from scratch.
+//
+// Built twice into SPIR-V (hardware ray queries, and a BSP walk for devices
+// without them) with the commands in docs/llms.txt; the build does not run a
+// shader compiler.
+#version 460
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 32) in;
+
+layout(push_constant) uniform Params
+{
+    uint numPoints;
+    uint firstSky;       // first sky triangle of the scene (ray query build)
+    uint numSkyDirs;     // sky normals at the start of dirs
+    uint numSkylights;
+    uint lightLeafWords; // words in one row of leafvis
+    uint pairCapacity;   // pairs the list can hold
+    uint pointBase;      // number of the first point of this dispatch, for the pair list
+    int skyStep;         // step whose points gather the diffuse sky light
+    float skyRange;      // length of a sky or sun ray
+    float onEpsilon;     // ON_EPSILON
+    float normalEpsilon; // NORMAL_EPSILON
+    float indirectSun;   // g_indirect_sun
+    float patchHuntOffset;  // PATCH_HUNT_OFFSET
+    float minPatchDistance; // MINIMUM_PATCH_DISTANCE
+} pc;
+
+#define TRACE_FIRST_SKY pc.firstSky
+#define TRACE_ON_EPSILON pc.onEpsilon
+#include "gputrace.glsl"
+
+struct Point
+{
+    vec4 origin; // xyz, contents of the leaf it is in (int bits)
+    vec4 normal; // xyz, row of leafvis for its leaf (int bits)
+    vec4 cone;   // lighting cone power and scale of the surface, step (int bits), unused
+};
+
+struct Skylight
+{
+    vec4 normal;    // xyz toward the ground, first sun direction in dirs (int bits)
+    vec4 intensity; // sun rgb, number of sun directions (int bits)
+    vec4 diffuse;   // sky rgb next to the sun, light style (int bits)
+    vec4 diffuse2;  // sky rgb opposite the sun, SKY_ flags (int bits)
+};
+
+struct Light
+{
+    vec4 origin;    // xyz, LIGHT_ type and flags (int bits)
+    vec4 intensity; // rgb, light style (int bits)
+    vec4 normal;    // xyz, stopdot
+    vec4 misc;      // stopdot2, fade, patch area, emitter range
+    vec4 bound;     // texlight patch: centre of its winding, largest distance of a winding point from it
+};
+
+struct Result
+{
+    vec4 slot[4]; // rgb, light style (-1: unused)
+    uvec4 status; // STATUS_ flags, unused
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer Points
+{
+    Point points[];
+};
+
+// xyz, weight: the sky normals, then the sun directions of every skylight
+layout(std430, set = 0, binding = 2) readonly buffer Dirs
+{
+    vec4 dirs[];
+};
+
+layout(std430, set = 0, binding = 3) readonly buffer Skylights
+{
+    Skylight skylights[];
+};
+
+layout(std430, set = 0, binding = 4) readonly buffer Lights
+{
+    Light lights[];
+};
+
+// One row per leaf: bit k is set when the leaf sees the k-th leaf that holds lights
+layout(std430, set = 0, binding = 5) readonly buffer LeafVis
+{
+    uint leafvis[];
+};
+
+// Per leaf that holds lights: its lights are lights[x] .. lights[y - 1]
+layout(std430, set = 0, binding = 6) readonly buffer Runs
+{
+    ivec2 runs[];
+};
+
+layout(std430, set = 0, binding = 7) writeonly buffer Results
+{
+    Result results[];
+};
+
+layout(std430, set = 0, binding = 8) buffer Pairs
+{
+    uint pairCount;
+    uint pairs[]; // point, light
+};
+
+const int MAX_SKYLIGHTS = 8; // lightmap.cpp keeps the CPU path for maps with more
+
+const int SKY_SUN_STEP0 = 1; // the sun lights the points of step 0
+const int SKY_SUN_STEP1 = 2; // the sun lights the points of step 1
+const int SKY_DIFFUSE = 4;   // the sky has diffuse light
+
+const int LIGHT_SURFACE = 0;
+const int LIGHT_POINT = 1;
+const int LIGHT_SPOT = 2;
+const int LIGHT_TYPE_MASK = 3;
+const int LIGHT_STEP1 = 4; // gathered by the points of step 1 (else step 0)
+const int LIGHT_SKIP = 8;  // not a light of this loop
+
+const uint STATUS_FALLBACK = 1u; // the CPU has to gather this point
+
+int slotStyle[4];
+vec3 slotLight[4];
+uint status;
+
+void AddLight(int style, vec3 light)
+{
+    for (int s = 0; s < 4; s++)
+    {
+        if (slotStyle[s] == style)
+        {
+            slotLight[s] += light;
+            return;
+        }
+        if (slotStyle[s] < 0)
+        {
+            slotStyle[s] = style;
+            slotLight[s] = light;
+            return;
+        }
+    }
+    status |= STATUS_FALLBACK;
+}
+
+// The lighting cone of the receiving texture (HLRAD_DIVERSE_LIGHTING)
+float Cone(float facing, vec2 cone)
+{
+    if (cone.x != 1.0 || cone.y != 1.0)
+    {
+        return cone.y * pow(facing, cone.x);
+    }
+    return facing;
+}
+
+void GatherSky(vec3 origin, vec3 normal, int contents, vec2 cone, int step)
+{
+    float nearSun[MAX_SKYLIGHTS]; // sky light weighted toward the sun
+    float farSun[MAX_SKYLIGHTS];  // and away from it
+    int count = int(min(pc.numSkylights, uint(MAX_SKYLIGHTS)));
+    bool anydiffuse = false;
+
+    for (int k = 0; k < count; k++)
+    {
+        nearSun[k] = 0.0;
+        farSun[k] = 0.0;
+        if ((floatBitsToInt(skylights[k].diffuse2.w) & SKY_DIFFUSE) != 0)
+        {
+            anydiffuse = true;
+        }
+    }
+
+    // whether the sky shows along a direction does not depend on the light
+    if (anydiffuse && step == pc.skyStep)
+    {
+        for (uint j = 0u; j < pc.numSkyDirs; j++)
+        {
+            vec4 dir = dirs[j];
+            float facing = -dot(normal, dir.xyz);
+            if (!(facing > pc.normalEpsilon))
+            {
+                continue;
+            }
+            if (TraceLine(origin, dir.xyz * -pc.skyRange, contents, true) != CONTENTS_SKY)
+            {
+                continue;
+            }
+            float weight = Cone(facing, cone) * dir.w;
+            for (int k = 0; k < count; k++)
+            {
+                // how far this piece of sky has deviated from the sun
+                float factor = clamp((1.0 - dot(skylights[k].normal.xyz, dir.xyz)) * 0.5, 0.0, 1.0);
+                nearSun[k] += weight * (1.0 - factor);
+                farSun[k] += weight * factor;
+            }
+        }
+        for (int k = 0; k < count; k++)
+        {
+            Skylight sky = skylights[k];
+            if ((floatBitsToInt(sky.diffuse2.w) & SKY_DIFFUSE) != 0)
+            {
+                vec3 light = (sky.diffuse.rgb * nearSun[k] + sky.diffuse2.rgb * farSun[k]) * (pc.indirectSun * 0.5);
+                AddLight(floatBitsToInt(sky.diffuse.w), light);
+            }
+        }
+    }
+
+    for (int k = 0; k < count; k++)
+    {
+        Skylight sky = skylights[k];
+        if ((floatBitsToInt(sky.diffuse2.w) & (step == 0 ? SKY_SUN_STEP0 : SKY_SUN_STEP1)) == 0)
+        {
+            continue;
+        }
+        uint first = uint(floatBitsToInt(sky.normal.w));
+        uint last = first + uint(floatBitsToInt(sky.intensity.w));
+        float sum = 0.0;
+        for (uint j = first; j < last; j++)
+        {
+            vec4 dir = dirs[j];
+            float facing = -dot(normal, dir.xyz);
+            if (!(facing > pc.normalEpsilon))
+            {
+                continue;
+            }
+            if (TraceLine(origin, dir.xyz * -pc.skyRange, contents, true) != CONTENTS_SKY)
+            {
+                continue;
+            }
+            sum += Cone(facing, cone) * dir.w;
+        }
+        if (sum != 0.0)
+        {
+            AddLight(floatBitsToInt(sky.diffuse.w), sky.intensity.rgb * sum);
+        }
+    }
+}
+
+void GatherLight(uint index, uint point, vec3 origin, vec3 normal, int contents, vec2 cone, int step)
+{
+    Light l = lights[index];
+    int info = floatBitsToInt(l.origin.w);
+    if ((info & LIGHT_SKIP) != 0 || ((info & LIGHT_STEP1) != 0 ? 1 : 0) != step)
+    {
+        return;
+    }
+    int type = info & LIGHT_TYPE_MASK;
+
+    vec3 delta = l.origin.xyz - origin;
+    if (type == LIGHT_SURFACE)
+    {
+        delta -= pc.patchHuntOffset * l.normal.xyz; // move the emitter back to its plane
+    }
+    float dist = length(delta);
+    if (dist < pc.normalEpsilon)
+    {
+        delta = vec3(0.0);
+        dist = 0.0;
+    }
+    else
+    {
+        delta /= dist;
+    }
+    float facing = dot(delta, normal);
+    dist = max(dist, 1.0);
+
+    float ratio;
+    if (type == LIGHT_POINT)
+    {
+        if (!(facing > pc.normalEpsilon))
+        {
+            return; // behind the sample surface
+        }
+        ratio = Cone(facing, cone) / (dist * dist * l.misc.y);
+    }
+    else if (type == LIGHT_SPOT)
+    {
+        if (!(facing > pc.normalEpsilon))
+        {
+            return;
+        }
+        float dot2 = -dot(delta, l.normal.xyz);
+        if (dot2 <= l.misc.x)
+        {
+            return; // outside the light cone
+        }
+        ratio = Cone(facing, cone) * dot2 / (dist * dist * l.misc.y);
+        if (dot2 <= l.normal.w)
+        {
+            ratio *= (dot2 - l.misc.x) / (l.normal.w - l.misc.x);
+        }
+    }
+    else
+    {
+        bool behind = !(facing > pc.normalEpsilon);
+        float lit = behind ? facing : Cone(facing, cone);
+        float dot2 = -dot(delta, l.normal.xyz);
+        if (dot2 * dist <= pc.minPatchDistance)
+        {
+            return; // behind the emitter, or in its plane
+        }
+        float range = l.misc.w;
+        float stopdot = l.normal.w;
+        float stopdot2 = l.misc.x;
+        if (stopdot > 0.0)
+        {
+            float scale = 1.0 / sqrt(max(pc.normalEpsilon, 1.0 - stopdot2 * stopdot2));
+            range *= min(scale, 2.0);
+            if (dot2 <= stopdot2 + pc.normalEpsilon)
+            {
+                if (dist >= range)
+                {
+                    return;
+                }
+                ratio = 0.0;
+            }
+            else if (dot2 <= stopdot)
+            {
+                ratio = lit * dot2 * (dot2 - stopdot2) / (dist * dist * (stopdot - stopdot2));
+            }
+            else
+            {
+                ratio = lit * dot2 / (dist * dist);
+            }
+        }
+        else
+        {
+            ratio = lit * dot2 / (dist * dist);
+        }
+        if (ratio * l.misc.z > 0.4)
+        {
+            ratio = 0.4 / l.misc.z; // the cap that removes bright spots next to texlights
+        }
+        if (dist < range - pc.onEpsilon)
+        {
+            // Too close for the point formula: the CPU integrates over the
+            // patch. A patch that lies entirely below the horizon of the
+            // point gives exactly nothing there, so it needs no pair.
+            float along = dot(normal, l.normal.xyz);
+            float top = dot(l.bound.xyz - origin, normal) + l.bound.w * sqrt(max(0.0, 1.0 - along * along));
+            if (top < -0.01)
+            {
+                return;
+            }
+            uint slot = atomicAdd(pairCount, 1u);
+            if (slot < pc.pairCapacity)
+            {
+                pairs[2u * slot] = pc.pointBase + point;
+                pairs[2u * slot + 1u] = index;
+            }
+            else
+            {
+                status |= STATUS_FALLBACK;
+            }
+            return;
+        }
+        if (behind)
+        {
+            return;
+        }
+    }
+
+    vec3 light = l.intensity.rgb * ratio;
+    if (light == vec3(0.0))
+    {
+        return;
+    }
+    if (TraceLine(origin, l.origin.xyz - origin, contents, false) != CONTENTS_EMPTY)
+    {
+        return; // occluded
+    }
+    AddLight(floatBitsToInt(l.intensity.w), light);
+}
+
+void main()
+{
+    uint point = gl_GlobalInvocationID.x;
+    if (point >= pc.numPoints)
+    {
+        return;
+    }
+
+    Point pt = points[point];
+    int contents = floatBitsToInt(pt.origin.w);
+    int step = floatBitsToInt(pt.cone.z);
+
+    slotStyle[0] = 0; // every point has style 0 first, as on the CPU
+    slotLight[0] = vec3(0.0);
+    for (int s = 1; s < 4; s++)
+    {
+        slotStyle[s] = -1;
+        slotLight[s] = vec3(0.0);
+    }
+    status = 0u;
+
+    if (contents != CONTENTS_SOLID)
+    {
+        if (pc.numSkylights > 0u)
+        {
+            GatherSky(pt.origin.xyz, pt.normal.xyz, contents, pt.cone.xy, step);
+        }
+
+        uint row = uint(floatBitsToInt(pt.normal.w)) * pc.lightLeafWords;
+        for (uint word = 0u; word < pc.lightLeafWords; word++)
+        {
+            uint bits = leafvis[row + word];
+            while (bits != 0u)
+            {
+                int bit = findLSB(bits);
+                bits &= bits - 1u;
+                ivec2 run = runs[word * 32u + uint(bit)];
+                for (int index = run.x; index < run.y; index++)
+                {
+                    GatherLight(uint(index), point, pt.origin.xyz, pt.normal.xyz, contents, pt.cone.xy, step);
+                }
+            }
+        }
+    }
+
+    Result result;
+    for (int s = 0; s < 4; s++)
+    {
+        result.slot[s] = vec4(slotLight[s], float(slotStyle[s]));
+    }
+    result.status = uvec4(status, 0u, 0u, 0u);
+    results[point] = result;
+}

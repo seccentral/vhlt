@@ -396,6 +396,73 @@ static bool CheckVisBitSparse(unsigned x, unsigned y
 }
 #endif /*HLRAD_TRANSPARENCY_CPP*/
 
+// hlrad-ng: pairs of one patch whose world trace is waiting for a packet.
+#if !defined(HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN) || !defined(HLRAD_HULLU) || !defined(HLRAD_OPAQUE_STYLE) ||         \
+    !defined(HLRAD_OPAQUE_STYLE_BOUNCE) || !defined(HLRAD_TRANSPARENCY_CPP) || !defined(HLRAD_WATERBLOCKLIGHT) ||      \
+    !defined(HLRAD_ENTITYBOUNCE_FIX) || !defined(HLRAD_VISMATRIX_NOMARKSURFACES) ||                                    \
+    !defined(HLRAD_SPARSEVISMATRIX_FAST)
+#error "hlrad-ng packet tracing needs the default hlrad feature set"
+#endif
+typedef struct
+{
+    vec3_t stops[TESTLINE_PACKET_MAX];
+    unsigned patches[TESTLINE_PACKET_MAX];
+    int count;
+} pendingpairs_t;
+
+// Second half of the pair test, for a pair the world does not block: the
+// opaque entities, then the vis flag of patch m in the column being built.
+static void FinishVisiblePair(const unsigned patchnum, const unsigned m, const vec3_t origin1, const vec3_t origin2,
+                              bool* uncompressedcolumn)
+{
+    vec3_t transparency = {1.0, 1.0, 1.0};
+    int opaquestyle = -1;
+
+    if (TestSegmentAgainstOpaqueList(origin1, origin2, transparency, opaquestyle))
+    {
+        return;
+    }
+    if (opaquestyle != -1)
+    {
+        AddStyleToStyleArray(m, patchnum, opaquestyle);
+        AddStyleToStyleArray(patchnum, m, opaquestyle);
+    }
+    if (g_customshadow_with_bouncelight && !VectorCompare(transparency, vec3_one))
+    {
+        AddTransparencyToRawArray(patchnum, m, transparency);
+    }
+    uncompressedcolumn[m] = true;
+}
+
+// Traces the waiting pairs of a patch as one packet from its origin.
+static void FlushPendingPairs(const unsigned patchnum, pendingpairs_t* pending, bool* uncompressedcolumn)
+{
+    int results[TESTLINE_PACKET_MAX];
+    vec_t fracs[TESTLINE_PACKET_MAX];
+    const vec_t* origin = g_patches[patchnum].origin;
+
+    if (pending->count == 0)
+    {
+        return;
+    }
+    if (pending->count == 1)
+    {
+        results[0] = TestLine(origin, pending->stops[0]);
+    }
+    else
+    {
+        TestLinePacket(origin, pending->stops, pending->count, results, fracs);
+    }
+    for (int k = 0; k < pending->count; k++)
+    {
+        if (results[k] == CONTENTS_EMPTY)
+        {
+            FinishVisiblePair(patchnum, pending->patches[k], origin, pending->stops[k], uncompressedcolumn);
+        }
+    }
+    pending->count = 0;
+}
+
 /*
  * ==============
  * TestPatchToFace
@@ -412,7 +479,8 @@ static void TestPatchToFace(const unsigned patchnum, const int facenum, const in
                             ,
                             bool uncompressedcolumn[MAX_SPARSE_VISMATRIX_PATCHES]
 #endif
-)
+                            ,
+                            pendingpairs_t* pending)
 {
     patch_t* patch = &g_patches[patchnum];
     patch_t* patch2 = g_face_patches[facenum];
@@ -435,13 +503,6 @@ static void TestPatchToFace(const unsigned patchnum, const int facenum, const in
             for (; patch2; patch2 = patch2->next)
             {
                 unsigned m = patch2 - g_patches;
-
-#ifdef HLRAD_HULLU
-                vec3_t transparency = {1.0, 1.0, 1.0};
-#endif
-#ifdef HLRAD_OPAQUE_STYLE
-                int opaquestyle = -1;
-#endif
 
                 // check vis between patch and patch2
                 // if bit has not already been set
@@ -491,91 +552,25 @@ static void TestPatchToFace(const unsigned patchnum, const int facenum, const in
                         continue;
                     }
 #endif
-#ifdef HLRAD_WATERBLOCKLIGHT
-                    if (TestLine(
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                            origin1, origin2
-#else
-                            patch->origin, patch2->origin
-#endif
-                            ) != CONTENTS_EMPTY)
-#else
-                    if (TestLine_r(head,
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                                   origin1, origin2
-#else
-                                   patch->origin, patch2->origin
-#endif
-                                   ) != CONTENTS_EMPTY)
-#endif
+                    // hlrad-ng: pairs traced from the patch's own origin wait for a
+                    // packet; a pair with an alternate start point is traced alone
+                    if (origin1[0] == patch->origin[0] && origin1[1] == patch->origin[1] &&
+                        origin1[2] == patch->origin[2])
                     {
-                        continue;
-                    }
-                    if (TestSegmentAgainstOpaqueList(
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                            origin1, origin2
-#else
-                            patch->origin, patch2->origin
-#endif
-#ifdef HLRAD_HULLU
-                            ,
-                            transparency
-#endif
-#ifdef HLRAD_OPAQUE_STYLE
-                            ,
-                            opaquestyle
-#endif
-                            ))
-                    {
-                        continue;
-                    }
-
-#ifdef HLRAD_OPAQUE_STYLE_BOUNCE
-                    if (opaquestyle != -1)
-                    {
-                        AddStyleToStyleArray(m, patchnum, opaquestyle);
-                        AddStyleToStyleArray(patchnum, m, opaquestyle);
-                    }
-#endif
-
-#ifdef HLRAD_HULLU
-#ifdef HLRAD_TRANSPARENCY_CPP
-                    if (g_customshadow_with_bouncelight && !VectorCompare(transparency, vec3_one))
-                    {
-                        AddTransparencyToRawArray(patchnum, m, transparency);
-                    }
-#else
-                    // transparency face fix table
-                    if (g_customshadow_with_bouncelight && fabs(VectorAvg(transparency) - 1.0) < 0.001)
-                    {
-                        while (s_transparency_count >= s_max_transparency_count)
+                        VectorCopy(origin2, pending->stops[pending->count]);
+                        pending->patches[pending->count] = m;
+                        pending->count++;
+                        if (pending->count == TESTLINE_PACKET_MAX)
                         {
-                            //new size
-                            unsigned long oldsize = s_max_transparency_count;
-                            s_max_transparency_count += 128;
-
-                            //realloc
-                            s_transparency_list = (transparency_t*)realloc(
-                                s_transparency_list, s_max_transparency_count * sizeof(transparency_t));
-
-                            // clean new memory
-                            memset(&s_transparency_list[oldsize], 0, sizeof(transparency_t) * 128);
+                            FlushPendingPairs(patchnum, pending, uncompressedcolumn);
                         }
-
-                        //add to array
-                        VectorCopy(transparency, s_transparency_list[s_transparency_count].transparency);
-                        s_transparency_list[s_transparency_count].y = m;
-                        s_transparency_list[s_transparency_count].x = patchnum;
-
-                        s_transparency_count++;
+                        continue;
                     }
-#endif
-#endif /*HLRAD_HULLU*/
-#ifdef HLRAD_SPARSEVISMATRIX_FAST
-                    uncompressedcolumn[m] = true;
-#else
-                    SetVisBit(m, patchnum);
-#endif
+                    if (TestLine(origin1, origin2) != CONTENTS_EMPTY)
+                    {
+                        continue;
+                    }
+                    FinishVisiblePair(patchnum, m, origin1, origin2, uncompressedcolumn);
                 }
             }
         }
@@ -713,16 +708,12 @@ static void BuildVisLeafs(int threadnum)
                     uncompressedcolumn[m] = false;
                 }
 #endif
+                pendingpairs_t pending;
+                pending.count = 0;
                 for (facenum2 = facenum + 1; facenum2 < g_numfaces; facenum2++)
-                    TestPatchToFace(patchnum, facenum2, head, pvs
-#ifdef HLRAD_SPARSEVISMATRIX_FAST
-                                    ,
-                                    uncompressedcolumn
-#endif
-                    );
-#ifdef HLRAD_SPARSEVISMATRIX_FAST
+                    TestPatchToFace(patchnum, facenum2, head, pvs, uncompressedcolumn, &pending);
+                FlushPendingPairs(patchnum, &pending, uncompressedcolumn);
                 SetVisColumn(patchnum, uncompressedcolumn);
-#endif
             }
         }
 #else
@@ -805,9 +796,11 @@ static void BuildVisMatrix()
     }
 
 #ifdef HLRAD_VIS_FIX
-    NamedRunThreadsOn(g_dmodels[0].visleafs, g_estimate, BuildVisLeafs);
+    PhaseBegin("Patch visibility");
+    RunThreadsOn(g_dmodels[0].visleafs, g_estimate, BuildVisLeafs);
 #else
-    NamedRunThreadsOn(g_numleafs - 1, g_estimate, BuildVisLeafs);
+    PhaseBegin("Patch visibility");
+    RunThreadsOn(g_numleafs - 1, g_estimate, BuildVisLeafs);
 #endif
 }
 
@@ -910,15 +903,18 @@ void MakeScalesSparseVismatrix()
 #endif
 
 #ifndef HLRAD_HULLU
-        NamedRunThreadsOn(g_num_patches, g_estimate, MakeScales);
+        PhaseBegin("Transfers");
+        RunThreadsOn(g_num_patches, g_estimate, MakeScales);
 #else
         if (g_rgb_transfers)
         {
-            NamedRunThreadsOn(g_num_patches, g_estimate, MakeRGBScales);
+            PhaseBegin("Transfers");
+            RunThreadsOn(g_num_patches, g_estimate, MakeRGBScales);
         }
         else
         {
-            NamedRunThreadsOn(g_num_patches, g_estimate, MakeScales);
+            PhaseBegin("Transfers");
+            RunThreadsOn(g_num_patches, g_estimate, MakeScales);
         }
 #endif
         FreeVisMatrix();
@@ -931,15 +927,18 @@ void MakeScalesSparseVismatrix()
 #ifndef HLRAD_NOSWAP
         // invert the transfers for gather vs scatter
 #ifndef HLRAD_HULLU
-        NamedRunThreadsOnIndividual(g_num_patches, g_estimate, SwapTransfers);
+        PhaseBegin("Transfer swap");
+        RunThreadsOnIndividual(g_num_patches, g_estimate, SwapTransfers);
 #else
         if (g_rgb_transfers)
         {
-            NamedRunThreadsOnIndividual(g_num_patches, g_estimate, SwapRGBTransfers);
+            PhaseBegin("Transfer swap");
+            RunThreadsOnIndividual(g_num_patches, g_estimate, SwapRGBTransfers);
         }
         else
         {
-            NamedRunThreadsOnIndividual(g_num_patches, g_estimate, SwapTransfers);
+            PhaseBegin("Transfer swap");
+            RunThreadsOnIndividual(g_num_patches, g_estimate, SwapTransfers);
         }
 #endif
 #endif /*HLRAD_NOSWAP*/

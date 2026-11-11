@@ -7,13 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-11-11
+
 ### Added
-- `hlrad-ng`: a next-generation hlrad that must keep producing byte-identical output to hlrad while getting faster. It is a separate CMake target behind `-DVHLT_HLRAD_NG=ON`, is not installed or packaged, and leaves `hlrad` untouched as the fallback. See `docs/research/hlrad-optimizations.md`.
-- `tools/diffhlrad.ps1`: a differential harness that runs hlrad and hlrad-ng on the same compiled map at the same thread count and compares the full `.bsp` bytes (reporting the first differing offset and lump), `.dlit`, `.inc` and the exported entity text.
+- `hlrad-ng`: a new lighting tool next to `hlrad`, built for speed and included in the release ZIPs. It takes the same options and keeps hlrad's lighting math, but does not have to match hlrad byte for byte; `hlrad` is untouched and remains the reference. With the max-quality preset on an 8-core CPU and an RTX 2080, the 57,000-patch reference map takes 95 s in `hlrad` and under 6 s in `hlrad-ng`, and a 111,000-patch test map that `hlrad` cannot light takes 24 s. `-DVHLT_HLRAD_NG=OFF` leaves the tool out of a build. See the user manual and `docs/research/hlrad-optimizations.md`.
+- `hlrad-ng` GPU backend (Vulkan compute, `hlrad-ng/gpu.{h,cpp}`): direct lighting, patch visibility, transfers and light bounces run on the graphics card. A card with hardware ray tracing (`VK_KHR_ray_query`) traces rays against the map as triangles; any other Vulkan 1.1 graphics card walks the BSP in the shader. The Vulkan loader is opened at run time, so the executable needs nothing installed and uses the CPU when there is no usable device, when a map has fewer than 4,096 patches, or for maps with custom-shadow, styled or `{`-textured opaque entities. On the card, transfers are held in the 16-bit format. `HLRAD_NG_GPU=0` turns the card off, `HLRAD_NG_GPU=1` forces it on, `HLRAD_NG_GPU_RADIOSITY=0` keeps transfers and bounces on the CPU. Lightmaps differ from the CPU path by one level in about 1% of the bytes and by more only at a few shadow edges.
+- `hlrad-ng` on the CPU:
+  - Rays that share a start point are traced 8 at a time through the world BSP (AVX2 when the CPU has it, SSE otherwise, same output either way), sky visibility is traced once per point and shared by every `light_environment`, and the rays of a spread sun (`_spread`) are traced in a packet-friendly order.
+  - Patch visibility sets the vis-matrix bit with an atomic update instead of under a global lock, which had serialized the phase across threads.
+  - The transfer builder reads the visibility matrix in blocks (`MakeScalesBlocks`), and the default sparse setting uses the faster dense matrix while it stays under 1 GB.
+  - Light bounces gather through per-style arrays of what every patch emits.
+  - With the max-quality preset the reference map takes about 18 s on the CPU alone.
+- `hlrad-ng -vismatrix normal` has no 65,535-patch limit: the matrix index is 64-bit, so the limit is memory (patches² / 16 bytes), and a matrix that cannot be allocated is reported with its size.
+- `hlrad-ng` log: one line per phase (name, progress, time) instead of a block per face batch and per bounce; phases that ran on the graphics card say so.
+- `tools/diffhlrad.ps1`: a differential harness that runs hlrad and hlrad-ng on the same compiled map at the same thread count and compares the full `.bsp` bytes (reporting the first differing offset and lump), `.dlit`, `.inc` and the exported entity text. `hlrad-ng` no longer has to match `hlrad`, so the harness now shows where the two differ rather than acting as a pass/fail check.
 
 ### Documentation
-- Maximum-quality guide: the preset uses `-chop 16 -texchop 8`, and explains why `-console 0` speeds up compiles started from J.A.C.K. or Hammer.
-- Added `docs/research/hlrad-optimizations.md`: the phased, exactness-first optimization plan for hlrad-ng.
+- README, user manual and developer guide describe `hlrad-ng`: what differs from `hlrad`, which graphics cards it uses, when it falls back to the CPU, and its environment variables.
+- Maximum-quality guide: the preset uses `-chop 16 -texchop 8`, recommends `hlrad-ng`, and explains why `-console 0` speeds up compiles started from J.A.C.K. or Hammer.
+- Added `docs/research/hlrad-optimizations.md`: the plan, the measurements and the state of the `hlrad-ng` work.
 
 ## [3.5.4] - 2026-11-10
 

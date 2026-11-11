@@ -1,5 +1,7 @@
 #include "qrad.h"
 
+#include <vector>
+
 funcCheckVisBit g_CheckVisBit = NULL;
 
 #ifdef ZHLT_64BIT_FIX
@@ -646,6 +648,338 @@ void MakeScales(const int threadnum)
     ThreadUnlock();
 }
 
+
+// =====================================================================================
+// hlrad-ng: MakeScales over the dense visibility matrix
+// =====================================================================================
+// MakeScales asks g_CheckVisBit about every pair of patches. The matrix holds
+// one bit per pair, in the row of the lower patch number, so for a patch the
+// bits of the patches below it lie one per row, each in another part of
+// memory; that walk was most of the time of this phase. Here the patches are
+// taken in blocks: one read of each lower row gives its bits for the whole
+// block, and the rest of every row is read along its length. Each patch of
+// the block then builds its list from start to end, so the lists are written
+// in order. The transfers are the ones MakeScales computes, in the same order.
+//
+// Patches that gather light from behind (translucent), custom shadows with
+// bounce light and RGB transfers keep the original function.
+#if !defined(HLRAD_TRANSFERDATA_COMPRESS) || !defined(HLRAD_MORE_PATCHES) || !defined(HLRAD_ACCURATEBOUNCE) ||         \
+    !defined(HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN) || !defined(HLRAD_ACCURATEBOUNCE_REDUCEAREA) ||                     \
+    !defined(HLRAD_TRANSWEIRDFIX) || !defined(HLRAD_NOSWAP) || !defined(HLRAD_DIVERSE_LIGHTING) ||                     \
+    !defined(HLRAD_REFLECTIVITY) || !defined(HLRAD_TRANSLUCENT) || !defined(HLRAD_HULLU)
+#error "hlrad-ng MakeScalesBlocks needs the default hlrad feature set"
+#endif
+
+// Receivers handled together; one read of a row gives at least 57 bits.
+#define MS_BLOCK 32
+
+// What a transfer needs to know about the patch that emits.
+typedef struct
+{
+    float origin[3];
+    float normal[3];
+    float area;
+    float range;
+    float exposure;
+} msemitter_t;
+
+static msemitter_t* g_ms_emitters = NULL;
+
+bool MakeScalesBlocksUsable(const bool needmatrix)
+{
+    if ((needmatrix && !VisMatrixBits()) || g_rgb_transfers || g_customshadow_with_bouncelight)
+    {
+        return false;
+    }
+    for (unsigned i = 0; i < g_num_patches; i++)
+    {
+        if (g_patches[i].translucent_b)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+int MakeScalesBlocksBegin()
+{
+    g_ms_emitters = (msemitter_t*)malloc((size_t)(g_num_patches + 1) * sizeof(msemitter_t));
+    hlassume(g_ms_emitters != NULL, assume_NoMemory);
+    for (unsigned i = 0; i < g_num_patches; i++)
+    {
+        const patch_t* patch = &g_patches[i];
+        msemitter_t* emitter = &g_ms_emitters[i];
+        VectorCopy(patch->origin, emitter->origin);
+        VectorCopy(getPlaneFromFaceNumber(patch->faceNumber)->normal, emitter->normal);
+        emitter->area = patch->area;
+        emitter->range = patch->emitter_range;
+        emitter->exposure = patch->exposure;
+    }
+    return (int)((g_num_patches + MS_BLOCK - 1) / MS_BLOCK);
+}
+
+void MakeScalesBlocksEnd()
+{
+    free(g_ms_emitters);
+    g_ms_emitters = NULL;
+}
+
+// Bit position of the pair (row, row) in the half matrix; the pair (row, m), m > row, is m - row further.
+static inline size_t MsRowBits(const size_t row)
+{
+    return row * g_num_patches - (row * (row + 1)) / 2 + row;
+}
+
+// 57 bits of the matrix from a bit position on (the matrix has room to read past its end).
+static inline unsigned long long MsLoadBits(const byte* matrix, const size_t bit)
+{
+    unsigned long long value;
+    memcpy(&value, matrix + (bit >> 3), sizeof(value));
+    return value >> (bit & 7);
+}
+
+// The receiving side of the transfers of one patch.
+typedef struct
+{
+    patch_t* patch;
+    const vec_t* normal;
+    bool lighting_diversify;
+    vec_t lighting_power;
+    vec_t lighting_scale;
+    vec_t total; // what MakeScales scales every transfer by
+    std::vector<transfer_raw_index_t> index;
+    std::vector<float> data;
+} msreceiver_t;
+
+// The transfer from patch j to a receiver, scaled as MakeScales stores it: the
+// math of MakeScales. Returns false when there is none.
+static inline bool MsTransfer(const msreceiver_t* receiver, const unsigned j, float* value)
+{
+    const msemitter_t* emitter = &g_ms_emitters[j];
+    const vec_t* origin = receiver->patch->origin;
+    vec3_t delta;
+    vec_t dist;
+    vec_t dot1;
+    vec_t dot2;
+    float trans;
+
+    // calculate transferemnce
+    VectorSubtract(emitter->origin, origin, delta);
+    // move emitter back to its plane
+    VectorMA(delta, -PATCH_HUNT_OFFSET, emitter->normal, delta);
+
+    dist = VectorNormalize(delta);
+    dot1 = DotProduct(delta, receiver->normal);
+    dot2 = -DotProduct(delta, emitter->normal);
+    bool light_behind_surface = false;
+    if (dot1 <= NORMAL_EPSILON)
+    {
+        light_behind_surface = true;
+    }
+    if (dot2 * dist <= MINIMUM_PATCH_DISTANCE)
+    {
+        return false;
+    }
+
+    if (receiver->lighting_diversify && !light_behind_surface)
+    {
+        dot1 = receiver->lighting_scale * pow(dot1, receiver->lighting_power);
+    }
+    trans = (dot1 * dot2) / (dist * dist); // Inverse square falloff factoring angle between patch normals
+    if (trans * emitter->area > 0.8f)
+    {
+        trans = 0.8f / emitter->area;
+    }
+    if (dist < emitter->range - ON_EPSILON)
+    {
+        if (light_behind_surface)
+        {
+            trans = 0.0;
+        }
+        const patch_t* patch2 = &g_patches[j];
+        const vec_t sightarea = CalcSightArea(origin, receiver->normal, patch2->winding, patch2->emitter_skylevel,
+                                              receiver->lighting_power, receiver->lighting_scale);
+
+        vec_t frac;
+        frac = dist / emitter->range;
+        frac = (frac - 0.5f) * 2.0f; // make a smooth transition between the two methods
+        frac = qmax(0, qmin(frac, 1));
+        trans = frac * trans + (1 - frac) * (sightarea / emitter->area); // because later we will multiply this back
+    }
+    else
+    {
+        if (light_behind_surface)
+        {
+            return false;
+        }
+    }
+
+    trans *= emitter->exposure;
+    trans = trans * emitter->area;
+    if (trans <= 0.0)
+    {
+        return false;
+    }
+    *value = trans * receiver->total;
+    return true;
+}
+
+// Adds the transfer from patch j to the lists of a receiver, if there is one.
+static inline void MsAddTransfer(msreceiver_t* receiver, const unsigned j)
+{
+    float value;
+    if (MsTransfer(receiver, j, &value))
+    {
+        receiver->data.push_back(value);
+        receiver->index.push_back(j);
+    }
+}
+
+// Fills in what the transfers of a patch need to know about it as the receiver.
+static void MsSetReceiver(msreceiver_t* receiver, patch_t* patch)
+{
+    const int miptex = g_texinfo[g_dfaces[patch->faceNumber].texinfo].miptex;
+
+    receiver->patch = patch;
+    receiver->normal = getPlaneFromFaceNumber(patch->faceNumber)->normal;
+    receiver->lighting_power = g_lightingconeinfo[miptex][0];
+    receiver->lighting_scale = g_lightingconeinfo[miptex][1];
+    receiver->lighting_diversify = (receiver->lighting_power != 1.0 || receiver->lighting_scale != 1.0);
+    receiver->total = 1 / Q_PI;
+}
+
+float MakeScalesPair(const unsigned receiverpatch, const unsigned emitterpatch)
+{
+    msreceiver_t receiver;
+    float value = 0;
+
+    MsSetReceiver(&receiver, &g_patches[receiverpatch]);
+    return MsTransfer(&receiver, emitterpatch, &value) ? value : 0;
+}
+
+// Stores the transfers of a receiver in its patch, as MakeScales does.
+static int MsStoreTransfers(msreceiver_t* receiver)
+{
+    patch_t* patch = receiver->patch;
+    const unsigned count = (unsigned)receiver->index.size();
+
+    patch->iIndex = 0;
+    patch->iData = count;
+    if (!count)
+    {
+        return 0;
+    }
+    const unsigned data_size = count * float_size[g_transfer_compress_type] + unused_size;
+    patch->tData = (transfer_data_t*)AllocBlock(data_size);
+    patch->tIndex = CompressTransferIndicies(&receiver->index[0], count, &patch->iIndex);
+    hlassume(patch->tData != NULL, assume_NoMemory);
+    hlassume(patch->tIndex != NULL, assume_NoMemory);
+
+    ThreadLock();
+    g_transfer_data_bytes += data_size;
+    ThreadUnlock();
+
+    transfer_data_t* t1 = patch->tData;
+    if (g_transfer_compress_type == FLOAT32)
+    {
+        memcpy(t1, &receiver->data[0], (size_t)count * sizeof(float));
+    }
+    else
+    {
+        for (unsigned x = 0; x < count; x++, t1 += float_size[g_transfer_compress_type])
+        {
+            float_compress(g_transfer_compress_type, t1, &receiver->data[x]);
+        }
+    }
+    return (int)count;
+}
+
+// Thread function; the work items are blocks of MS_BLOCK patches (MakeScalesBlocksBegin).
+void MakeScalesBlocks(const int threadnum)
+{
+    const byte* matrix = VisMatrixBits();
+    const unsigned numpatches = g_num_patches;
+    std::vector<unsigned> below; // per lower patch: its bits for the patches of the block
+    msreceiver_t receiver;
+    size_t count = 0;
+    int block;
+    (void)threadnum;
+
+    while ((block = GetThreadWork()) != -1)
+    {
+        const unsigned first = (unsigned)block * MS_BLOCK;
+        const unsigned size = qmin((unsigned)MS_BLOCK, numpatches - first);
+        const unsigned long long blockmask = (1ull << size) - 1;
+        unsigned j;
+
+        // the rows below the block hold their bits for it side by side; every
+        // row is in another part of memory, so they are asked for ahead of time
+        below.resize((size_t)first + 1);
+        for (j = 0; j < first; j++)
+        {
+            if (j + 16 < first)
+            {
+                __builtin_prefetch(matrix + ((MsRowBits(j + 16) + (first - (j + 16))) >> 3));
+            }
+            below[j] = (unsigned)(MsLoadBits(matrix, MsRowBits(j) + (first - j)) & blockmask);
+        }
+
+        for (unsigned i = 0; i < size; i++)
+        {
+            const unsigned self = first + i;
+            MsSetReceiver(&receiver, &g_patches[self]);
+            receiver.index.clear();
+            receiver.data.clear();
+
+            // emitters below the block
+            for (j = 0; j < first; j++)
+            {
+                if ((below[j] >> i) & 1)
+                {
+                    MsAddTransfer(&receiver, j);
+                }
+            }
+            // emitters inside the block
+            for (j = first; j < first + size; j++)
+            {
+                if (j == self)
+                {
+                    continue;
+                }
+                const size_t bit = j < self ? MsRowBits(j) + (self - j) : MsRowBits(self) + (j - self);
+                if ((matrix[bit >> 3] >> (bit & 7)) & 1)
+                {
+                    MsAddTransfer(&receiver, j);
+                }
+            }
+            // emitters above the block: along the receiver's own row
+            const size_t rowbits = MsRowBits(self);
+            for (j = first + size; j < numpatches; j += 56)
+            {
+                unsigned long long bits = MsLoadBits(matrix, rowbits + (j - self));
+                if (numpatches - j < 56)
+                {
+                    bits &= (1ull << (numpatches - j)) - 1;
+                }
+                else
+                {
+                    bits &= (1ull << 56) - 1;
+                }
+                while (bits)
+                {
+                    const unsigned bit = (unsigned)__builtin_ctzll(bits);
+                    bits &= bits - 1;
+                    MsAddTransfer(&receiver, j + bit);
+                }
+            }
+            count += (size_t)MsStoreTransfers(&receiver);
+        }
+    }
+
+    ThreadLock();
+    g_total_transfer += count;
+    ThreadUnlock();
+}
 
 /*
  * =============

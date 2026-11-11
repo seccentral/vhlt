@@ -1,0 +1,136 @@
+// hlrad-ng GPU patch visibility (Vulkan compute).
+//
+// Decides which patches see each other, the job of BuildVisLeafs (vismatrix.cpp).
+// One invocation handles one patch against 32 patches with a higher number and
+// writes two words: the pairs that see each other, and the pairs that are so
+// close that the CPU has to place their end points on the patches first
+// (GetAlternateOrigin).
+//
+// Built twice into SPIR-V (hardware ray queries, and a BSP walk for devices
+// without them) with the commands in docs/llms.txt; the build does not run a
+// shader compiler.
+#version 460
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 64) in;
+
+layout(push_constant) uniform Params
+{
+    uint numPatches;
+    uint firstSky;     // first sky triangle of the scene (ray query build)
+    uint firstRow;     // first patch of this dispatch
+    uint numRows;      // patches of this dispatch
+    uint firstWord;    // first word of a row that this dispatch computes
+    uint wordsPerRow;  // words per row that this dispatch computes
+    uint leafWords;    // words in one row of leafvis
+    uint matrixWords;  // words in one row of matrix, or 0 when the rows go back to the CPU instead
+    float onEpsilon;        // ON_EPSILON
+    float minPatchDistance; // MINIMUM_PATCH_DISTANCE
+    float nearMargin;       // how much farther than its emitter range a patch counts as close
+} pc;
+
+#define TRACE_FIRST_SKY pc.firstSky
+#define TRACE_ON_EPSILON pc.onEpsilon
+#include "gputrace.glsl"
+
+struct Patch
+{
+    vec4 origin; // xyz, emitter range
+    vec4 plane;  // normal of its face, distance of the face plane (PatchPlaneDist)
+    ivec4 info;  // face number, leaf number (0: in no leaf), contents at the origin, unused
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer Patches
+{
+    Patch patches[];
+};
+
+// One row per leaf: bit k is set when the leaf sees leaf k
+layout(std430, set = 0, binding = 2) readonly buffer LeafVis
+{
+    uint leafvis[];
+};
+
+layout(std430, set = 0, binding = 3) writeonly buffer Visible
+{
+    uint visible[];
+};
+
+layout(std430, set = 0, binding = 4) writeonly buffer Near
+{
+    uint near[];
+};
+
+// For the radiosity on the GPU (gpurad.comp): one full row per patch, bit k
+// set when the patch and patch k see each other from a distance
+layout(std430, set = 0, binding = 5) buffer Matrix
+{
+    uint matrix[];
+};
+
+void main()
+{
+    uint index = gl_GlobalInvocationID.x;
+    uint row = index / pc.wordsPerRow;
+    if (row >= pc.numRows)
+    {
+        return;
+    }
+    uint first = (pc.firstWord + index % pc.wordsPerRow) * 32u;
+    uint self = pc.firstRow + row;
+    uint seen = 0u;
+    uint close = 0u;
+
+    Patch a = patches[self];
+    uint leafrow = uint(a.info.y) * pc.leafWords;
+
+    for (uint bit = 0u; bit < 32u; bit++)
+    {
+        uint other = first + bit;
+        if (other <= self || other >= pc.numPatches)
+        {
+            continue;
+        }
+        Patch b = patches[other];
+        // patches of one face never see each other, and the patches are in face order
+        if (b.info.x == a.info.x)
+        {
+            continue;
+        }
+        // the patch has to be in front of the other face, give or take its own size
+        float aboveb = dot(a.origin.xyz, b.plane.xyz) - b.plane.w;
+        if (!(aboveb > pc.onEpsilon - a.origin.w))
+        {
+            continue;
+        }
+        if (b.info.y == 0 || (leafvis[leafrow + (uint(b.info.y) >> 5)] & (1u << (uint(b.info.y) & 31u))) == 0u)
+        {
+            continue;
+        }
+        float dist = distance(a.origin.xyz, b.origin.xyz);
+        if (dist < b.origin.w + pc.nearMargin - pc.onEpsilon || dist < a.origin.w + pc.nearMargin - pc.onEpsilon)
+        {
+            close |= 1u << bit;
+            continue;
+        }
+        if (dot(b.origin.xyz, a.plane.xyz) <= a.plane.w + pc.minPatchDistance || aboveb <= pc.minPatchDistance)
+        {
+            continue;
+        }
+        if (TraceLine(a.origin.xyz, b.origin.xyz - a.origin.xyz, a.info.z, false) == CONTENTS_EMPTY)
+        {
+            seen |= 1u << bit;
+            if (pc.matrixWords != 0u)
+            {
+                // both rows; other invocations write other bits of the same words
+                atomicOr(matrix[self * pc.matrixWords + (other >> 5)], 1u << (other & 31u));
+                atomicOr(matrix[other * pc.matrixWords + (self >> 5)], 1u << (self & 31u));
+            }
+        }
+    }
+    if (pc.matrixWords == 0u)
+    {
+        visible[index] = seen;
+    }
+    near[index] = close;
+}

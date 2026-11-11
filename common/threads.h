@@ -27,6 +27,8 @@ typedef void (*q_threadfunction)(int);
 #define DEFAULT_THREAD_PRIORITY eThreadPriorityNormal
 
 extern int g_numthreads;
+/// When set, RunThreadsOn prints no progress and no time: the caller reports the phase itself.
+extern bool g_threadquiet;
 extern q_threadpriority g_threadpriority;
 
 extern void ThreadSetPriority(q_threadpriority type);

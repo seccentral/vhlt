@@ -302,30 +302,36 @@ void MakeScalesNoVismatrix()
     {
         g_CheckVisBit = CheckVisBitNoVismatrix;
 #ifndef HLRAD_HULLU
-        NamedRunThreadsOn(g_num_patches, g_estimate, MakeScales);
+        PhaseBegin("Transfers");
+        RunThreadsOn(g_num_patches, g_estimate, MakeScales);
 #else
         if (g_rgb_transfers)
         {
-            NamedRunThreadsOn(g_num_patches, g_estimate, MakeRGBScales);
+            PhaseBegin("Transfers");
+            RunThreadsOn(g_num_patches, g_estimate, MakeRGBScales);
         }
         else
         {
-            NamedRunThreadsOn(g_num_patches, g_estimate, MakeScales);
+            PhaseBegin("Transfers");
+            RunThreadsOn(g_num_patches, g_estimate, MakeScales);
         }
 #endif
 
 #ifndef HLRAD_NOSWAP
         // invert the transfers for gather vs scatter
 #ifndef HLRAD_HULLU
-        NamedRunThreadsOnIndividual(g_num_patches, g_estimate, SwapTransfers);
+        PhaseBegin("Transfer swap");
+        RunThreadsOnIndividual(g_num_patches, g_estimate, SwapTransfers);
 #else
         if (g_rgb_transfers)
         {
-            NamedRunThreadsOnIndividual(g_num_patches, g_estimate, SwapRGBTransfers);
+            PhaseBegin("Transfer swap");
+            RunThreadsOnIndividual(g_num_patches, g_estimate, SwapRGBTransfers);
         }
         else
         {
-            NamedRunThreadsOnIndividual(g_num_patches, g_estimate, SwapTransfers);
+            PhaseBegin("Transfer swap");
+            RunThreadsOnIndividual(g_num_patches, g_estimate, SwapTransfers);
         }
 #endif
 #endif /*HLRAD_NOSWAP*/

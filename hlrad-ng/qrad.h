@@ -337,6 +337,7 @@ typedef struct directlight_s
     int numsunnormals;
     vec3_t* sunnormals;
     vec_t* sunnormalweights;
+    int* sunorder; // hlrad-ng: the sun normals in packet-friendly order (TraceCoherentOrder), or NULL
 #endif
 
 #ifdef HLRAD_TEXLIGHT_SPOTS_FIX
@@ -401,7 +402,9 @@ typedef rgb_transfer_t rgb_transfer_data_t;
 #else
 #define MAX_PATCHES (65535 * 4)
 #endif
-#define MAX_VISMATRIX_PATCHES 65535
+// hlrad-ng: the matrix index is 64-bit, so the patch count is limited by memory only
+// (patches * patches / 16 bytes); BuildVisMatrix reports when that cannot be allocated
+#define MAX_VISMATRIX_PATCHES MAX_PATCHES
 #define MAX_SPARSE_VISMATRIX_PATCHES MAX_PATCHES
 
 typedef enum
@@ -929,6 +932,60 @@ extern int TestLine(const vec3_t start, const vec3_t stop
                     vec_t* skyhitout = NULL
 #endif
 );
+// hlrad-ng packet tracing (trace.cpp, kernel in tracepacket.h).
+#define TESTLINE_PACKET_MAX 8
+/// Traces up to TESTLINE_PACKET_MAX segments that share one start point.
+/// results[i] is what TestLine(start, stops[i]) decides; fracs[i] is the
+/// fraction of the segment at which a non-empty result was decided.
+extern void TestLinePacket(const vec3_t start, const vec3_t* stops, int count, int* results, vec_t* fracs);
+/// Fills order with the indices of the normals sorted so that neighbours point the same way,
+/// which is the order to trace them in packets.
+extern void TraceCoherentOrder(const vec3_t* normals, int count, int* order);
+/// Prepares sky tracing for one set of sky normals. Call once, after MakeTnodes.
+extern void BuildSkyTrace(const vec3_t* normals, int count);
+/// For every sky normal the surface at pos faces, finds whether the sky is
+/// visible along it. fracs[j] is the fraction of the sky ray (TraceSkyRange()
+/// long, direction -normals[j]) where it enters the sky, or -1 when it does not.
+extern void TraceSkyVisibility(const vec3_t pos, const vec3_t normal, vec_t* fracs);
+/// Length of the rays traced toward the sky and the sun.
+extern vec_t TraceSkyRange();
+/// hlrad-ng log: one line per phase. PhaseBegin prints the name, PhaseProgress the
+/// 10% steps reached (fraction is 0..1) and PhaseEnd the time the phase took. A phase
+/// that runs the thread pool once lets RunThreadsOn print the steps and the time.
+extern void PhaseBegin(const char* name);
+extern void PhaseProgress(double fraction);
+extern void PhaseEnd();
+/// The dense visibility matrix while it exists (vismatrix.cpp), else NULL: one bit per pair of
+/// patches, in the row of the lower patch number.
+extern const byte* VisMatrixBits();
+/// MakeScales over the dense matrix in blocks of patches (vismatrixutil.cpp). Usable says
+/// whether this map can take it; Begin returns the number of work items for RunThreadsOn.
+extern bool MakeScalesBlocksUsable(bool needmatrix);
+/// The transfer MakeScales computes from one patch to another, or 0 (between Begin and End).
+extern float MakeScalesPair(unsigned receiverpatch, unsigned emitterpatch);
+extern int MakeScalesBlocksBegin();
+extern void MakeScalesBlocks(int threadnum);
+extern void MakeScalesBlocksEnd();
+/// Radiosity on the GPU (vismatrix.cpp, gpurad.comp). Active says that the transfers are on the
+/// device and the patches have no transfer lists. Bounce gathers one bounce there: emit holds
+/// slots * 4 floats per patch (rgb per light style slot, at most 8 slots), sums receives the
+/// same. Near gives the close emitters of a patch, whose transfers stay on the CPU, and
+/// returns their number.
+extern bool GpuRadiosityActive();
+extern bool GpuRadiosityBounce(const float* emit, int slots, float* sums);
+extern unsigned GpuRadiosityNear(unsigned patch, const unsigned** index, const float** value);
+extern void GpuRadiosityFree();
+/// Contents of the world leaf that holds the point, as the ray tracers see them.
+extern int TracePointContents(const vec3_t point);
+/// Gives the GPU (gpu.h) the world to trace rays in, once. Returns false when the ray jobs of
+/// this map stay on the CPU: no usable device, HLRAD_NG_GPU=0, or opaque entities the GPU scene
+/// cannot stand in for. firstsky gets the number of the first sky triangle of the scene.
+extern bool TraceGpuScene(unsigned* firstsky);
+/// Gathers the direct light of every patch on the GPU before BuildFacelights, when that applies.
+extern void PrecomputePatchDirect();
+extern void FreePatchDirect();
+/// Reports what HLRAD_NG_GPU_CHECK=1 measured, if it ran.
+extern void ReportGpuDirectCheck();
 #ifndef HLRAD_WATERBLOCKLIGHT
 extern int TestLine_r(int node, const vec3_t start, const vec3_t stop
 #ifdef HLRAD_OPAQUEINSKY_FIX
@@ -1071,6 +1128,8 @@ extern void FreeTransparencyArrays();
 #endif
 #ifdef HLRAD_OPAQUE_STYLE_BOUNCE
 extern void GetStyle(const unsigned p1, const unsigned p2, int& style, unsigned int& next_index);
+/// Number of patch pairs that carry an opaque-entity light style (see AddStyleToStyleArray).
+extern unsigned int GetStyleArrayCount();
 extern void AddStyleToStyleArray(const unsigned p1, const unsigned p2, const int style);
 extern void CreateFinalStyleArrays(const char* print_name);
 extern void FreeStyleArrays();

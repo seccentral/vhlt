@@ -30,6 +30,7 @@
 #include "hlassert.h"
 
 q_threadpriority g_threadpriority = DEFAULT_THREAD_PRIORITY;
+bool g_threadquiet = false;
 
 #define THREADTIMES_SIZE 100
 #define THREADTIMES_SIZEf (float)(THREADTIMES_SIZE)
@@ -84,7 +85,11 @@ int GetThreadWork()
     }
 
     f = THREADTIMES_SIZE * dispatch / workcount;
-    if (pacifier)
+    if (g_threadquiet)
+    {
+        oldf = f;
+    }
+    else if (pacifier)
     {
 #ifdef ZHLT_CONSOLE
         PrintConsole
@@ -488,7 +493,10 @@ void RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction func)
 #endif
             ("\r%60s\r", "");
     }
-    Log(" (%.2f seconds)\n", end - start);
+    if (!g_threadquiet)
+    {
+        Log(" (%.2f seconds)\n", end - start);
+    }
 }
 
 #endif
@@ -786,7 +794,10 @@ void RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction func)
             ("\r%60s\r", "");
     }
 
-    Log(" (%.2f seconds)\n", end - start);
+    if (!g_threadquiet)
+    {
+        Log(" (%.2f seconds)\n", end - start);
+    }
 }
 
 #endif /*SYSTEM_POSIX */
@@ -863,7 +874,10 @@ void RunThreadsOn(int workcnt, bool showpacifier, q_threadfunction func)
             ("\r%60s\r", "");
     }
 
-    Log(" (%.2f seconds)\n", end - start);
+    if (!g_threadquiet)
+    {
+        Log(" (%.2f seconds)\n", end - start);
+    }
 }
 
 #endif

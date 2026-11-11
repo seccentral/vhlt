@@ -91,6 +91,34 @@ vec_t PatchPlaneDist(const patch_t* const patch)
     return plane->dist + DotProduct(g_face_offset[patch->faceNumber], plane->normal);
 }
 
+// =====================================================================================
+// hlrad-ng log: one line per phase
+// =====================================================================================
+static double g_phase_start = 0;
+static int g_phase_tenths = 0;
+
+void PhaseBegin(const char* name)
+{
+    Log("%s: ", name);
+    g_phase_start = I_FloatTime();
+    g_phase_tenths = 0;
+}
+
+void PhaseProgress(const double fraction)
+{
+    const int tenths = qmin(9, (int)(fraction * 10));
+    while (g_phase_tenths < tenths)
+    {
+        g_phase_tenths++;
+        PrintConsole("%d%%...", g_phase_tenths * 10);
+    }
+}
+
+void PhaseEnd()
+{
+    Log(" (%.2f seconds)\n", I_FloatTime() - g_phase_start);
+}
+
 void MakeBackplanes()
 {
     int i;

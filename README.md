@@ -2,12 +2,13 @@
 
 Custom Zoner's Half-Life Compilation Tools created by vluzacn. This repository also adds support for determining the number of threads on POSIX systems, a CMake build with a single open-source compiler (Zig) for Windows and Linux, packaging, and input-validation hardening (see [CHANGELOG.md](CHANGELOG.md)).
 
-The project builds five command-line tools:
+The project builds six command-line tools:
 
 - `hlcsg` - construct solid geometry (CSG) from MAP files
 - `hlbsp` - generate BSP trees and portal data
 - `hlvis` - compute visibility (PVS)
 - `hlrad` - compute lighting/radiosity
+- `hlrad-ng` - the same lighting as `hlrad`, much faster: it uses the graphics card when it can
 - `ripent` - edit entity and texture data in compiled BSP files
 
 ## What changed since the GitHub version
@@ -17,6 +18,11 @@ This fork started from [FreeSlave/vhlt](https://github.com/FreeSlave/vhlt) (last
 **Easier to build**
 - One small, free compiler ([Zig](https://ziglang.org/)) builds Windows and Linux binaries from either OS. Visual Studio and MinGW are no longer needed.
 - A CMake build with simple presets (`windows`, `linux`) and a one-command ZIP package. Ready-made binaries for both platforms are attached to each release.
+
+**Much faster lighting**
+- `hlrad-ng` is a new lighting tool next to `hlrad`. It takes the same options and keeps the same lighting model, and runs direct lighting, patch visibility and the light bounces on the graphics card (Vulkan; nothing to install). A card with hardware ray tracing gives the largest gain; without a usable card it runs on the CPU and is still several times faster than `hlrad` at high settings.
+- With the [maximum-quality preset](docs/user/max-quality.md) on an 8-core CPU and an RTX 2080: a 57,000-patch map takes 95 s in `hlrad` and under 6 s in `hlrad-ng`; a 111,000-patch map that `hlrad` cannot light at all (patch limit) takes 24 s.
+- Its lightmaps are not byte-identical to `hlrad`'s: they differ by a brightness level here and there and at a few shadow edges. `hlrad` is unchanged and remains the reference. See the [user manual](docs/user/manual.md#hlrad-ng).
 
 **More robust**
 - Broken or hostile input files (BSP, WAD, `.prt`, `.inc`, `lights.rad`, transfer files) are rejected with a clear error instead of crashing or corrupting memory.
@@ -84,7 +90,7 @@ The style is in `.clang-format`. The bulk reformat commit is listed in `.git-bla
 
 Lint with clang-tidy by configuring a separate build directory with `-DVHLT_CLANG_TIDY=ON`, for example `cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build build/lint`. Every file is then checked during the build with its real defines; the checks are in `.clang-tidy`, warnings are errors, and the current baseline is zero findings. CMake asks the Zig driver for its system include paths and libc++ macros and passes them to clang-tidy. clang-tidy must match Zig's clang version (22.1.8 for Zig 0.17.1), otherwise Zig's built-in headers fail to parse.
 
-The ZIP contains the five tools, `Terms of Use.txt`, the user manual, and the HTML API docs if the `docs` target was built first.
+The ZIP contains the six tools, `Terms of Use.txt`, the user manual, and the HTML API docs if the `docs` target was built first.
 
 `compile_commands.json` is generated in each build directory for clangd (configured by `.clangd`).
 
@@ -98,7 +104,7 @@ This installs the tools into `<dir>/bin` and the license and docs into `<dir>/sh
 
 ## Verifying a build
 
-Running any tool without arguments prints its version banner (for example `hlcsg v3.5.4 VL35 64-bit`) followed by usage, and exits with code 1.
+Running any tool without arguments prints its version banner (for example `hlcsg v3.6.0 VL35 64-bit`; `hlrad-ng` introduces itself as `hlrad`) followed by usage, and exits with code 1.
 
 ## Notes
 
@@ -107,3 +113,4 @@ Running any tool without arguments prints its version banner (for example `hlcsg
 - `-threads` accepts 1 to 64; larger values (or auto-detected CPU counts above 64) are clamped.
 - `-fno-strict-aliasing` is required; the CMake build sets it. Do not change the feature macro definitions in `common/cmdlib.h`; the code was written and checked under those assumptions.
 - Malformed or oversized input files (BSP, WAD, `.prt`, `.inc`) are rejected with an error rather than processed.
+- `hlrad-ng` needs no extra files: it opens the Vulkan loader that graphics drivers install (`vulkan-1.dll`, `libvulkan.so.1`) at run time and works without it. `-DVHLT_HLRAD_NG=OFF` leaves the tool out of a build. The Linux build of `hlrad-ng` is cross-compiled like the other tools and has not been run on Linux yet.

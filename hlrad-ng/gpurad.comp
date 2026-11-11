@@ -1,0 +1,215 @@
+// hlrad-ng GPU radiosity (Vulkan compute).
+//
+// Holds the transfers between patches on the device and runs the light bounces
+// there: what MakeScales and GatherLight do on the CPU. One invocation handles
+// one receiving patch. Its transfers lie in a row: one 16-bit factor for every
+// patch it sees, in the order of the patch numbers, and the visibility row of
+// the patch says which patches those are. A dispatch does one of three things:
+//
+//   MODE_COUNT   counts the patches every patch sees, so that the CPU can lay
+//                the rows out,
+//   MODE_FILL    computes the factors of the rows (the form factor of
+//                MakeScales for pairs that are not close; the CPU keeps the
+//                close pairs, which the visibility pass left out of the rows),
+//   MODE_BOUNCE  gathers, per receiver and light style slot, the light of the
+//                patches it sees times their factors.
+//
+// The factors use the 16-bit transfer format of compress.h (FLOAT16).
+//
+// Built into SPIR-V with the command in docs/llms.txt; the build does not run
+// a shader compiler. Binding 0 (the scene of the ray shaders) is not used.
+#version 460
+
+layout(local_size_x = 64) in;
+
+layout(push_constant) uniform Params
+{
+    uint mode;
+    uint numPatches;
+    uint firstRow;   // first receiver of this dispatch
+    uint numRows;    // receivers of this dispatch
+    uint rowWords;   // words in one visibility row
+    uint numSlots;   // light style slots of a bounce
+    float normalEpsilon;    // NORMAL_EPSILON
+    float patchHuntOffset;  // PATCH_HUNT_OFFSET
+    float minPatchDistance; // MINIMUM_PATCH_DISTANCE
+} pc;
+
+const uint MODE_COUNT = 0u;
+const uint MODE_FILL = 1u;
+const uint MODE_BOUNCE = 2u;
+
+const int MAX_SLOTS = 8; // vismatrix.cpp bounces more styles than this in several passes
+
+struct Patch
+{
+    vec4 origin; // xyz, area
+    vec4 normal; // xyz, exposure
+    vec4 cone;   // lighting cone power and scale of its texture, unused
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer Patches
+{
+    Patch patches[];
+};
+
+// One row per patch: bit k is set when the patch sees patch k from a distance
+layout(std430, set = 0, binding = 2) readonly buffer Visible
+{
+    uint visible[];
+};
+
+// MODE_COUNT writes how many patches each patch sees; afterwards it holds
+// where the row of each patch starts in factors, counted in factors (even)
+layout(std430, set = 0, binding = 3) buffer Rows
+{
+    uint rows[];
+};
+
+// Two 16-bit factors per word
+layout(std430, set = 0, binding = 4) buffer Factors
+{
+    uint factors[];
+};
+
+// What each patch emits, per slot: rgb
+layout(std430, set = 0, binding = 5) readonly buffer Emit
+{
+    vec4 emit[];
+};
+
+// What each receiver of the dispatch gathers, per slot: rgb
+layout(std430, set = 0, binding = 6) writeonly buffer Sums
+{
+    vec4 sums[];
+};
+
+// compress.h, FLOAT16
+uint Encode(float value)
+{
+    uint bits = floatBitsToUint(value);
+    if (bits >= 0x7F800000u || bits < 0x30800000u)
+    {
+        return 0u;
+    }
+    if (bits >= 0x40000000u)
+    {
+        return 0xFFFFu;
+    }
+    return (bits >> 12) & 0xFFFFu;
+}
+
+float Decode(uint factor)
+{
+    return factor == 0u ? 0.0 : uintBitsToFloat(0x800u | (factor << 12) | 0x30000000u);
+}
+
+// The part of an emitter's light that a receiver collects: MakeScales, for a
+// pair that is farther apart than the emitter's range.
+float Transfer(Patch receiver, Patch emitter)
+{
+    // move the emitter back to its plane
+    vec3 delta = emitter.origin.xyz - receiver.origin.xyz - pc.patchHuntOffset * emitter.normal.xyz;
+    float dist = length(delta);
+    if (dist < pc.normalEpsilon)
+    {
+        return 0.0;
+    }
+    delta /= dist;
+    float dot1 = dot(delta, receiver.normal.xyz);
+    float dot2 = -dot(delta, emitter.normal.xyz);
+    if (dot2 * dist <= pc.minPatchDistance || !(dot1 > pc.normalEpsilon))
+    {
+        return 0.0; // behind the emitter, or the emitter is behind the receiver
+    }
+    if (receiver.cone.x != 1.0 || receiver.cone.y != 1.0)
+    {
+        dot1 = receiver.cone.y * pow(dot1, receiver.cone.x);
+    }
+    float trans = dot1 * dot2 / (dist * dist);
+    if (trans * emitter.origin.w > 0.8)
+    {
+        trans = 0.8 / emitter.origin.w;
+    }
+    trans *= emitter.normal.w * emitter.origin.w;
+    return max(trans, 0.0) * 0.31830988618379067;
+}
+
+void main()
+{
+    if (gl_GlobalInvocationID.x >= pc.numRows)
+    {
+        return;
+    }
+    uint self = pc.firstRow + gl_GlobalInvocationID.x;
+    uint row = self * pc.rowWords;
+
+    if (pc.mode == MODE_COUNT)
+    {
+        uint count = 0u;
+        for (uint word = 0u; word < pc.rowWords; word++)
+        {
+            count += uint(bitCount(visible[row + word]));
+        }
+        rows[self] = count;
+        return;
+    }
+
+    uint at = rows[self];
+    if (pc.mode == MODE_FILL)
+    {
+        Patch receiver = patches[self];
+        uint pending = 0u; // the lower factor of a word, until the upper one is known
+        for (uint word = 0u; word < pc.rowWords; word++)
+        {
+            uint bits = visible[row + word];
+            while (bits != 0u)
+            {
+                uint other = word * 32u + uint(findLSB(bits));
+                bits &= bits - 1u;
+                uint factor = Encode(Transfer(receiver, patches[other]));
+                if ((at & 1u) == 0u)
+                {
+                    pending = factor;
+                }
+                else
+                {
+                    factors[at >> 1] = pending | (factor << 16);
+                }
+                at++;
+            }
+        }
+        if ((at & 1u) != 0u)
+        {
+            factors[at >> 1] = pending;
+        }
+        return;
+    }
+
+    vec3 gathered[MAX_SLOTS];
+    uint slots = min(pc.numSlots, uint(MAX_SLOTS));
+    for (uint slot = 0u; slot < slots; slot++)
+    {
+        gathered[slot] = vec3(0.0);
+    }
+    for (uint word = 0u; word < pc.rowWords; word++)
+    {
+        uint bits = visible[row + word];
+        while (bits != 0u)
+        {
+            uint other = word * 32u + uint(findLSB(bits));
+            bits &= bits - 1u;
+            uint packed = factors[at >> 1];
+            float factor = Decode((at & 1u) == 0u ? (packed & 0xFFFFu) : (packed >> 16));
+            at++;
+            for (uint slot = 0u; slot < slots; slot++)
+            {
+                gathered[slot] += factor * emit[other * slots + slot].rgb;
+            }
+        }
+    }
+    for (uint slot = 0u; slot < slots; slot++)
+    {
+        sums[gl_GlobalInvocationID.x * slots + slot] = vec4(gathered[slot], 0.0);
+    }
+}

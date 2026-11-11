@@ -1,5 +1,9 @@
 #include "qrad.h"
 #include "profile.h"
+#include "gpu.h"
+
+#include <algorithm>
+#include <vector>
 
 edgeshare_t g_edgeshare[MAX_MAP_EDGES];
 vec3_t g_face_centroids[MAX_MAP_EDGES]; // BUG: should this be [MAX_MAP_FACES]?
@@ -2865,6 +2869,9 @@ static int g_directlights_numflat = 0;
 // Leaf indices go up to g_dmodels[0].visleafs; index visleafs + 1 needs the
 // sentinel, so size for MAX_MAP_LEAFS + 2 entries.
 static directlight_t* g_directlights_head[MAX_MAP_LEAFS + 2];
+// Leaves that hold at least one light, ascending.
+static int g_directlights_lightleafs[MAX_MAP_LEAFS + 2];
+static int g_directlights_numlightleafs = 0;
 // hlrad-ng: per-leaf flat-array bounds and the conservative light BVH built
 // over dense leaf runs (Phase 2). Nodes store bounds that only ever prove
 // rejections the scalar loop would make itself (see BuildLightBVH).
@@ -2949,6 +2956,15 @@ static void FlattenDirectLights()
             directlights[l] = dl->next;
             g_directlights_flat[total] = *dl;
             g_directlights_flat[total].next = NULL;
+            g_directlights_flat[total].sunorder = NULL;
+            if (dl->type == emit_skylight && dl->numsunnormals > TESTLINE_PACKET_MAX)
+            {
+                // a spread sun is traced in packets; order its rays for that
+                int* order = (int*)malloc((size_t)dl->numsunnormals * sizeof(int));
+                hlassume(order != NULL, assume_NoMemory);
+                TraceCoherentOrder(dl->sunnormals, dl->numsunnormals, order);
+                g_directlights_flat[total].sunorder = order;
+            }
             total++;
             free(dl);
             dl = directlights[l];
@@ -2965,6 +2981,15 @@ static void FlattenDirectLights()
         }
         g_directlights_leafbegin[l] = runbegin;
         g_directlights_leafend[l] = total;
+    }
+
+    g_directlights_numlightleafs = 0;
+    for (l = 0; l < numleafs; l++)
+    {
+        if (g_directlights_head[l])
+        {
+            g_directlights_lightleafs[g_directlights_numlightleafs++] = l;
+        }
     }
 }
 
@@ -4094,6 +4119,8 @@ void DeleteDirectLights()
     {
         free(g_directlights_flat[i].sunnormals);
         g_directlights_flat[i].sunnormals = NULL;
+        free(g_directlights_flat[i].sunorder);
+        g_directlights_flat[i].sunorder = NULL;
     }
     free(g_directlights_flat);
     g_directlights_flat = NULL;
@@ -4299,78 +4326,1090 @@ void BuildDiffuseNormals()
     free(triangles);
 }
 #endif
-static void GatherSampleLight(const vec3_t pos, const byte* const pvs, const vec3_t normal, vec3_t* sample
-#ifdef ZHLT_XASH
-                              ,
-                              vec3_t* sample_direction
+// =====================================================================================
+// hlrad-ng: direct lighting on the GPU (gpu.h, gpudirect.comp)
+// =====================================================================================
+// The GPU gathers the direct light of many points at once: every patch before
+// BuildFacelights starts, then the lightmap samples of each batch of faces.
+// GatherSampleLight takes what the GPU found for a point and adds on the CPU
+// only the texlight patches the shader left to it (see gpudirect.comp).
+#if !defined(HLRAD_GatherPatchLight) || !defined(HLRAD_ALLOWZEROBRIGHTNESS) ||                                         \
+    !defined(HLRAD_ACCURATEBOUNCE_TEXLIGHT) || !defined(HLRAD_ARG_MISC) || !defined(HLRAD_DIVERSE_LIGHTING) ||         \
+    !defined(HLRAD_TEXLIGHTGAP) || !defined(HLRAD_CUSTOMTEXLIGHT) || !defined(HLRAD_TEXLIGHT_SPOTS_FIX) ||             \
+    !defined(HLRAD_SUNDIFFUSE) || !defined(HLRAD_WHOME) || !defined(HLRAD_OPAQUE_DIFFUSE_FIX) ||                       \
+    !defined(HLRAD_FASTMODE) || !defined(HLRAD_VIS_FIX) || !defined(ZHLT_DecompressVis_FIX) ||                         \
+    !defined(HLRAD_TRANSLUCENT) || !defined(HLRAD_AUTOCORING) || !defined(HLRAD_GROWSAMPLE) ||                         \
+    !defined(HLRAD_AVOIDWALLBLEED) || !defined(HLRAD_AVOIDNORMALFLIP)
+#error "hlrad-ng GPU direct lighting needs the default hlrad feature set"
 #endif
-                              ,
-                              byte* styles
-#ifdef HLRAD_GatherPatchLight
-                              ,
-                              int step
-#endif
-#ifdef HLRAD_DIVERSE_LIGHTING
-                              ,
-                              int miptex
-#endif
-#ifdef HLRAD_TEXLIGHTGAP
-                              ,
-                              int texlightgap_surfacenum
-#endif
-)
+
+// const uint32_t g_gpudirect_rq_spv[], g_gpudirect_bsp_spv[]: SPIR-V of gpudirect.comp
+#include "gpudirect_rq_spv.inc"
+#include "gpudirect_bsp_spv.inc"
+
+// What gpudirect.comp reads and writes (std430 layout).
+typedef struct
 {
-    int i;
-    directlight_t* l;
-#ifdef HLRAD_NG_PROFILE
-    g_profile_gsamples++;
-#endif
-#ifndef HLRAD_OPAQUE_STYLE
-    vec3_t add;
-#ifdef ZHLT_XASH
-    vec3_t add_direction;
-#endif
-#endif // now we always add the light into the total brightness of this sample immediately after each TestLine, because each TestLine may result in different style.
-    vec3_t delta;
-    float dot, dot2;
-    float dist;
-    float ratio;
-#ifdef HLRAD_OPACITY // AJM
-    float l_opacity;
-#endif
-    int style_index;
-#ifdef HLRAD_GatherPatchLight
-    int step_match;
-#endif
-#ifdef HLRAD_MULTISKYLIGHT
-    bool sky_used = false;
-#else
-    directlight_t* sky_used = NULL;
-#endif
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-    vec3_t testline_origin;
-#endif
-#ifdef HLRAD_STYLE_CORING
-    vec3_t adds[ALLSTYLES];
-#ifdef ZHLT_XASH
-    vec3_t adds_direction[ALLSTYLES];
-#endif
+    float origin[3];
+    int contents;
+    float normal[3];
+    int leafrow;
+    float power;
+    float scale;
+    int step;
+    int pad;
+} gpupoint_t;
+
+typedef struct
+{
+    float normal[3];
+    int sunfirst;
+    float intensity[3];
+    int suncount;
+    float diffuse[3];
     int style;
-    memset(adds, 0, ALLSTYLES * sizeof(vec3_t));
-#ifdef ZHLT_XASH
-    memset(adds_direction, 0, ALLSTYLES * sizeof(vec3_t));
+    float diffuse2[3];
+    int flags;
+} gpuskylight_t;
+
+typedef struct
+{
+    float origin[3];
+    int info;
+    float intensity[3];
+    int style;
+    float normal[3];
+    float stopdot;
+    float stopdot2;
+    float fade;
+    float patcharea;
+    float range;
+    float center[3];
+    float radius;
+} gpulight_t;
+
+typedef struct
+{
+    float slot[4][4]; // rgb, light style (-1: unused)
+    unsigned status[4];
+} gpuresult_t;
+
+typedef struct
+{
+    unsigned numpoints;
+    unsigned firstsky;
+    unsigned numskydirs;
+    unsigned numskylights;
+    unsigned lightleafwords;
+    unsigned paircapacity;
+    unsigned pointbase;
+    int skystep;
+    float skyrange;
+    float onepsilon;
+    float normalepsilon;
+    float indirectsun;
+    float patchhuntoffset;
+    float minpatchdistance;
+} gpudirectparams_t;
+
+static_assert(sizeof(gpupoint_t) == 48 && sizeof(gpuskylight_t) == 64 && sizeof(gpulight_t) == 80 &&
+                  sizeof(gpuresult_t) == 80 && sizeof(gpudirectparams_t) == 56,
+              "records shared with gpudirect.comp");
+
+// Constants of gpudirect.comp
+#define GPU_GROUP_SIZE 32
+#define GPU_MAX_SKYLIGHTS 8
+#define GPU_SKY_SUN_STEP0 1
+#define GPU_SKY_SUN_STEP1 2
+#define GPU_SKY_DIFFUSE 4
+#define GPU_LIGHT_SURFACE 0
+#define GPU_LIGHT_POINT 1
+#define GPU_LIGHT_SPOT 2
+#define GPU_LIGHT_STEP1 4
+#define GPU_LIGHT_SKIP 8
+#define GPU_STATUS_FALLBACK 1u
+
+// Starting the GPU costs a fraction of a second; a map below this many
+// patches is lit sooner without it.
+#define GPU_MIN_PATCHES 4096
+// A dispatch has to finish well inside the display driver's watchdog time
+// (two seconds on Windows); the point count per dispatch is tuned toward this.
+#define GPU_DISPATCH_SECONDS 0.2
+// Room in the pair list per point of a dispatch; a dispatch that needs more runs again.
+#define GPU_PAIRS_PER_POINT 4
+
+// What the GPU gathered for one GatherSampleLight call.
+typedef struct
+{
+    const gpuresult_t* result;
+    const unsigned* nearlights; // lights the CPU has to add, as indices of g_directlights_flat
+    int numnear;
+} gpugather_t;
+
+// One finished run: a result per point, and the lights left to the CPU per point.
+typedef struct
+{
+    std::vector<gpuresult_t> results;
+    std::vector<unsigned> nearfirst;  // per point, where its lights start in nearlights; one more entry closes the last
+    std::vector<unsigned> nearlights; // ascending per point
+} gpudirect_t;
+
+static gpujob_t* g_gpudirect_job = NULL; // NULL while direct lighting runs on the CPU
+static gpudirectparams_t g_gpudirect_params;
+static int g_gpudirect_allrow = 0;         // row of the leaf visibility for maps without vis data
+static int g_gpudirect_perdispatch = 1024; // points per dispatch, tuned to the device as it runs
+static double g_gpudirect_seconds = 0;     // time spent waiting for the GPU
+static gpudirect_t g_patchdirect;          // direct light of every patch (step 1)
+static bool g_patchdirect_ready = false;
+
+// HLRAD_NG_GPU_CHECK=1 gathers every 64th GPU point on the CPU as well and compares;
+// HLRAD_NG_GPU_CHECK=2 does that for every point.
+static bool g_gpudirect_check = false;
+static uintptr_t g_gpudirect_checkmask = 63;
+static unsigned long long g_gpudirect_checked = 0;
+static unsigned long long g_gpudirect_differ = 0;
+static double g_gpudirect_maxdiffer = 0;
+
+// Row of the leaf visibility buffer for a point.
+static int GpuDirectLeafRow(const vec3_t point)
+{
+    if (!g_visdatasize)
+    {
+        return g_gpudirect_allrow;
+    }
+    return (int)(PointInLeaf(point) - g_dleafs);
+}
+
+// Fills one point record of gpudirect.comp.
+static void GpuDirectPoint(gpupoint_t* point, const vec3_t origin, const vec3_t normal, const int miptex,
+                           const int step, const bool blocked)
+{
+    VectorCopy(origin, point->origin);
+    // a point that gathers nothing costs the shader nothing when it starts in solid
+    point->contents = blocked ? (int)CONTENTS_SOLID : TracePointContents(origin);
+    VectorCopy(normal, point->normal);
+    point->leafrow = GpuDirectLeafRow(origin);
+    point->power = (float)g_lightingconeinfo[miptex][0];
+    point->scale = (float)g_lightingconeinfo[miptex][1];
+    point->step = step;
+    point->pad = 0;
+}
+
+// Uploads the lights to the GPU. Leaves g_gpudirect_job NULL when this map or
+// this machine keeps direct lighting on the CPU.
+static void GpuDirectSetup()
+{
+    const int skylevel = g_softsky ? SKYLEVEL_SOFTSKYON : SKYLEVEL_SOFTSKYOFF;
+    const int numleafs = 1 + g_dmodels[0].visleafs;
+    const int numlightleafs = g_directlights_numlightleafs;
+    const int words = qmax(1, (numlightleafs + 31) / 32);
+    unsigned firstsky = 0;
+    int i;
+    int k;
+
+    g_gpudirect_job = NULL;
+    {
+        const char* check = getenv("HLRAD_NG_GPU_CHECK");
+        g_gpudirect_check = check != NULL;
+        g_gpudirect_checkmask = (check && check[0] == '2') ? 0 : 63;
+    }
+
+    // Without the sky lighting fix a skylight is seen through the PVS and only
+    // the first one counts; a texlight gap needs the texture axes of the
+    // receiving face. Both stay on the CPU.
+    if (!g_sky_lighting_fix)
+    {
+        return;
+    }
+    {
+        const char* mode = getenv("HLRAD_NG_GPU");
+        if (g_num_patches < GPU_MIN_PATCHES && !(mode && mode[0] == '1'))
+        {
+            return;
+        }
+    }
+    {
+        int numskylights = 0;
+        for (i = 0; i < g_directlights_numflat; i++)
+        {
+            const directlight_t* l = &g_directlights_flat[i];
+            if (l->type == emit_skylight)
+            {
+                numskylights++;
+            }
+            else if (l->type == emit_surface && l->texlightgap > 0)
+            {
+                return;
+            }
+        }
+        if (numskylights > GPU_MAX_SKYLIGHTS)
+        {
+            return;
+        }
+    }
+    if (!TraceGpuScene(&firstsky))
+    {
+        return;
+    }
+
+    // the sky normals, then the sun directions of every skylight
+    std::vector<float> dirs;
+    std::vector<gpuskylight_t> skylights;
+    std::vector<gpulight_t> lights((size_t)qmax(g_directlights_numflat, 1));
+    dirs.reserve((size_t)g_numskynormals[skylevel] * 4);
+    for (i = 0; i < g_numskynormals[skylevel]; i++)
+    {
+        dirs.push_back(g_skynormals[skylevel][i][0]);
+        dirs.push_back(g_skynormals[skylevel][i][1]);
+        dirs.push_back(g_skynormals[skylevel][i][2]);
+        dirs.push_back(g_skynormalsizes[skylevel][i]);
+    }
+    memset(&lights[0], 0, lights.size() * sizeof(gpulight_t));
+    for (i = 0; i < g_directlights_numflat; i++)
+    {
+        const directlight_t* l = &g_directlights_flat[i];
+        gpulight_t* light = &lights[(size_t)i];
+        const bool bright = l->intensity[0] || l->intensity[1] || l->intensity[2];
+
+        light->info = GPU_LIGHT_SKIP;
+        if (l->type == emit_skylight)
+        {
+            gpuskylight_t sky;
+            memset(&sky, 0, sizeof(sky));
+            VectorCopy(l->normal, sky.normal);
+            sky.sunfirst = (int)(dirs.size() / 4);
+            sky.suncount = l->numsunnormals;
+            for (k = 0; k < l->numsunnormals; k++)
+            {
+                dirs.push_back(l->sunnormals[k][0]);
+                dirs.push_back(l->sunnormals[k][1]);
+                dirs.push_back(l->sunnormals[k][2]);
+                dirs.push_back(l->sunnormalweights[k]);
+            }
+            VectorCopy(l->intensity, sky.intensity);
+            VectorCopy(l->diffuse_intensity, sky.diffuse);
+            VectorCopy(l->diffuse_intensity2, sky.diffuse2);
+            sky.style = l->style;
+            if (bright)
+            {
+                sky.flags |= l->topatch ? GPU_SKY_SUN_STEP1 : GPU_SKY_SUN_STEP0;
+            }
+            if (g_indirect_sun > 0.0 && !(VectorCompare(l->diffuse_intensity, vec3_origin) &&
+                                          VectorCompare(l->diffuse_intensity2, vec3_origin)))
+            {
+                sky.flags |= GPU_SKY_DIFFUSE;
+            }
+            skylights.push_back(sky);
+            continue;
+        }
+        if (!bright)
+        {
+            continue;
+        }
+        VectorCopy(l->origin, light->origin);
+        VectorCopy(l->intensity, light->intensity);
+        light->style = l->style;
+        VectorCopy(l->normal, light->normal);
+        light->stopdot = l->stopdot;
+        light->stopdot2 = l->stopdot2;
+        light->fade = l->fade;
+        light->patcharea = l->patch_area;
+        light->range = l->patch_emitter_range;
+        switch (l->type)
+        {
+        case emit_surface:
+        {
+            // where the patch is, for the shader's horizon test
+            const Winding* winding = l->patch->winding;
+            vec3_t center = {0, 0, 0};
+            vec_t radius = 0;
+            for (k = 0; k < (int)winding->m_NumPoints; k++)
+            {
+                VectorAdd(center, winding->m_Points[k], center);
+            }
+            VectorScale(center, 1.0f / (float)qmax(winding->m_NumPoints, 1u), center);
+            for (k = 0; k < (int)winding->m_NumPoints; k++)
+            {
+                vec3_t delta;
+                VectorSubtract(winding->m_Points[k], center, delta);
+                radius = qmax(radius, (vec_t)VectorLength(delta));
+            }
+            VectorCopy(center, light->center);
+            light->radius = radius;
+            light->info = GPU_LIGHT_SURFACE;
+            break;
+        }
+        case emit_point:
+            light->info = GPU_LIGHT_POINT;
+            break;
+        default:
+            light->info = GPU_LIGHT_SPOT;
+            break;
+        }
+        if (l->topatch)
+        {
+            light->info |= GPU_LIGHT_STEP1;
+        }
+    }
+
+    // which leaves that hold lights each leaf sees, as GatherSampleLight decides it
+    std::vector<unsigned> leafvis((size_t)(numleafs + 1) * (size_t)words, 0u);
+    std::vector<int> runs((size_t)words * 32 * 2, 0);
+    for (k = 0; k < numlightleafs; k++)
+    {
+        runs[(size_t)k * 2] = g_directlights_leafbegin[g_directlights_lightleafs[k]];
+        runs[(size_t)k * 2 + 1] = g_directlights_leafend[g_directlights_lightleafs[k]];
+    }
+    g_gpudirect_allrow = numleafs;
+    for (i = 0; i <= numleafs; i++)
+    {
+        byte pvs[(MAX_MAP_LEAFS + 7) / 8];
+        if (i == numleafs || !g_visdatasize)
+        {
+            memset(pvs, 255, sizeof(pvs));
+        }
+        else if (g_dleafs[i].visofs == -1)
+        {
+            memset(pvs, 0, sizeof(pvs));
+        }
+        else
+        {
+            DecompressVis(&g_dvisdata[g_dleafs[i].visofs], pvs, sizeof(pvs));
+        }
+        for (k = 0; k < numlightleafs; k++)
+        {
+            const int leaf = g_directlights_lightleafs[k];
+            if (leaf == 0 || (pvs[(leaf - 1) >> 3] & (1 << ((leaf - 1) & 7))))
+            {
+                leafvis[(size_t)i * (size_t)words + (size_t)(k >> 5)] |= 1u << (k & 31);
+            }
+        }
+    }
+
+    gpujob_t* job = GpuCreateJob(g_gpudirect_rq_spv, sizeof(g_gpudirect_rq_spv), g_gpudirect_bsp_spv,
+                                 sizeof(g_gpudirect_bsp_spv), 8, sizeof(gpudirectparams_t));
+    if (!job || !GpuJobUpload(job, 2, &dirs[0], dirs.size() * sizeof(float)) ||
+        !GpuJobUpload(job, 3, skylights.empty() ? NULL : &skylights[0], skylights.size() * sizeof(gpuskylight_t)) ||
+        !GpuJobUpload(job, 4, &lights[0], lights.size() * sizeof(gpulight_t)) ||
+        !GpuJobUpload(job, 5, &leafvis[0], leafvis.size() * sizeof(unsigned)) ||
+        !GpuJobUpload(job, 6, &runs[0], runs.size() * sizeof(int)))
+    {
+        return;
+    }
+
+    memset(&g_gpudirect_params, 0, sizeof(g_gpudirect_params));
+    g_gpudirect_params.firstsky = firstsky;
+    g_gpudirect_params.numskydirs = (unsigned)g_numskynormals[skylevel];
+    g_gpudirect_params.numskylights = (unsigned)skylights.size();
+    g_gpudirect_params.lightleafwords = (unsigned)words;
+    g_gpudirect_params.skystep = (g_softsky || g_fastmode) ? 1 : 0;
+    g_gpudirect_params.skyrange = TraceSkyRange();
+    g_gpudirect_params.onepsilon = (float)ON_EPSILON;
+    g_gpudirect_params.normalepsilon = (float)NORMAL_EPSILON;
+    g_gpudirect_params.indirectsun = g_indirect_sun;
+    g_gpudirect_params.patchhuntoffset = (float)PATCH_HUNT_OFFSET;
+    g_gpudirect_params.minpatchdistance = (float)MINIMUM_PATCH_DISTANCE;
+    g_gpudirect_job = job;
+}
+
+// Gathers the direct light of count points on the GPU; with progress set it
+// reports to the phase line of the log as it goes. On failure the GPU is
+// given up for the rest of the run.
+static bool GpuDirectRun(const gpupoint_t* points, const int count, gpudirect_t* out, const bool progress)
+{
+    const unsigned long long maxpoints = (unsigned long long)GpuMaxGroups() * GPU_GROUP_SIZE;
+    std::vector<unsigned> pairs; // point, light; of every dispatch
+    std::vector<unsigned> pairbuffer;
+    const double begin = I_FloatTime();
+    int done = 0;
+    size_t i;
+
+    out->results.resize((size_t)qmax(count, 1));
+    while (done < count)
+    {
+        const int n = (int)qmin((unsigned long long)qmin(g_gpudirect_perdispatch, count - done), maxpoints);
+        unsigned capacity = (unsigned)n * GPU_PAIRS_PER_POINT + 4096;
+        double elapsed = 0;
+
+        for (;;)
+        {
+            gpuinput_t input;
+            gpuoutput_t outputs[2];
+
+            pairbuffer.resize(1 + 2 * (size_t)capacity);
+            g_gpudirect_params.numpoints = (unsigned)n;
+            g_gpudirect_params.pointbase = (unsigned)done;
+            g_gpudirect_params.paircapacity = capacity;
+            input.binding = 1;
+            input.data = points + done;
+            input.size = (size_t)n * sizeof(gpupoint_t);
+            outputs[0].binding = 7;
+            outputs[0].data = &out->results[(size_t)done];
+            outputs[0].size = (size_t)n * sizeof(gpuresult_t);
+            outputs[0].clear = 0;
+            outputs[1].binding = 8;
+            outputs[1].data = &pairbuffer[0];
+            outputs[1].size = pairbuffer.size() * sizeof(unsigned);
+            outputs[1].clear = sizeof(unsigned);
+
+            const double start = I_FloatTime();
+            if (!GpuJobRun(g_gpudirect_job, &g_gpudirect_params, (unsigned)(n + GPU_GROUP_SIZE - 1) / GPU_GROUP_SIZE,
+                           &input, 1, outputs, 2))
+            {
+                Warning("The GPU stopped working; direct lighting continues on the CPU.");
+                g_gpudirect_job = NULL;
+                g_gpudirect_seconds += I_FloatTime() - begin;
+                return false;
+            }
+            elapsed = I_FloatTime() - start;
+            if (pairbuffer[0] <= capacity)
+            {
+                break;
+            }
+            // the list was too short; the count says what this dispatch needs
+            capacity = pairbuffer[0] + 4096;
+        }
+        pairs.insert(pairs.end(), pairbuffer.begin() + 1, pairbuffer.begin() + 1 + 2 * (size_t)pairbuffer[0]);
+        done += n;
+        if (progress)
+        {
+            PhaseProgress((double)done / count);
+        }
+
+        // steer the next dispatch toward the time budget, a factor of four at most per step
+        const double factor = qmax(0.25, qmin(4.0, GPU_DISPATCH_SECONDS / qmax(elapsed, 1e-4)));
+        g_gpudirect_perdispatch = (int)qmax(64.0, qmin(4194304.0, g_gpudirect_perdispatch * factor));
+    }
+
+    // the lights the CPU adds, grouped by point and ascending, so that the
+    // result does not depend on the order the GPU wrote them in
+    out->nearfirst.assign((size_t)count + 1, 0u);
+    for (i = 0; i < pairs.size(); i += 2)
+    {
+        out->nearfirst[(size_t)pairs[i] + 1]++;
+    }
+    for (i = 0; i < (size_t)count; i++)
+    {
+        out->nearfirst[i + 1] += out->nearfirst[i];
+    }
+    out->nearlights.resize(qmax(pairs.size() / 2, (size_t)1));
+    {
+        std::vector<unsigned> cursor(out->nearfirst.begin(), out->nearfirst.end() - 1);
+        for (i = 0; i < pairs.size(); i += 2)
+        {
+            out->nearlights[cursor[pairs[i]]++] = pairs[i + 1];
+        }
+    }
+    for (i = 0; i < (size_t)count; i++)
+    {
+        std::sort(out->nearlights.begin() + out->nearfirst[i], out->nearlights.begin() + out->nearfirst[i + 1]);
+    }
+    g_gpudirect_seconds += I_FloatTime() - begin;
+    return true;
+}
+
+// What a finished run holds for one of its points.
+static void GpuDirectGather(const gpudirect_t* run, const int index, gpugather_t* gather)
+{
+    gather->result = &run->results[(size_t)index];
+    gather->nearlights = &run->nearlights[0] + run->nearfirst[(size_t)index];
+    gather->numnear = (int)(run->nearfirst[(size_t)index + 1] - run->nearfirst[(size_t)index]);
+}
+
+void FreePatchDirect()
+{
+    g_patchdirect_ready = false;
+    std::vector<gpuresult_t>().swap(g_patchdirect.results);
+    std::vector<unsigned>().swap(g_patchdirect.nearfirst);
+    std::vector<unsigned>().swap(g_patchdirect.nearlights);
+}
+
+void PrecomputePatchDirect()
+{
+    const double start = I_FloatTime();
+
+    FreePatchDirect();
+    GpuDirectSetup();
+    if (!g_gpudirect_job || g_num_patches == 0)
+    {
+        return;
+    }
+    Log("GPU: %s, %s (%.2f seconds)\n", GpuDeviceName(),
+        GpuHasRayQuery() ? "hardware ray tracing" : "BSP walk in compute shaders", I_FloatTime() - start);
+
+    // what BuildFacelightsPost asks GatherSampleLight for every patch
+    std::vector<gpupoint_t> points((size_t)g_num_patches);
+    for (unsigned i = 0; i < g_num_patches; i++)
+    {
+        const patch_t* patch = &g_patches[i];
+        GpuDirectPoint(&points[i], patch->origin, getPlaneFromFaceNumber(patch->faceNumber)->normal,
+                       g_texinfo[g_dfaces[patch->faceNumber].texinfo].miptex, 1, false);
+    }
+    PhaseBegin("Patch lighting (GPU)");
+    g_patchdirect_ready = GpuDirectRun(&points[0], (int)g_num_patches, &g_patchdirect, true);
+    PhaseEnd();
+}
+
+// The GPU's light for the GatherSampleLight call of a patch, if there is one.
+static bool PatchDirectGather(const patch_t* patch, gpugather_t* gather)
+{
+    if (!g_patchdirect_ready)
+    {
+        return false;
+    }
+    GpuDirectGather(&g_patchdirect, (int)(patch - g_patches), gather);
+    return true;
+}
+
+void ReportGpuDirectCheck()
+{
+    if (g_gpudirect_checked > 0)
+    {
+        Log("GPU check: %llu of %llu compared light values differ by more than 1%%, the largest by %.3f\n",
+            g_gpudirect_differ, g_gpudirect_checked, g_gpudirect_maxdiffer);
+    }
+}
+
+// hlrad-ng: GatherSampleLight traces its rays in packets (trace.cpp). The
+// packet paths are written for the default feature set only.
+#if !defined(HLRAD_SOFTSKY) || !defined(HLRAD_OPAQUEINSKY_FIX) || !defined(HLRAD_OPAQUE_STYLE) ||                      \
+    !defined(HLRAD_HULLU) || !defined(HLRAD_MULTISKYLIGHT) || !defined(HLRAD_SUNSPREAD) ||                             \
+    !defined(HLRAD_STYLE_CORING) || !defined(HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN) || !defined(HLRAD_SKYFIX_FIX) ||    \
+    defined(ZHLT_XASH)
+#error "hlrad-ng packet tracing needs the default hlrad feature set"
 #endif
-#endif
-#ifdef HLRAD_DIVERSE_LIGHTING
+
+// One sun ray of a skylight: whether it reaches the sky, and where.
+typedef struct
+{
+    bool sky;
+    vec3_t hit;
+} sunray_t;
+
+// Traces the sun rays of one skylight from pos, eight at a time. rays gets
+// one entry per sun normal; normals the surface faces away from stay dark.
+static void TraceSunRays(const vec3_t pos, const vec3_t normal, const directlight_t* l, sunray_t* rays)
+{
+    vec3_t stops[TESTLINE_PACKET_MAX];
+    int index[TESTLINE_PACKET_MAX];
+    int results[TESTLINE_PACKET_MAX];
+    vec_t fracs[TESTLINE_PACKET_MAX];
+    int count = 0;
+    PROFILE_SCOPE(PROFILE_SUN);
+
+    for (int step = 0; step <= l->numsunnormals; step++)
+    {
+        if (step < l->numsunnormals)
+        {
+            const int j = l->sunorder ? l->sunorder[step] : step;
+            rays[j].sky = false;
+            const float dot = -DotProduct(normal, l->sunnormals[j]);
+            if (dot > NORMAL_EPSILON)
+            {
+                VectorMA(pos, -TraceSkyRange(), l->sunnormals[j], stops[count]);
+                index[count] = j;
+                count++;
+            }
+        }
+        if (count == TESTLINE_PACKET_MAX || (step == l->numsunnormals && count > 0))
+        {
+            if (count == 1)
+            {
+                // a lone ray is cheaper through the scalar walk
+                sunray_t* ray = &rays[index[0]];
+                VectorCopy(stops[0], ray->hit);
+                ray->sky = TestLine(pos, stops[0], ray->hit) == CONTENTS_SKY;
+            }
+            else
+            {
+                TestLinePacket(pos, stops, count, results, fracs);
+                for (int k = 0; k < count; k++)
+                {
+                    sunray_t* ray = &rays[index[k]];
+                    ray->sky = results[k] == CONTENTS_SKY;
+                    VectorMA(pos, -TraceSkyRange() * fracs[k], l->sunnormals[index[k]], ray->hit);
+                }
+            }
+            count = 0;
+        }
+    }
+}
+
+// Finishes the lights whose visibility test was deferred: traces them as one
+// packet from pos, then applies the opaque entities and adds each visible
+// light to its style, in the order the lights were met.
+static void FlushPendingLights(const vec3_t pos, const vec3_t* stops, const vec3_t* lightadds, const int* lightstyles,
+                               int& count, vec3_t* adds)
+{
+    int results[TESTLINE_PACKET_MAX];
+    vec_t fracs[TESTLINE_PACKET_MAX];
+
+    if (count == 0)
+    {
+        return;
+    }
+    PROFILE_SCOPE(PROFILE_LIGHTRAYS);
+    if (count == 1)
+    {
+        results[0] = TestLine(pos, stops[0]);
+    }
+    else
+    {
+        TestLinePacket(pos, stops, count, results, fracs);
+    }
+    for (int k = 0; k < count; k++)
+    {
+        if (results[k] != CONTENTS_EMPTY)
+        {
+            continue;
+        }
+        vec3_t transparency;
+        int opaquestyle;
+        if (TestSegmentAgainstOpaqueList(pos, stops[k], transparency, opaquestyle))
+        {
+            continue;
+        }
+        int style = lightstyles[k];
+        if (opaquestyle != -1)
+        {
+            if (style != 0 && style != opaquestyle)
+            {
+                continue; // dynamic light of other styles hits this toggleable opaque entity, then it completely vanishes.
+            }
+            style = opaquestyle;
+        }
+        vec3_t add;
+        VectorMultiply(lightadds[k], transparency, add);
+        VectorAdd(adds[style], add, adds[style]);
+    }
+    count = 0;
+}
+
+// State of one GatherSampleLight call that its light loop shares.
+typedef struct
+{
+    const vec_t* pos;
+    const vec_t* normal;
+    int step;
     bool lighting_diversify;
     vec_t lighting_power;
     vec_t lighting_scale;
-    lighting_power = g_lightingconeinfo[miptex][0];
-    lighting_scale = g_lightingconeinfo[miptex][1];
-    lighting_diversify = (lighting_power != 1.0 || lighting_scale != 1.0);
-#endif
-#ifdef HLRAD_TEXLIGHTGAP
     vec3_t texlightgap_textoworld[2];
+    vec3_t pending_stops[TESTLINE_PACKET_MAX]; // lights waiting for their visibility test
+    vec3_t pending_adds[TESTLINE_PACKET_MAX];
+    int pending_styles[TESTLINE_PACKET_MAX];
+    int pending_count;
+    vec3_t* adds; // light gathered per style, [ALLSTYLES]
+} gathercall_t;
+
+// Adds the sun and the diffuse sky light of one light_environment.
+static void GatherSkylight(gathercall_t* call, const directlight_t* l, std::vector<vec_t>& skyfracs,
+                           std::vector<sunray_t>& sunrays)
+{
+    const vec_t* pos = call->pos;
+    const vec_t* normal = call->normal;
+    vec3_t* adds = call->adds;
+    float dot;
+    int style;
+
+    do // add sun light
+    {
+        // check step
+        if (call->step != (int)l->topatch)
+        {
+            break;
+        }
+        // check intensity
+        if (!(l->intensity[0] || l->intensity[1] || l->intensity[2]))
+        {
+            break;
+        }
+        // hlrad-ng: the sun rays of this light are traced first, in packets
+        sunrays.resize((size_t)l->numsunnormals);
+        TraceSunRays(pos, normal, l, &sunrays[0]);
+        // loop over the normals
+        for (int j = 0; j < l->numsunnormals; j++)
+        {
+            // make sure the angle is okay
+            dot = -DotProduct(normal, l->sunnormals[j]);
+            if (dot <= NORMAL_EPSILON) //ON_EPSILON / 10 //--vluzacn
+            {
+                continue;
+            }
+
+            // search back to see if we can hit a sky brush
+            if (!sunrays[(size_t)j].sky)
+            {
+                continue; // occluded
+            }
+            const vec_t* skyhit = sunrays[(size_t)j].hit;
+
+            vec3_t transparency;
+            int opaquestyle;
+            if (TestSegmentAgainstOpaqueList(pos, skyhit, transparency, opaquestyle))
+            {
+                continue;
+            }
+
+            vec3_t add_one;
+            if (call->lighting_diversify)
+            {
+                dot = call->lighting_scale * pow(dot, call->lighting_power);
+            }
+            VectorScale(l->intensity, dot * l->sunnormalweights[j], add_one);
+            VectorMultiply(add_one, transparency, add_one);
+            // add to the total brightness of this sample
+            style = l->style;
+            if (opaquestyle != -1)
+            {
+                if (style == 0 || style == opaquestyle)
+                {
+                    style = opaquestyle;
+                }
+                else
+                {
+                    continue; // dynamic light of other styles hits this toggleable opaque entity, then it completely vanishes.
+                }
+            }
+            VectorAdd(adds[style], add_one, adds[style]);
+        } // (loop over the normals)
+    } while (0);
+    do // add sky light
+    {
+        // check step
+        int step_match = 0;
+        if (g_softsky)
+        {
+            step_match = 1;
+        }
+        if (g_fastmode)
+        {
+            step_match = 1;
+        }
+        if (call->step != step_match)
+        {
+            break;
+        }
+        // check intensity
+        if (g_indirect_sun <= 0.0 ||
+            (VectorCompare(l->diffuse_intensity, vec3_origin) && VectorCompare(l->diffuse_intensity2, vec3_origin)))
+        {
+            break;
+        }
+
+        vec3_t sky_intensity;
+
+        // loop over the normals
+        const int skylevel = g_softsky ? SKYLEVEL_SOFTSKYON : SKYLEVEL_SOFTSKYOFF;
+        vec3_t* skynormals = g_skynormals[skylevel];
+        vec_t* skyweights = g_skynormalsizes[skylevel];
+        // hlrad-ng: whether the sky shows along a direction does not depend on
+        // the light, so it is traced once per call and shared by every skylight
+        if (skyfracs.empty())
+        {
+            skyfracs.resize((size_t)g_numskynormals[skylevel]);
+            PROFILE_SCOPE(PROFILE_SKY);
+            TraceSkyVisibility(pos, normal, &skyfracs[0]);
+        }
+        for (int j = 0; j < g_numskynormals[skylevel]; j++)
+        {
+            // make sure the angle is okay
+            dot = -DotProduct(normal, skynormals[j]);
+            if (dot <= NORMAL_EPSILON) //ON_EPSILON / 10 //--vluzacn
+            {
+                continue;
+            }
+
+            // search back to see if we can hit a sky brush
+            if (skyfracs[(size_t)j] < 0)
+            {
+                continue; // occluded
+            }
+            vec3_t skyhit;
+            VectorMA(pos, -TraceSkyRange() * skyfracs[(size_t)j], skynormals[j], skyhit);
+
+            vec3_t transparency;
+            int opaquestyle;
+            if (TestSegmentAgainstOpaqueList(pos, skyhit, transparency, opaquestyle))
+            {
+                continue;
+            }
+
+            vec_t factor = qmin(qmax(0.0, (1 - DotProduct(l->normal, skynormals[j])) / 2),
+                                1.0); // how far this piece of sky has deviated from the sun
+            VectorScale(l->diffuse_intensity, 1 - factor, sky_intensity);
+            VectorMA(sky_intensity, factor, l->diffuse_intensity2, sky_intensity);
+            VectorScale(sky_intensity, skyweights[j] * g_indirect_sun / 2, sky_intensity);
+            vec3_t add_one;
+            if (call->lighting_diversify)
+            {
+                dot = call->lighting_scale * pow(dot, call->lighting_power);
+            }
+            VectorScale(sky_intensity, dot, add_one);
+            VectorMultiply(add_one, transparency, add_one);
+            // add to the total brightness of this sample
+            style = l->style;
+            if (opaquestyle != -1)
+            {
+                if (style == 0 || style == opaquestyle)
+                {
+                    style = opaquestyle;
+                }
+                else
+                {
+                    continue; // dynamic light of other styles hits this toggleable opaque entity, then it completely vanishes.
+                }
+            }
+            VectorAdd(adds[style], add_one, adds[style]);
+        } // (loop over the normals)
+
+    } while (0);
+}
+
+// Adds one point light, spotlight or texlight patch. Its light arrives when
+// the packet it waits in is traced (FlushPendingLights). gpudirect.comp holds
+// the same formulas for the lights the GPU gathers.
+static void GatherLight(gathercall_t* call, const directlight_t* l)
+{
+    const vec_t* pos = call->pos;
+    const vec_t* normal = call->normal;
+    vec3_t delta;
+    vec3_t testline_origin;
+    vec3_t add = {0, 0, 0};
+    float dot, dot2;
+    float dist;
+    float ratio;
+
+    if (call->step != (int)l->topatch)
+    {
+        return;
+    }
+    if (!(l->intensity[0] || l->intensity[1] || l->intensity[2]))
+    {
+        return;
+    }
+    VectorCopy(l->origin, testline_origin);
+    VectorSubtract(l->origin, pos, delta);
+    if (l->type == emit_surface)
+    {
+        // move emitter back to its plane
+        VectorMA(delta, -PATCH_HUNT_OFFSET, l->normal, delta);
+    }
+    dist = VectorNormalize(delta);
+    dot = DotProduct(delta, normal);
+
+    if (dist < 1.0)
+    {
+        dist = 1.0;
+    }
+
+#ifdef HLRAD_NG_PROFILE
+    g_profile_gsurvive++;
+#endif
+    switch (l->type)
+    {
+    case emit_point:
+    {
+        if (dot <= NORMAL_EPSILON)
+        {
+            return;
+        }
+        vec_t denominator = dist * dist * l->fade;
+        if (call->lighting_diversify)
+        {
+            dot = call->lighting_scale * pow(dot, call->lighting_power);
+        }
+        ratio = dot / denominator;
+        VectorScale(l->intensity, ratio, add);
+        break;
+    }
+
+    case emit_surface:
+    {
+        bool light_behind_surface = false;
+        if (dot <= NORMAL_EPSILON)
+        {
+            light_behind_surface = true;
+        }
+        if (call->lighting_diversify && !light_behind_surface)
+        {
+            dot = call->lighting_scale * pow(dot, call->lighting_power);
+        }
+        dot2 = -DotProduct(delta, l->normal);
+        // discard the texlight if the spot is too close to the texlight plane
+        if (l->texlightgap > 0)
+        {
+            vec_t test;
+
+            test = dot2 * dist; // distance from spot to texlight plane;
+            // maximum distance reduction if the spot is allowed to shift l->texlightgap pixels along s axis
+            test -= l->texlightgap * fabs(DotProduct(l->normal, call->texlightgap_textoworld[0]));
+            // maximum distance reduction if the spot is allowed to shift l->texlightgap pixels along t axis
+            test -= l->texlightgap * fabs(DotProduct(l->normal, call->texlightgap_textoworld[1]));
+            if (test < -ON_EPSILON)
+            {
+                return;
+            }
+        }
+        if (dot2 * dist <= MINIMUM_PATCH_DISTANCE)
+        {
+            return;
+        }
+        vec_t range = l->patch_emitter_range;
+        if (l->stopdot > 0.0) // stopdot2 > 0.0 or stopdot > 0.0
+        {
+            vec_t range_scale;
+            range_scale = 1 - l->stopdot2 * l->stopdot2;
+            range_scale = 1 / sqrt(qmax(NORMAL_EPSILON, range_scale));
+            // range_scale = 1 / sin (cone2)
+            range_scale = qmin(range_scale, 2); // restrict this to 2, because skylevel has limit.
+            range *= range_scale;               // because smaller cones are more likely to create the ugly grid effect.
+
+            if (dot2 <= l->stopdot2 + NORMAL_EPSILON)
+            {
+                if (dist >= range) // use the old method, which will merely give 0 in this case
+                {
+                    return;
+                }
+                ratio = 0.0;
+            }
+            else if (dot2 <= l->stopdot)
+            {
+                ratio = dot * dot2 * (dot2 - l->stopdot2) / (dist * dist * (l->stopdot - l->stopdot2));
+            }
+            else
+            {
+                ratio = dot * dot2 / (dist * dist);
+            }
+        }
+        else
+        {
+            ratio = dot * dot2 / (dist * dist);
+        }
+
+        // analogous to the one in MakeScales
+        // 0.4f is tested to be able to fully eliminate bright spots
+        if (ratio * l->patch_area > 0.4f)
+        {
+            ratio = 0.4f / l->patch_area;
+        }
+        if (dist < range - ON_EPSILON)
+        { // do things slow
+            PROFILE_SCOPE(PROFILE_SIGHTAREA);
+            if (light_behind_surface)
+            {
+                ratio = 0.0;
+            }
+            GetAlternateOrigin(pos, normal, l->patch, testline_origin);
+            vec_t sightarea;
+            int skylevel = l->patch->emitter_skylevel;
+            if (l->stopdot > 0.0) // stopdot2 > 0.0 or stopdot > 0.0
+            {
+                const vec_t* emitnormal = getPlaneFromFaceNumber(l->patch->faceNumber)->normal;
+                if (l->stopdot2 >= 0.8) // about 37deg
+                {
+                    skylevel += 1; // because the range is larger
+                }
+                sightarea = CalcSightArea_SpotLight(pos, normal, l->patch->winding, emitnormal, l->stopdot, l->stopdot2,
+                                                    skylevel, call->lighting_power,
+                                                    call->lighting_scale); // because we have doubled the range
+            }
+            else
+            {
+                sightarea =
+                    CalcSightArea(pos, normal, l->patch->winding, skylevel, call->lighting_power, call->lighting_scale);
+            }
+
+            vec_t frac = dist / range;
+            frac = (frac - 0.5) * 2; // make a smooth transition between the two methods
+            frac = qmax(0, qmin(frac, 1));
+
+            vec_t ratio2 = (sightarea / l->patch_area); // because l->patch->area has been multiplied into l->intensity
+            ratio = frac * ratio + (1 - frac) * ratio2;
+        }
+        else
+        {
+            if (light_behind_surface)
+            {
+                return;
+            }
+        }
+        VectorScale(l->intensity, ratio, add);
+        break;
+    }
+
+    case emit_spotlight:
+    {
+        if (dot <= NORMAL_EPSILON)
+        {
+            return;
+        }
+        dot2 = -DotProduct(delta, l->normal);
+        if (dot2 <= l->stopdot2)
+        {
+            return; // outside light cone
+        }
+
+        // inverse square falloff
+        vec_t denominator = dist * l->fade;
+        denominator *= dist;
+        if (call->lighting_diversify)
+        {
+            dot = call->lighting_scale * pow(dot, call->lighting_power);
+        }
+        ratio = dot * dot2 / denominator;
+
+        if (dot2 <= l->stopdot)
+        {
+            ratio *= (dot2 - l->stopdot2) / (l->stopdot - l->stopdot2);
+        }
+        VectorScale(l->intensity, ratio, add);
+        break;
+    }
+
+    default:
+    {
+        hlassume(false, assume_BadLightType);
+        break;
+    }
+    }
+    // hlrad-ng: the visibility test is deferred so that lights are traced
+    // as packets; FlushPendingLights adds each visible light to its style
+    VectorCopy(testline_origin, call->pending_stops[call->pending_count]);
+    VectorCopy(add, call->pending_adds[call->pending_count]);
+    call->pending_styles[call->pending_count] = l->style;
+    call->pending_count++;
+    if (call->pending_count == TESTLINE_PACKET_MAX)
+    {
+        FlushPendingLights(pos, call->pending_stops, call->pending_adds, call->pending_styles, call->pending_count,
+                           call->adds);
+    }
+}
+
+// Gathers the direct light that reaches a point, per light style. With gpu
+// set, the GPU has gathered it already except for the lights listed there.
+static void GatherAdds(const vec3_t pos, const byte* const pvs, const vec3_t normal, const int step, const int miptex,
+                       const int texlightgap_surfacenum, const gpugather_t* gpu, vec3_t* adds)
+{
+    gathercall_t call;
+    // hlrad-ng packet tracing state for this call
+    std::vector<vec_t> skyfracs;   // sky visibility per sky normal, traced on first use
+    std::vector<sunray_t> sunrays; // sun rays of the skylight being added
+    bool sky_used = false;
+    PROFILE_SCOPE(PROFILE_GATHER);
+#ifdef HLRAD_NG_PROFILE
+    g_profile_gsamples++;
+#endif
+
+    memset(adds, 0, ALLSTYLES * sizeof(vec3_t));
+    call.pos = pos;
+    call.normal = normal;
+    call.step = step;
+    call.lighting_power = g_lightingconeinfo[miptex][0];
+    call.lighting_scale = g_lightingconeinfo[miptex][1];
+    call.lighting_diversify = (call.lighting_power != 1.0 || call.lighting_scale != 1.0);
+    call.pending_count = 0;
+    call.adds = adds;
     // calculates textoworld
     {
         dface_t* f = &g_dfaces[texlightgap_surfacenum];
@@ -4381,1140 +5420,143 @@ static void GatherSampleLight(const vec3_t pos, const byte* const pvs, const vec
 
         for (x = 0; x < 2; x++)
         {
-            CrossProduct(tex->vecs[1 - x], dp->normal, texlightgap_textoworld[x]);
-            len = DotProduct(texlightgap_textoworld[x], tex->vecs[x]);
+            CrossProduct(tex->vecs[1 - x], dp->normal, call.texlightgap_textoworld[x]);
+            len = DotProduct(call.texlightgap_textoworld[x], tex->vecs[x]);
             if (fabs(len) < NORMAL_EPSILON)
             {
-                VectorClear(texlightgap_textoworld[x]);
+                VectorClear(call.texlightgap_textoworld[x]);
             }
             else
             {
-                VectorScale(texlightgap_textoworld[x], 1 / len, texlightgap_textoworld[x]);
+                VectorScale(call.texlightgap_textoworld[x], 1 / len, call.texlightgap_textoworld[x]);
             }
         }
     }
-#endif
 
-#ifdef HLRAD_SKYFIX_FIX
-#ifdef HLRAD_VIS_FIX
-    for (i = 0; i < 1 + g_dmodels[0].visleafs; i++)
-#else
-    for (i = 0; i < g_numleafs; i++)
-#endif
-#else
-#ifdef HLRAD_VIS_FIX
-    for (i = 1; i < 1 + g_dmodels[0].visleafs; i++)
-#else
-    for (i = 1; i < g_numleafs; i++)
-#endif
-#endif
+    if (gpu)
     {
-        // hlrad-ng: the leaf lists now live in one contiguous array, chained
-        // through the records' next pointers in the original list order, so
-        // this walk is unchanged from hlrad.
-#ifdef HLRAD_NG_PROFILE
-        g_profile_gleafchecks++;
-#endif
-        l = g_directlights_head[i];
-#ifdef HLRAD_SKYFIX_FIX
-        if (l)
+        for (int slot = 0; slot < 4 && gpu->result->slot[slot][3] >= 0; slot++)
         {
-            if (i == 0 ? g_sky_lighting_fix : pvs[(i - 1) >> 3] & (1 << ((i - 1) & 7)))
-            {
-                int bvh_starts[BFL_BVH_MAX_PRUNE];
-                int bvh_ends[BFL_BVH_MAX_PRUNE];
-                int bvh_numprune = 0;
-                int bvh_prune = 0;
-                if (g_bvh_root[i] >= 0)
-                {
-                    MarkLightBVH(g_bvh_root[i], pos, normal, bvh_starts, bvh_ends, &bvh_numprune
-#ifdef HLRAD_GatherPatchLight
-                                 ,
-                                 step
-#endif
-                    );
-                }
-                for (int li = g_directlights_leafbegin[i]; li < g_directlights_leafend[i]; li++)
-                {
-                    if (bvh_prune < bvh_numprune && li == bvh_starts[bvh_prune])
-                    {
-                        li = bvh_ends[bvh_prune] - 1;
-                        bvh_prune++;
-                        continue;
-                    }
-                    l = &g_directlights_flat[li];
-#else
-        if (l)
+            const float* light = gpu->result->slot[slot];
+            const int style = (int)light[3];
+            VectorAdd(adds[style], light, adds[style]);
+        }
+        for (int n = 0; n < gpu->numnear; n++)
         {
-            if (((l->type == emit_skylight) && (g_sky_lighting_fix)) || (pvs[(i - 1) >> 3] & (1 << ((i - 1) & 7))))
-            {
-                int bvh_starts[BFL_BVH_MAX_PRUNE];
-                int bvh_ends[BFL_BVH_MAX_PRUNE];
-                int bvh_numprune = 0;
-                int bvh_prune = 0;
-                if (g_bvh_root[i] >= 0)
-                {
-                    MarkLightBVH(g_bvh_root[i], pos, normal, bvh_starts, bvh_ends, &bvh_numprune
-#ifdef HLRAD_GatherPatchLight
-                                 ,
-                                 step
-#endif
-                    );
-                }
-                for (int li = g_directlights_leafbegin[i]; li < g_directlights_leafend[i]; li++)
-                {
-                    if (bvh_prune < bvh_numprune && li == bvh_starts[bvh_prune])
-                    {
-                        li = bvh_ends[bvh_prune] - 1;
-                        bvh_prune++;
-                        continue;
-                    }
-                    l = &g_directlights_flat[li];
-#endif
+            GatherLight(&call, &g_directlights_flat[gpu->nearlights[n]]);
+        }
+    }
+    else
+    {
+        // hlrad-ng: only leaves that hold lights are visited, in ascending leaf
+        // order, so the lights are met in the same order as a scan of every leaf.
+        for (int lightleaf = 0; lightleaf < g_directlights_numlightleafs; lightleaf++)
+        {
+            const int i = g_directlights_lightleafs[lightleaf];
 #ifdef HLRAD_NG_PROFILE
-                    g_profile_glightiter++;
+            g_profile_gleafchecks++;
 #endif
-                    // skylights work fundamentally differently than normal lights
-                    if (l->type == emit_skylight)
+            if (!(i == 0 ? g_sky_lighting_fix : pvs[(i - 1) >> 3] & (1 << ((i - 1) & 7))))
+            {
+                continue;
+            }
+            int bvh_starts[BFL_BVH_MAX_PRUNE];
+            int bvh_ends[BFL_BVH_MAX_PRUNE];
+            int bvh_numprune = 0;
+            int bvh_prune = 0;
+            if (g_bvh_root[i] >= 0)
+            {
+                MarkLightBVH(g_bvh_root[i], pos, normal, bvh_starts, bvh_ends, &bvh_numprune, step);
+            }
+            for (int li = g_directlights_leafbegin[i]; li < g_directlights_leafend[i]; li++)
+            {
+                if (bvh_prune < bvh_numprune && li == bvh_starts[bvh_prune])
+                {
+                    li = bvh_ends[bvh_prune] - 1;
+                    bvh_prune++;
+                    continue;
+                }
+                const directlight_t* l = &g_directlights_flat[li];
+#ifdef HLRAD_NG_PROFILE
+                g_profile_glightiter++;
+#endif
+                // skylights work fundamentally differently than normal lights
+                if (l->type == emit_skylight)
+                {
+                    if (!g_sky_lighting_fix)
                     {
-#ifdef HLRAD_MULTISKYLIGHT
-                        if (!g_sky_lighting_fix)
-                        {
-                            if (sky_used)
-                            {
-                                continue;
-                            }
-                            sky_used = true;
-                        }
-#ifndef HLRAD_OPAQUE_STYLE
-                        VectorClear(add);
-#endif
-                        do // add sun light
-                        {
-#ifdef HLRAD_GatherPatchLight
-                            // check step
-                            step_match = (int)l->topatch;
-                            if (step != step_match)
-                                break;
-#endif
-#ifdef HLRAD_ALLOWZEROBRIGHTNESS
-                            // check intensity
-                            if (!(l->intensity[0] || l->intensity[1] || l->intensity[2]))
-                                break;
-#endif
-#ifdef HLRAD_SUNSPREAD
-                            // loop over the normals
-                            for (int j = 0; j < l->numsunnormals; j++)
-                            {
-#endif
-                                // make sure the angle is okay
-#ifdef HLRAD_SUNSPREAD
-                                dot = -DotProduct(normal, l->sunnormals[j]);
-#else
-                            dot = -DotProduct(normal, l->normal);
-#endif
-                                if (dot <= NORMAL_EPSILON) //ON_EPSILON / 10 //--vluzacn
-                                {
-                                    continue;
-                                }
-
-                                // search back to see if we can hit a sky brush
-#ifdef HLRAD_SUNSPREAD
-#ifdef ZHLT_LARGERANGE
-                                VectorScale(l->sunnormals[j], -BOGUS_RANGE, delta);
-#else
-                                VectorScale(l->sunnormals[j], -10000, delta);
-#endif
-#else
-#ifdef ZHLT_LARGERANGE
-                            VectorScale(l->normal, -BOGUS_RANGE, delta);
-#else
-                            VectorScale(l->normal, -10000, delta);
-#endif
-#endif
-                                VectorAdd(pos, delta, delta);
-#ifdef HLRAD_OPAQUEINSKY_FIX
-                                vec3_t skyhit;
-                                VectorCopy(delta, skyhit);
-#endif
-                                if (TestLine(pos, delta
-#ifdef HLRAD_OPAQUEINSKY_FIX
-                                             ,
-                                             skyhit
-#endif
-                                             ) != CONTENTS_SKY)
-                                {
-                                    continue; // occluded
-                                }
-
-#ifdef HLRAD_HULLU
-                                vec3_t transparency;
-#endif
-#ifdef HLRAD_OPAQUE_STYLE
-                                int opaquestyle;
-#endif
-                                if (TestSegmentAgainstOpaqueList(pos,
-#ifdef HLRAD_OPAQUEINSKY_FIX
-                                                                 skyhit
-#else
-                                                             delta
-#endif
-#ifdef HLRAD_HULLU
-                                                                 ,
-                                                                 transparency
-#endif
-#ifdef HLRAD_OPAQUE_STYLE
-                                                                 ,
-                                                                 opaquestyle
-#endif
-                                                                 ))
-                                {
-                                    continue;
-                                }
-
-#ifdef ZHLT_XASH
-                                vec3_t direction;
-#ifdef HLRAD_SUNSPREAD
-                                VectorCopy(l->sunnormals[j], direction);
-#else
-                                VectorCopy(l->normal, direction);
-#endif
-#endif
-                                vec3_t add_one;
-#ifdef HLRAD_DIVERSE_LIGHTING
-                                if (lighting_diversify)
-                                {
-                                    dot = lighting_scale * pow(dot, lighting_power);
-                                }
-#endif
-#ifdef HLRAD_SUNSPREAD
-                                VectorScale(l->intensity, dot * l->sunnormalweights[j], add_one);
-#else
-                            VectorScale(l->intensity, dot, add_one);
-#endif
-#ifdef HLRAD_HULLU
-                                VectorMultiply(add_one, transparency, add_one);
-#endif
-#ifdef HLRAD_OPAQUE_STYLE
-                                // add to the total brightness of this sample
-                                style = l->style;
-                                if (opaquestyle != -1)
-                                {
-                                    if (style == 0 || style == opaquestyle)
-                                        style = opaquestyle;
-                                    else
-                                        continue; // dynamic light of other styles hits this toggleable opaque entity, then it completely vanishes.
-                                }
-                                VectorAdd(adds[style], add_one, adds[style]);
-#ifdef ZHLT_XASH
-                                vec_t avg = VectorAvg(add_one);
-                                VectorMA(adds_direction[style], avg, direction, adds_direction[style]);
-#endif
-#else
-                            // add to the contribution of this light
-                            VectorAdd(add, add_one, add);
-#ifdef ZHLT_XASH
-                            vec_t avg = VectorAvg(add_one);
-                            VectorMA(add_direction, avg, direction, add_direction);
-#endif
-#endif
-#ifdef HLRAD_SUNSPREAD
-                            } // (loop over the normals)
-#endif
-                        } while (0);
-                        do // add sky light
-                        {
-#ifdef HLRAD_GatherPatchLight
-                            // check step
-                            step_match = 0;
-#ifdef HLRAD_SOFTSKY
-                            if (g_softsky)
-                                step_match = 1;
-#endif
-#ifdef HLRAD_FASTMODE
-                            if (g_fastmode)
-                                step_match = 1;
-#endif
-                            if (step != step_match)
-                                break;
-#endif
-                            // check intensity
-                            if (g_indirect_sun <= 0.0 || (VectorCompare(
-#ifdef HLRAD_WHOME
-                                                              l->diffuse_intensity,
-#else
-                                                             l->intensity,
-#endif
-                                                              vec3_origin)
-#ifdef HLRAD_SUNDIFFUSE
-                                                          && VectorCompare(l->diffuse_intensity2, vec3_origin)
-#endif
-                                                              ))
-                                break;
-
-                            vec3_t sky_intensity;
-#ifndef HLRAD_SUNDIFFUSE
-#ifndef HLRAD_SOFTSKY
-#ifdef HLRAD_WHOME
-                            VectorScale(l->diffuse_intensity, g_indirect_sun / (NUMVERTEXNORMALS * 2), sky_intensity);
-#else
-                            VectorScale(l->intensity, g_indirect_sun / (NUMVERTEXNORMALS * 2), sky_intensity);
-#endif
-#endif
-#endif
-
-                            // loop over the normals
-#ifdef HLRAD_SOFTSKY
-                            vec3_t* skynormals = g_skynormals[g_softsky ? SKYLEVEL_SOFTSKYON : SKYLEVEL_SOFTSKYOFF];
-                            vec_t* skyweights = g_skynormalsizes[g_softsky ? SKYLEVEL_SOFTSKYON : SKYLEVEL_SOFTSKYOFF];
-                            for (int j = 0; j < g_numskynormals[g_softsky ? SKYLEVEL_SOFTSKYON : SKYLEVEL_SOFTSKYOFF];
-                                 j++)
-#else
-                            for (int j = 0; j < NUMVERTEXNORMALS; j++)
-#endif
-                            {
-                                // make sure the angle is okay
-#ifdef HLRAD_SOFTSKY
-                                dot = -DotProduct(normal, skynormals[j]);
-#else
-                                dot = -DotProduct(normal, r_avertexnormals[j]);
-#endif
-                                if (dot <= NORMAL_EPSILON) //ON_EPSILON / 10 //--vluzacn
-                                {
-                                    continue;
-                                }
-
-                                // search back to see if we can hit a sky brush
-#ifdef HLRAD_SOFTSKY
-#ifdef ZHLT_LARGERANGE
-                                VectorScale(skynormals[j], -BOGUS_RANGE, delta);
-#else
-                                VectorScale(skynormals[j], -10000, delta);
-#endif
-#else
-#ifdef ZHLT_LARGERANGE
-                                VectorScale(r_avertexnormals[j], -BOGUS_RANGE, delta);
-#else
-                                VectorScale(r_avertexnormals[j], -10000, delta);
-#endif
-#endif
-                                VectorAdd(pos, delta, delta);
-#ifdef HLRAD_OPAQUEINSKY_FIX
-                                vec3_t skyhit;
-                                VectorCopy(delta, skyhit);
-#endif
-                                if (TestLine(pos, delta
-#ifdef HLRAD_OPAQUEINSKY_FIX
-                                             ,
-                                             skyhit
-#endif
-                                             ) != CONTENTS_SKY)
-                                {
-                                    continue; // occluded
-                                }
-
-#ifdef HLRAD_OPAQUE_DIFFUSE_FIX
-#ifdef HLRAD_HULLU
-                                vec3_t transparency;
-#endif
-#ifdef HLRAD_OPAQUE_STYLE
-                                int opaquestyle;
-#endif
-                                if (TestSegmentAgainstOpaqueList(pos,
-#ifdef HLRAD_OPAQUEINSKY_FIX
-                                                                 skyhit
-#else
-                                                                 delta
-#endif
-#ifdef HLRAD_HULLU
-                                                                 ,
-                                                                 transparency
-#endif
-#ifdef HLRAD_OPAQUE_STYLE
-                                                                 ,
-                                                                 opaquestyle
-#endif
-                                                                 ))
-                                {
-                                    continue;
-                                }
-#endif /*HLRAD_OPAQUE_DIFFUSE_FIX*/
-
-#ifdef ZHLT_XASH
-                                vec3_t direction;
-#ifdef HLRAD_SOFTSKY
-                                VectorCopy(skynormals[j], direction);
-#else
-                                VectorCopy(r_avertexnormals[j], direction);
-#endif
-#endif
-#ifdef HLRAD_SUNDIFFUSE
-#ifdef HLRAD_SOFTSKY
-                                vec_t factor = qmin(qmax(0.0, (1 - DotProduct(l->normal, skynormals[j])) / 2),
-                                                    1.0); // how far this piece of sky has deviated from the sun
-#else
-                                vec_t factor = qmin(qmax(0.0, (1 - DotProduct(l->normal, r_avertexnormals[j])) / 2),
-                                                    1.0); // how far this piece of sky has deviated from the sun
-#endif
-                                VectorScale(l->diffuse_intensity, 1 - factor, sky_intensity);
-                                VectorMA(sky_intensity, factor, l->diffuse_intensity2, sky_intensity);
-#ifdef HLRAD_SOFTSKY
-                                VectorScale(sky_intensity, skyweights[j] * g_indirect_sun / 2, sky_intensity);
-#else
-                                VectorScale(sky_intensity, g_indirect_sun / (NUMVERTEXNORMALS * 2), sky_intensity);
-#endif
-#else
-#ifdef HLRAD_SOFTSKY
-#ifdef HLRAD_WHOME
-                                VectorScale(l->diffuse_intensity, skyweights[j] * g_indirect_sun / 2, sky_intensity);
-#else
-                                VectorScale(l->intensity, skyweights[j] * g_indirect_sun / 2, sky_intensity);
-#endif
-#endif
-#endif
-                                vec3_t add_one;
-#ifdef HLRAD_DIVERSE_LIGHTING
-                                if (lighting_diversify)
-                                {
-                                    dot = lighting_scale * pow(dot, lighting_power);
-                                }
-#endif
-                                VectorScale(sky_intensity, dot, add_one);
-#ifdef HLRAD_OPAQUE_DIFFUSE_FIX
-#ifdef HLRAD_HULLU
-                                VectorMultiply(add_one, transparency, add_one);
-#endif
-#endif /*HLRAD_OPAQUE_DIFFUSE_FIX*/
-#ifdef HLRAD_OPAQUE_STYLE
-                                // add to the total brightness of this sample
-                                style = l->style;
-                                if (opaquestyle != -1)
-                                {
-                                    if (style == 0 || style == opaquestyle)
-                                        style = opaquestyle;
-                                    else
-                                        continue; // dynamic light of other styles hits this toggleable opaque entity, then it completely vanishes.
-                                }
-                                VectorAdd(adds[style], add_one, adds[style]);
-#ifdef ZHLT_XASH
-                                vec_t avg = VectorAvg(add_one);
-                                VectorMA(adds_direction[style], avg, direction, adds_direction[style]);
-#endif
-#else
-                                // add to the contribution of this light
-                                VectorAdd(add, add_one, add);
-#ifdef ZHLT_XASH
-                                vec_t avg = VectorAvg(add_one);
-                                VectorMA(add_direction, avg, direction, add_direction);
-#endif
-#endif
-                            } // (loop over the normals)
-
-                        } while (0);
-
-#else /*HLRAD_MULTISKYLIGHT*/
-                        // only allow one of each sky type to hit any given point
                         if (sky_used)
                         {
                             continue;
                         }
-                        sky_used = l;
-
-                        // make sure the angle is okay
-                        dot = -DotProduct(normal, l->normal);
-                        if (dot <= NORMAL_EPSILON) //ON_EPSILON / 10 //--vluzacn
-                        {
-                            continue;
-                        }
-
-                        // search back to see if we can hit a sky brush
-#ifdef ZHLT_LARGERANGE
-                        VectorScale(l->normal, -BOGUS_RANGE, delta);
-#else
-                        VectorScale(l->normal, -10000, delta);
-#endif
-                        VectorAdd(pos, delta, delta);
-#ifdef HLRAD_OPAQUEINSKY_FIX
-                        vec3_t skyhit;
-                        VectorCopy(delta, skyhit);
-#endif
-                        if (TestLine(pos, delta
-#ifdef HLRAD_OPAQUEINSKY_FIX
-                                     ,
-                                     skyhit
-#endif
-                                     ) != CONTENTS_SKY)
-                        {
-                            continue; // occluded
-                        }
-
-#ifdef HLRAD_HULLU
-                        vec3_t transparency = {1.0, 1.0, 1.0};
-#endif
-                        if (TestSegmentAgainstOpaqueList(pos,
-#ifdef HLRAD_OPAQUEINSKY_FIX
-                                                         skyhit
-#else
-                                                         delta
-#endif
-#ifdef HLRAD_HULLU
-                                                         ,
-                                                         transparency
-#endif
-                                                         ))
-                        {
-                            continue;
-                        }
-
-#ifdef HLRAD_DIVERSE_LIGHTING
-                        if (lighting_diversify)
-                        {
-                            dot = lighting_scale * pow(dot, lighting_power);
-                        }
-#endif
-                        VectorScale(l->intensity, dot, add);
-#ifdef HLRAD_HULLU
-                        VectorMultiply(add, transparency, add);
-#endif
-
-#endif /*HLRAD_MULTISKYLIGHT*/
+                        sky_used = true;
                     }
-                    else // not emit_skylight
-                    {
-#ifdef HLRAD_GatherPatchLight
-                        step_match = (int)l->topatch;
-                        if (step != step_match)
-                            continue;
-#endif
-#ifdef HLRAD_ALLOWZEROBRIGHTNESS
-                        if (!(l->intensity[0] || l->intensity[1] || l->intensity[2]))
-                            continue;
-#endif
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                        VectorCopy(l->origin, testline_origin);
-#endif
-                        VectorSubtract(l->origin, pos, delta);
-#ifdef HLRAD_ACCURATEBOUNCE_TEXLIGHT
-                        if (l->type == emit_surface)
-                        {
-                            // move emitter back to its plane
-                            VectorMA(delta, -PATCH_HUNT_OFFSET, l->normal, delta);
-                        }
-#endif
-                        dist = VectorNormalize(delta);
-                        dot = DotProduct(delta, normal);
-                        //                        if (dot <= 0.0)
-                        //                            continue;
-#ifndef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                        if (dot <= NORMAL_EPSILON) //ON_EPSILON / 10 //--vluzacn
-                        {
-                            continue; // behind sample surface
-                        }
-#endif
-
-                        if (dist < 1.0)
-                        {
-                            dist = 1.0;
-                        }
-
-#ifdef HLRAD_OPAQUE_STYLE
-                        vec3_t add;
-#endif
-#ifdef ZHLT_XASH
-                        vec3_t direction;
-                        VectorSubtract(vec3_origin, delta, direction);
-#ifdef HLRAD_ACCURATEBOUNCE_TEXLIGHT
-                        if ((-dot) > 0)
-                        {
-                            // reflect the direction back (this is not ideal!)
-                            VectorMA(direction, -(-dot) * 2, normal, direction);
-                        }
-#endif
-#endif
-#ifdef HLRAD_NG_PROFILE
-                        g_profile_gsurvive++;
-#endif
-                        switch (l->type)
-                        {
-                        case emit_point:
-                        {
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                            if (dot <= NORMAL_EPSILON)
-                            {
-                                continue;
-                            }
-#endif
-#ifdef HLRAD_ARG_MISC
-                            vec_t denominator = dist * dist * l->fade;
-#else
-                            // Variable power falloff (1 = inverse linear, 2 = inverse square
-                            vec_t denominator = dist * l->fade;
-
-                            if (l->falloff == 2)
-                            {
-                                denominator *= dist;
-                            }
-#endif
-#ifdef HLRAD_DIVERSE_LIGHTING
-                            if (lighting_diversify)
-                            {
-                                dot = lighting_scale * pow(dot, lighting_power);
-                            }
-#endif
-                            ratio = dot / denominator;
-                            VectorScale(l->intensity, ratio, add);
-                            break;
-                        }
-
-                        case emit_surface:
-                        {
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                            bool light_behind_surface = false;
-                            if (dot <= NORMAL_EPSILON)
-                            {
-                                light_behind_surface = true;
-                            }
-#endif
-#ifdef HLRAD_DIVERSE_LIGHTING
-                            if (lighting_diversify
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                                && !light_behind_surface
-#endif
-                            )
-                            {
-                                dot = lighting_scale * pow(dot, lighting_power);
-                            }
-#endif
-                            dot2 = -DotProduct(delta, l->normal);
-#ifdef HLRAD_TEXLIGHTGAP
-                            // discard the texlight if the spot is too close to the texlight plane
-                            if (l->texlightgap > 0)
-                            {
-                                vec_t test;
-
-                                test = dot2 * dist; // distance from spot to texlight plane;
-                                test -=
-                                    l->texlightgap *
-                                    fabs(DotProduct(
-                                        l->normal,
-                                        texlightgap_textoworld
-                                            [0])); // maximum distance reduction if the spot is allowed to shift l->texlightgap pixels along s axis
-                                test -=
-                                    l->texlightgap *
-                                    fabs(DotProduct(
-                                        l->normal,
-                                        texlightgap_textoworld
-                                            [1])); // maximum distance reduction if the spot is allowed to shift l->texlightgap pixels along t axis
-                                if (test < -ON_EPSILON)
-                                {
-                                    continue;
-                                }
-                            }
-#endif
-#ifdef HLRAD_CUSTOMTEXLIGHT
-#ifdef HLRAD_ACCURATEBOUNCE_TEXLIGHT
-                            if (dot2 * dist <= MINIMUM_PATCH_DISTANCE)
-                            {
-                                continue;
-                            }
-                            vec_t range = l->patch_emitter_range;
-                            if (l->stopdot > 0.0) // stopdot2 > 0.0 or stopdot > 0.0
-                            {
-                                vec_t range_scale;
-                                range_scale = 1 - l->stopdot2 * l->stopdot2;
-                                range_scale = 1 / sqrt(qmax(NORMAL_EPSILON, range_scale));
-                                // range_scale = 1 / sin (cone2)
-                                range_scale = qmin(range_scale, 2); // restrict this to 2, because skylevel has limit.
-                                range *=
-                                    range_scale; // because smaller cones are more likely to create the ugly grid effect.
-
-                                if (dot2 <= l->stopdot2 + NORMAL_EPSILON)
-                                {
-                                    if (dist >= range) // use the old method, which will merely give 0 in this case
-                                    {
-                                        continue;
-                                    }
-                                    ratio = 0.0;
-                                }
-                                else if (dot2 <= l->stopdot)
-                                {
-                                    ratio =
-                                        dot * dot2 * (dot2 - l->stopdot2) / (dist * dist * (l->stopdot - l->stopdot2));
-                                }
-                                else
-                                {
-                                    ratio = dot * dot2 / (dist * dist);
-                                }
-                            }
-                            else
-                            {
-                                ratio = dot * dot2 / (dist * dist);
-                            }
-#else
-                            if (dot2 <= l->stopdot2 + NORMAL_EPSILON)
-                            {
-                                continue;
-                            }
-                            if (dot2 <= l->stopdot)
-                            {
-                                ratio = dot * dot2 * (dot2 - l->stopdot2) / (dist * dist * (l->stopdot - l->stopdot2));
-                            }
-                            else
-                            {
-                                ratio = dot * dot2 / (dist * dist);
-                            }
-#endif
-#else
-#ifdef HLRAD_ACCURATEBOUNCE_TEXLIGHT
-                            if (dot2 * dist <= MINIMUM_PATCH_DISTANCE)
-                            {
-                                continue;
-                            }
-                            vec_t range = l->patch_emitter_range;
-                            ratio = dot * dot2 / (dist * dist * g_fade);
-#else
-                            if (dot2 <= NORMAL_EPSILON) //ON_EPSILON / 10 //--vluzacn
-                            {
-                                continue; // behind light surface
-                            }
-
-#ifdef HLRAD_ARG_MISC
-                            vec_t denominator = dist * dist * g_fade;
-#else
-                            // Variable power falloff (1 = inverse linear, 2 = inverse square
-                            vec_t denominator = dist * g_fade;
-                            if (g_falloff == 2)
-                            {
-                                denominator *= dist;
-                            }
-#endif
-                            ratio = dot * dot2 / denominator;
-#endif
-#endif
-
-#ifdef HLRAD_TEXLIGHT_SPOTS_FIX
-                            // analogous to the one in MakeScales
-                            // 0.4f is tested to be able to fully eliminate bright spots
-                            if (ratio * l->patch_area > 0.4f)
-                            {
-                                ratio = 0.4f / l->patch_area;
-                            }
-#ifdef HLRAD_ACCURATEBOUNCE_TEXLIGHT
-                            if (dist < range - ON_EPSILON)
-                            { // do things slow
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                                if (light_behind_surface)
-                                {
-                                    ratio = 0.0;
-                                }
-                                GetAlternateOrigin(pos, normal, l->patch, testline_origin);
-#endif
-                                vec_t sightarea;
-                                int skylevel = l->patch->emitter_skylevel;
-#ifdef HLRAD_CUSTOMTEXLIGHT
-                                if (l->stopdot > 0.0) // stopdot2 > 0.0 or stopdot > 0.0
-                                {
-                                    const vec_t* emitnormal = getPlaneFromFaceNumber(l->patch->faceNumber)->normal;
-                                    if (l->stopdot2 >= 0.8) // about 37deg
-                                    {
-                                        skylevel += 1; // because the range is larger
-                                    }
-                                    sightarea = CalcSightArea_SpotLight(pos, normal, l->patch->winding, emitnormal,
-                                                                        l->stopdot, l->stopdot2, skylevel
-#ifdef HLRAD_DIVERSE_LIGHTING
-                                                                        ,
-                                                                        lighting_power, lighting_scale
-#endif
-                                    ); // because we have doubled the range
-                                }
-                                else
-                                {
-                                    sightarea = CalcSightArea(pos, normal, l->patch->winding, skylevel
-#ifdef HLRAD_DIVERSE_LIGHTING
-                                                              ,
-                                                              lighting_power, lighting_scale
-#endif
-                                    );
-                                }
-#else
-                                sightarea = CalcSightArea(pos, normal, l->patch->winding, skylevel
-#ifdef HLRAD_DIVERSE_LIGHTING
-                                                          ,
-                                                          lighting_power, lighting_scale
-#endif
-                                );
-#endif
-
-                                vec_t frac = dist / range;
-                                frac = (frac - 0.5) * 2; // make a smooth transition between the two methods
-                                frac = qmax(0, qmin(frac, 1));
-
-                                vec_t ratio2 =
-                                    (sightarea /
-                                     l->patch_area); // because l->patch->area has been multiplied into l->intensity
-#ifndef HLRAD_CUSTOMTEXLIGHT
-                                // Variable power falloff (1 = inverse linear, 2 = inverse square
-                                ratio2 /= g_fade;
-#endif
-                                ratio = frac * ratio + (1 - frac) * ratio2;
-                            }
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                            else
-                            {
-                                if (light_behind_surface)
-                                {
-                                    continue;
-                                }
-                            }
-#endif
-#endif
-#endif
-                            VectorScale(l->intensity, ratio, add);
-                            break;
-                        }
-
-                        case emit_spotlight:
-                        {
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                            if (dot <= NORMAL_EPSILON)
-                            {
-                                continue;
-                            }
-#endif
-                            dot2 = -DotProduct(delta, l->normal);
-                            if (dot2 <= l->stopdot2)
-                            {
-                                continue; // outside light cone
-                            }
-
-                            // Variable power falloff (1 = inverse linear, 2 = inverse square
-                            vec_t denominator = dist * l->fade;
-#ifndef HLRAD_ARG_MISC
-                            if (l->falloff == 2)
-#endif
-                            {
-                                denominator *= dist;
-                            }
-#ifdef HLRAD_DIVERSE_LIGHTING
-                            if (lighting_diversify)
-                            {
-                                dot = lighting_scale * pow(dot, lighting_power);
-                            }
-#endif
-                            ratio = dot * dot2 / denominator;
-
-                            if (dot2 <= l->stopdot)
-                            {
-                                ratio *= (dot2 - l->stopdot2) / (l->stopdot - l->stopdot2);
-                            }
-                            VectorScale(l->intensity, ratio, add);
-                            break;
-                        }
-
-                        default:
-                        {
-                            hlassume(false, assume_BadLightType);
-                            break;
-                        }
-                        }
-#ifdef HLRAD_OPAQUE_STYLE
-#ifdef HLRAD_NG_PROFILE
-                        g_profile_grays++;
-#endif
-                        if (TestLine(pos,
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                                     testline_origin
-#else
-                                     l->origin
-#endif
-                                     ) != CONTENTS_EMPTY)
-                        {
-#ifdef HLRAD_NG_PROFILE
-                            g_profile_goccluded++;
-#endif
-                            continue;
-                        }
-#ifdef HLRAD_HULLU
-                        vec3_t transparency;
-#endif
-                        int opaquestyle;
-                        if (TestSegmentAgainstOpaqueList(pos,
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                                                         testline_origin
-#else
-                                                         l->origin
-#endif
-#ifdef HLRAD_HULLU
-                                                         ,
-                                                         transparency
-#endif
-                                                         ,
-                                                         opaquestyle))
-                        {
-                            continue;
-                        }
-#ifdef HLRAD_HULLU
-                        VectorMultiply(add, transparency, add);
-#endif
-                        // add to the total brightness of this sample
-                        style = l->style;
-                        if (opaquestyle != -1)
-                        {
-                            if (style == 0 || style == opaquestyle)
-                                style = opaquestyle;
-                            else
-                                continue; // dynamic light of other styles hits this toggleable opaque entity, then it completely vanishes.
-                        }
-                        VectorAdd(adds[style], add, adds[style]);
-#ifdef ZHLT_XASH
-                        vec_t avg = VectorAvg(add);
-                        VectorMA(adds_direction[style], avg, direction, adds_direction[style]);
-#endif
-#else
-#ifdef ZHLT_XASH
-                        VectorCopy(direcion, add_direction); // we'll scale it later
-#endif
-#endif
-                    } // end emit_skylight
-
-#ifndef HLRAD_OPAQUE_STYLE
-#ifndef HLRAD_STYLE_CORING
-                    if (VectorMaximum(add) > (l->style ? g_coring : 0))
-#endif
-                    {
-#ifdef HLRAD_HULLU
-                        vec3_t transparency = {1.0, 1.0, 1.0};
-#endif
-
-#ifdef HLRAD_NG_PROFILE
-                        if (l->type != emit_skylight)
-                        {
-                            g_profile_grays++;
-                        }
-#endif
-                        if (l->type != emit_skylight && TestLine(pos,
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                                                                 testline_origin
-#else
-                                                                 l->origin
-#endif
-                                                                 ) != CONTENTS_EMPTY)
-                        {
-#ifdef HLRAD_NG_PROFILE
-                            if (l->type != emit_skylight)
-                            {
-                                g_profile_goccluded++;
-                            }
-#endif
-                            continue; // occluded
-                        }
-
-                        if (l->type != emit_skylight)
-                        { // Don't test from light_environment entities to face, the special sky code occludes correctly
-                            if (TestSegmentAgainstOpaqueList(pos,
-#ifdef HLRAD_ACCURATEBOUNCE_ALTERNATEORIGIN
-                                                             testline_origin
-#else
-                                                             l->origin
-#endif
-#ifdef HLRAD_HULLU
-                                                             ,
-                                                             transparency
-#endif
-#ifdef HLRAD_OPAQUE_STYLE
-                                                             ,
-                                                             opaquestyle
-#endif
-                                                             ))
-                            {
-                                continue;
-                            }
-                        }
-
-#ifdef HLRAD_OPACITY
-                        //VectorScale(add, l_opacity, add);
-#endif
-
-#ifdef HLRAD_STYLE_CORING
-#ifdef HLRAD_HULLU
-                        if (l->type != emit_skylight)
-                        {
-                            VectorMultiply(add, transparency, add);
-                        }
-#endif
-#ifdef ZHLT_XASH
-                        if (l->type != emit_skylight)
-                        {
-                            vec3_t avg = VectorAvg(add);
-                            VectorScale(add_direction, avg, add_direction);
-                        }
-#endif
-                        VectorAdd(adds[l->style], add, adds[l->style]);
-#ifdef ZHLT_XASH
-                        VectorAdd(adds_direction[l->style], add_direction, adds_direction[l->style]);
-#endif
-#else
-                        for (style_index = 0; style_index < MAXLIGHTMAPS; style_index++)
-                        {
-                            if (styles[style_index] == l->style || styles[style_index] == 255)
-                            {
-                                break;
-                            }
-                        }
-
-                        if (style_index == MAXLIGHTMAPS)
-                        {
-#ifdef HLRAD_READABLE_EXCEEDSTYLEWARNING
-                            if (++stylewarningcount >= stylewarningnext)
-                            {
-                                stylewarningnext = stylewarningcount * 2;
-                                Warning("Too many direct light styles on a face(%f,%f,%f)", pos[0], pos[1], pos[2]);
-                                Warning(" total %d warnings for too many styles", stylewarningcount);
-                            }
-#else
-                            Warning("Too many direct light styles on a face(%f,%f,%f)", pos[0], pos[1], pos[2]);
-#endif
-                            continue;
-                        }
-
-                        if (styles[style_index] == 255)
-                        {
-                            styles[style_index] = l->style;
-                        }
-
-#ifdef HLRAD_HULLU
-                        VectorMultiply(add, transparency, add);
-#endif
-                        VectorAdd(sample[style_index], add, sample[style_index]);
-#endif
-                    }
-#endif /*#ifndef HLRAD_OPAQUE_STYLE*/
+                    GatherSkylight(&call, l, skyfracs, sunrays);
+                }
+                else
+                {
+                    GatherLight(&call, l);
                 }
             }
         }
     }
+    FlushPendingLights(pos, call.pending_stops, call.pending_adds, call.pending_styles, call.pending_count, adds);
+}
 
-#ifndef HLRAD_MULTISKYLIGHT
-    if (sky_used && g_indirect_sun != 0.0)
+// HLRAD_NG_GPU_CHECK: compares what the GPU and the CPU gathered for one point.
+static void GpuDirectCompare(const vec3_t* adds, const vec3_t* reference)
+{
+    int differ = 0;
+    double largest = 0;
+
+    for (int style = 0; style < ALLSTYLES; style++)
     {
-        vec3_t total;
-        int j;
-        vec3_t sky_intensity;
-
-        // -----------------------------------------------------------------------------------
-        // Changes by Adam Foster - afoster@compsoc.man.ac.uk
-        // Instead of using intensity from sky_used->intensity, get it from the new sky_used->diffuse_intensity
-#ifdef HLRAD_WHOME
-        VectorScale(sky_used->diffuse_intensity, g_indirect_sun / (NUMVERTEXNORMALS * 2), sky_intensity);
-#else
-        VectorScale(sky_used->intensity, g_indirect_sun / (NUMVERTEXNORMALS * 2), sky_intensity);
-#endif
-        // That should be it. Who knows - it might actually work!
-        // AJM: It DOES actually work. Havent you ever heard of beta testing....
-        // -----------------------------------------------------------------------------------
-
-        total[0] = total[1] = total[2] = 0.0;
-        for (j = 0; j < NUMVERTEXNORMALS; j++)
+        for (int k = 0; k < 3; k++)
         {
-            // make sure the angle is okay
-            dot = -DotProduct(normal, r_avertexnormals[j]);
-            if (dot <= NORMAL_EPSILON) //ON_EPSILON / 10 //--vluzacn
+            const double a = adds[style][k];
+            const double b = reference[style][k];
+            const double delta = fabs(a - b);
+            largest = qmax(largest, delta);
+            if (delta > 0.05 + 0.01 * qmax(fabs(a), fabs(b)))
             {
-                continue;
+                differ++;
             }
-
-            // search back to see if we can hit a sky brush
-#ifdef ZHLT_LARGERANGE
-            VectorScale(r_avertexnormals[j], -BOGUS_RANGE, delta);
-#else
-            VectorScale(r_avertexnormals[j], -10000, delta);
-#endif
-            VectorAdd(pos, delta, delta);
-#ifdef HLRAD_OPAQUEINSKY_FIX
-            vec3_t skyhit;
-            VectorCopy(delta, skyhit);
-#endif
-            if (TestLine(pos, delta
-#ifdef HLRAD_OPAQUEINSKY_FIX
-                         ,
-                         skyhit
-#endif
-                         ) != CONTENTS_SKY)
-            {
-                continue; // occluded
-            }
-
-#ifdef HLRAD_OPAQUE_DIFFUSE_FIX
-#ifdef HLRAD_HULLU
-            vec3_t transparency = {1.0, 1.0, 1.0};
-#endif
-            if (TestSegmentAgainstOpaqueList(pos,
-#ifdef HLRAD_OPAQUEINSKY_FIX
-                                             skyhit
-#else
-                                             delta
-#endif
-#ifdef HLRAD_HULLU
-                                             ,
-                                             transparency
-#endif
-                                             ))
-            {
-                continue;
-            }
-#endif /*HLRAD_OPAQUE_DIFFUSE_FIX*/
-#ifdef HLRAD_DIVERSE_LIGHTING
-            if (lighting_diversify)
-            {
-                dot = lighting_scale * pow(dot, lighting_power);
-            }
-#endif
-            VectorScale(sky_intensity, dot, add);
-#ifdef HLRAD_OPAQUE_DIFFUSE_FIX
-#ifdef HLRAD_HULLU
-            VectorMultiply(add, transparency, add);
-#endif
-#endif /*HLRAD_OPAQUE_DIFFUSE_FIX*/
-            VectorAdd(total, add, total);
-        }
-        if (VectorMaximum(total) > 0)
-        {
-#ifdef HLRAD_STYLE_CORING
-            VectorAdd(adds[sky_used->style], total, adds[sky_used->style]);
-#else
-            for (style_index = 0; style_index < MAXLIGHTMAPS; style_index++)
-            {
-                if (styles[style_index] == sky_used->style || styles[style_index] == 255)
-                {
-                    break;
-                }
-            }
-
-            if (style_index == MAXLIGHTMAPS)
-            {
-#ifdef HLRAD_READABLE_EXCEEDSTYLEWARNING
-                if (++stylewarningcount >= stylewarningnext)
-                {
-                    stylewarningnext = stylewarningcount * 2;
-                    Warning("Too many direct light styles on a face(%f,%f,%f)\n", pos[0], pos[1], pos[2]);
-                    Warning(" total %d warnings for too many styles", stylewarningcount);
-                }
-#else
-                Warning("Too many direct light styles on a face(%f,%f,%f)\n", pos[0], pos[1], pos[2]);
-#endif
-                return;
-            }
-
-            if (styles[style_index] == 255)
-            {
-                styles[style_index] = sky_used->style;
-            }
-
-            VectorAdd(sample[style_index], total, sample[style_index]);
-#endif
         }
     }
-#endif /*HLRAD_MULTISKYLIGHT*/
+    ThreadLock();
+    g_gpudirect_checked += (unsigned long long)ALLSTYLES * 3;
+    g_gpudirect_differ += (unsigned)differ;
+    g_gpudirect_maxdiffer = qmax(g_gpudirect_maxdiffer, largest);
+    ThreadUnlock();
+}
+
+// True when GatherSampleLight is going to walk the lights itself and so
+// needs the PVS of the point.
+static bool GatherNeedsVis(const gpugather_t* gpu)
+{
+    return !gpu || (gpu->result->status[0] & GPU_STATUS_FALLBACK) || g_gpudirect_check;
+}
+
+static void GatherSampleLight(const vec3_t pos, const byte* const pvs, const vec3_t normal, vec3_t* sample,
+                              byte* styles, int step, int miptex, int texlightgap_surfacenum,
+                              const gpugather_t* gpu = NULL)
+{
+    int style_index;
+    vec3_t adds[ALLSTYLES];
+    int style;
+
+    if (gpu && (gpu->result->status[0] & GPU_STATUS_FALLBACK))
+    {
+        gpu = NULL; // the shader could not hold this point's light
+    }
+    GatherAdds(pos, pvs, normal, step, miptex, texlightgap_surfacenum, gpu, adds);
+    if (gpu && g_gpudirect_check && (((uintptr_t)gpu->result / sizeof(gpuresult_t)) & g_gpudirect_checkmask) == 0)
+    {
+        vec3_t reference[ALLSTYLES];
+        GatherAdds(pos, pvs, normal, step, miptex, texlightgap_surfacenum, NULL, reference);
+        GpuDirectCompare(adds, reference);
+    }
+
 #ifdef HLRAD_STYLE_CORING
     for (style = 0; style < ALLSTYLES; ++style)
     {
@@ -6049,26 +6091,58 @@ const vec3_t s_circuscolors[] = {
 //  BuildFacelights
 // =====================================================================================
 #ifdef HLRAD_BLUR
-// hlrad-ng: the body of CalcLightmap extracted as a single-luxel function.
-// The caller supplies the per-luxel styles list (a face-wide list for the
-// legacy path, a per-luxel list for the sample-tile path), the per-luxel
-// sample accumulator, and the pvs cache state so a tile can reuse it across
-// its luxels. rangebegin marks the first luxel of the caller's range.
-static void CalcLightmapLuxel(lightinfo_t* l, byte* styles, const int i, const int rangebegin, byte* pvs,
-                              int* lastoffset
-#ifdef HLRAD_TRANSLUCENT
-                              ,
-                              byte* pvs2, int* lastoffset2
-#endif
-#ifdef ZHLT_XASH
-                              ,
-                              vec3_t* sample_direction_slot
-#endif
-                              ,
-                              const unsigned int pvs_length, vec3_t* sample_slot)
+// hlrad-ng: where one sample of a face's lightmap cache is, and what it faces.
+typedef struct
+{
+    vec3_t spot;    // where the light is gathered
+    vec3_t normal;  // phong normal there
+    vec3_t spot2;   // translucent faces: the point behind the face
+    vec3_t normal2; // and its normal
+    int surface;    // face the sample ended up on
+    bool blocked;   // no valid position: the sample gathers nothing
+    bool nudged;
+} luxel_t;
+
+// What a pvs buffer holds, besides the visofs of a leaf.
+#define VIS_NOTHING (-2)
+#define VIS_EVERYTHING (-3)
+
+// Fills pvs with what the leaf of a point sees, unless it holds that already.
+// *offset remembers what pvs holds; start it at VIS_NOTHING.
+static void DecompressPointVis(const vec3_t point, byte* pvs, int* offset, const unsigned int pvs_length)
+{
+    if (!g_visdatasize)
+    {
+        if (*offset != VIS_EVERYTHING)
+        {
+            memset(pvs, 255, (g_dmodels[0].visleafs + 7) / 8);
+            *offset = VIS_EVERYTHING;
+        }
+        return;
+    }
+    const dleaf_t* leaf = PointInLeaf(point);
+    if (leaf->visofs == *offset)
+    {
+        return;
+    }
+    if (leaf->visofs == -1)
+    {
+        memset(pvs, 0, (g_dmodels[0].visleafs + 7) / 8);
+    }
+    else
+    {
+        DecompressVis(&g_dvisdata[leaf->visofs], pvs, pvs_length);
+    }
+    *offset = leaf->visofs;
+}
+
+// hlrad-ng: first half of the per-sample body of the original CalcLightmap.
+// Finds where sample i of the face's lightmap cache is and what it faces.
+static void CalcLuxelPosition(lightinfo_t* l, const int i, luxel_t* lux)
 {
     int facenum;
     int j;
+    PROFILE_SCOPE(PROFILE_LUXEL);
 
     facenum = l->surfnum;
     {
@@ -6092,10 +6166,6 @@ static void CalcLightmapLuxel(lightinfo_t* l, byte* styles, const int i, const i
         vec3_t spot2;
         vec3_t pointnormal2;
 #endif
-        vec3_t* sampled;
-#ifdef ZHLT_XASH
-        vec3_t* sampled_direction;
-#endif
 #ifdef HLRAD_AVOIDNORMALFLIP
         vec3_t* normal_out;
 #endif
@@ -6113,10 +6183,6 @@ static void CalcLightmapLuxel(lightinfo_t* l, byte* styles, const int i, const i
             t_vec = l->texmins[1] * TEXTURE_STEP + t * TEXTURE_STEP;
             nearest_s = qmax(0, qmin((int)floor(s + 0.5), l->texsize[0]));
             nearest_t = qmax(0, qmin((int)floor(t + 0.5), l->texsize[1]));
-            sampled = sample_slot;
-#ifdef ZHLT_XASH
-            sampled_direction = sample_direction_slot;
-#endif
 #ifdef HLRAD_AVOIDNORMALFLIP
             normal_out = &l->lmcache_normal[i];
 #endif
@@ -6296,218 +6362,73 @@ static void CalcLightmapLuxel(lightinfo_t* l, byte* styles, const int i, const i
             VectorCopy(pointnormal, *normal_out);
 #endif
         }
-        // calculate visibility for the sample
+        VectorCopy(spot, lux->spot);
+        VectorCopy(pointnormal, lux->normal);
+        lux->surface = surface;
+        lux->blocked = blocked;
+        lux->nudged = nudged;
+        if (l->translucent_b)
         {
-            if (!g_visdatasize)
+            VectorCopy(spot2, lux->spot2);
+            VectorCopy(pointnormal2, lux->normal2);
+        }
+    }
+}
+
+// hlrad-ng: second half of the per-sample body of the original CalcLightmap.
+// Gathers the direct light of one sample into sampled. styles is the caller's
+// style list (face-wide for the legacy path, per sample for the tile queue).
+// pvs and pvs2 are scratch that *lastoffset and *lastoffset2 describe
+// (DecompressPointVis). gpu is what the GPU gathered for the sample, or NULL.
+static void CalcLuxelLight(lightinfo_t* l, byte* styles, const luxel_t* lux, byte* pvs, int* lastoffset, byte* pvs2,
+                           int* lastoffset2, const unsigned int pvs_length, vec3_t* sampled, const gpugather_t* gpu)
+{
+    int j;
+    PROFILE_SCOPE(PROFILE_LUXEL);
+
+    if (!lux->blocked)
+    {
+        if (GatherNeedsVis(gpu))
+        {
+            DecompressPointVis(lux->spot, pvs, lastoffset, pvs_length);
+        }
+        GatherSampleLight(lux->spot, pvs, lux->normal, sampled, styles, 0, l->miptex, lux->surface, gpu);
+    }
+    if (l->translucent_b)
+    {
+        vec3_t sampled2[ALLSTYLES];
+        memset(sampled2, 0, ALLSTYLES * sizeof(vec3_t));
+        if (!lux->blocked)
+        {
+            DecompressPointVis(lux->spot2, pvs2, lastoffset2, pvs_length);
+            GatherSampleLight(lux->spot2, pvs2, lux->normal2, sampled2, styles, 0, l->miptex, lux->surface);
+        }
+        for (j = 0; j < ALLSTYLES && styles[j] != 255; j++)
+        {
+            for (int x = 0; x < 3; x++)
             {
-                if (i == rangebegin)
-                {
-#ifdef ZHLT_DecompressVis_FIX
-                    memset(pvs, 255, (g_dmodels[0].visleafs + 7) / 8);
-#else
-                    memset(pvs, 255, (g_numleafs + 7) / 8);
-#endif
-                }
+                sampled[j][x] = (1.0 - l->translucent_v[x]) * sampled[j][x] + l->translucent_v[x] * sampled2[j][x];
+            }
+        }
+    }
+    if (g_drawnudge)
+    {
+        for (j = 0; j < ALLSTYLES && styles[j] != 255; j++)
+        {
+            if (lux->blocked && styles[j] == 0)
+            {
+                sampled[j][0] = 200;
+                sampled[j][1] = 0;
+                sampled[j][2] = 0;
+            }
+            else if (lux->nudged && styles[j] == 0) // we assume style 0 is always present
+            {
+                VectorFill(sampled[j], 100);
             }
             else
             {
-                dleaf_t* leaf = PointInLeaf(spot);
-                int thisoffset = leaf->visofs;
-                if (i == rangebegin || thisoffset != *lastoffset)
-                {
-#ifdef HLRAD_VIS_FIX
-                    if (thisoffset == -1)
-                    {
-#ifdef ZHLT_DecompressVis_FIX
-                        memset(pvs, 0, (g_dmodels[0].visleafs + 7) / 8);
-#else
-                        memset(pvs, 0, (g_numleafs + 7) / 8);
-#endif
-                    }
-                    else
-                    {
-                        DecompressVis(&g_dvisdata[leaf->visofs], pvs, pvs_length);
-                    }
-#else
-                    hlassert(thisoffset != -1);
-                    DecompressVis(&g_dvisdata[leaf->visofs], pvs, pvs_length);
-#endif
-                }
-                *lastoffset = thisoffset;
+                VectorClear(sampled[j]);
             }
-#ifdef HLRAD_TRANSLUCENT
-            if (l->translucent_b)
-            {
-                if (!g_visdatasize)
-                {
-                    if (i == rangebegin)
-                    {
-#ifdef ZHLT_DecompressVis_FIX
-                        memset(pvs2, 255, (g_dmodels[0].visleafs + 7) / 8);
-#else
-                        memset(pvs2, 255, (g_numleafs + 7) / 8);
-#endif
-                    }
-                }
-                else
-                {
-                    dleaf_t* leaf2 = PointInLeaf(spot2);
-                    int thisoffset2 = leaf2->visofs;
-                    if (i == rangebegin || thisoffset2 != *lastoffset2)
-                    {
-#ifdef HLRAD_VIS_FIX
-                        if (thisoffset2 == -1)
-                        {
-#ifdef ZHLT_DecompressVis_FIX
-                            memset(pvs2, 0, (g_dmodels[0].visleafs + 7) / 8);
-#else
-                            memset(pvs2, 0, (g_numleafs + 7) / 8);
-#endif
-                        }
-                        else
-                        {
-                            DecompressVis(&g_dvisdata[leaf2->visofs], pvs2, pvs_length);
-                        }
-#else
-                        hlassert(thisoffset2 != -1);
-                        DecompressVis(&g_dvisdata[leaf2->visofs], pvs2, pvs_length);
-#endif
-                    }
-                    *lastoffset2 = thisoffset2;
-                }
-            }
-#endif
-        }
-        // gather light
-        {
-            if (!blocked)
-            {
-                GatherSampleLight(spot, pvs, pointnormal, sampled
-#ifdef ZHLT_XASH
-                                  ,
-                                  sampled_direction
-#endif
-                                  ,
-                                  styles
-#ifdef HLRAD_GatherPatchLight
-                                  ,
-                                  0
-#endif
-#ifdef HLRAD_DIVERSE_LIGHTING
-                                  ,
-                                  l->miptex
-#endif
-#ifdef HLRAD_TEXLIGHTGAP
-#ifdef HLRAD_GROWSAMPLE
-                                  ,
-                                  surface
-#else
-                                  ,
-                                  facenum
-#endif
-#endif
-                );
-            }
-#ifdef HLRAD_TRANSLUCENT
-            if (l->translucent_b)
-            {
-#ifdef HLRAD_AUTOCORING
-                vec3_t sampled2[ALLSTYLES];
-                memset(sampled2, 0, ALLSTYLES * sizeof(vec3_t));
-#ifdef ZHLT_XASH
-                vec3_t sampled2_direction[ALLSTYLES];
-                memset(sampled2_direction, 0, ALLSTYLES * sizeof(vec3_t));
-#endif
-#else
-                vec3_t sampled2[MAXLIGHTMAPS];
-                memset(sampled2, 0, MAXLIGHTMAPS * sizeof(vec3_t));
-#endif
-                if (!blocked)
-                {
-                    GatherSampleLight(spot2, pvs2, pointnormal2, sampled2
-#ifdef ZHLT_XASH
-                                      ,
-                                      sampled2_direction
-#endif
-                                      ,
-                                      styles
-#ifdef HLRAD_GatherPatchLight
-                                      ,
-                                      0
-#endif
-#ifdef HLRAD_DIVERSE_LIGHTING
-                                      ,
-                                      l->miptex
-#endif
-#ifdef HLRAD_TEXLIGHTGAP
-#ifdef HLRAD_GROWSAMPLE
-                                      ,
-                                      surface
-#else
-                                      ,
-                                      facenum
-#endif
-#endif
-                    );
-                }
-#ifdef HLRAD_AUTOCORING
-                for (j = 0; j < ALLSTYLES && styles[j] != 255; j++)
-#else
-                for (j = 0; j < MAXLIGHTMAPS && styles[j] != 255; j++)
-#endif
-                {
-#ifdef ZHLT_XASH
-                    // reflect the direction back
-                    vec_t dot = DotProduct(sampled2_direction[j], pointnormal);
-                    VectorMA(sampled2_direction[j], -dot * 2, pointnormal, sampled2_direction[j]);
-                    vec_t front = 0, back = 0;
-                    // calculate the change of brightness and adjust the direction. This is not totally right when the translucent value is not grayscale,
-                    // but at least it still preserves the condition that VectorLength(light_direction) <= VectorAvg(light).
-                    for (int x = 0; x < 3; x++)
-                    {
-                        front += ((1.0 - l->translucent_v[x]) * sampled[j][x]) / 3;
-                        back += (l->translucent_v[x] * sampled2[j][x]) / 3;
-                    }
-                    front = fabs(VectorAvg(sampled[j])) > NORMAL_EPSILON ? front / VectorAvg(sampled[j]) : 0;
-                    back = fabs(VectorAvg(sampled2[j])) > NORMAL_EPSILON ? back / VectorAvg(sampled2[j]) : 0;
-#endif
-                    for (int x = 0; x < 3; x++)
-                    {
-                        sampled[j][x] =
-                            (1.0 - l->translucent_v[x]) * sampled[j][x] + l->translucent_v[x] * sampled2[j][x];
-#ifdef ZHLT_XASH
-                        sampled_direction[j][x] = front * sampled_direction[j][x] + back * sampled2_direction[j][x];
-#endif
-                    }
-                }
-            }
-#endif
-#ifdef HLRAD_AVOIDWALLBLEED
-            if (g_drawnudge)
-            {
-#ifdef HLRAD_AUTOCORING
-                for (j = 0; j < ALLSTYLES && styles[j] != 255; j++)
-#else
-                for (j = 0; j < MAXLIGHTMAPS && styles[j] != 255; j++)
-#endif
-                {
-                    if (blocked && styles[j] == 0)
-                    {
-                        sampled[j][0] = 200;
-                        sampled[j][1] = 0;
-                        sampled[j][2] = 0;
-                    }
-                    else if (nudged && styles[j] == 0) // we assume style 0 is always present
-                    {
-                        VectorFill(sampled[j], 100);
-                    }
-                    else
-                    {
-                        VectorClear(sampled[j]);
-                    }
-                }
-            }
-#endif
         }
     }
 }
@@ -6519,11 +6440,9 @@ void CalcLightmap(lightinfo_t* l, byte* styles)
 {
     int i;
     byte pvs[(MAX_MAP_LEAFS + 7) / 8];
-    int lastoffset = -1;
-#ifdef HLRAD_TRANSLUCENT
+    int lastoffset = VIS_NOTHING;
     byte pvs2[(MAX_MAP_LEAFS + 7) / 8];
-    int lastoffset2 = -1;
-#endif
+    int lastoffset2 = VIS_NOTHING;
 
 #ifdef HLRAD_AUTOCORING
     memset(l->lmcache, 0, (size_t)l->lmcachewidth * l->lmcacheheight * sizeof(vec3_t[ALLSTYLES]));
@@ -6537,17 +6456,9 @@ void CalcLightmap(lightinfo_t* l, byte* styles)
     // for each sample whose light we need to calculate
     for (i = 0; i < l->lmcachewidth * l->lmcacheheight; i++)
     {
-        CalcLightmapLuxel(l, styles, i, 0, pvs, &lastoffset
-#ifdef HLRAD_TRANSLUCENT
-                          ,
-                          pvs2, &lastoffset2
-#endif
-#ifdef ZHLT_XASH
-                          ,
-                          l->lmcache_direction[i]
-#endif
-                          ,
-                          sizeof(pvs), l->lmcache[i]);
+        luxel_t lux;
+        CalcLuxelPosition(l, i, &lux);
+        CalcLuxelLight(l, styles, &lux, pvs, &lastoffset, pvs2, &lastoffset2, sizeof(pvs), l->lmcache[i], NULL);
     }
 }
 #endif
@@ -6675,6 +6586,7 @@ static void BuildFacelightsPost(const int facenum, lightinfo_t& l
 #endif
 )
 {
+    PROFILE_SCOPE(PROFILE_POST);
     dface_t* f = &g_dfaces[facenum];
 #ifdef HLRAD_AUTOCORING
     sample_t* fl_samples[ALLSTYLES];
@@ -7640,6 +7552,8 @@ static void BuildFacelightsPost(const int facenum, lightinfo_t& l
     for (patch = g_face_patches[facenum]; patch; patch = patch->next)
     {
         // get the PVS for the pos to limit the number of checks
+        gpugather_t patchgather;
+        const gpugather_t* patchgpu = PatchDirectGather(patch, &patchgather) ? &patchgather : NULL;
         if (!g_visdatasize)
         {
 #ifdef ZHLT_DecompressVis_FIX
@@ -7739,26 +7653,8 @@ static void BuildFacelightsPost(const int facenum, lightinfo_t& l
 #endif
             }
             VectorSubtract(vec3_origin, l.facenormal, normal2);
-            GatherSampleLight(patch->origin, pvs, l.facenormal, frontsampled,
-#ifdef ZHLT_XASH
-                              frontsampled_direction,
-#endif
-#ifdef HLRAD_AUTOCORING
-                              patch->totalstyle_all
-#else
-                              patch->totalstyle
-#endif
-                              ,
-                              1
-#ifdef HLRAD_DIVERSE_LIGHTING
-                              ,
-                              l.miptex
-#endif
-#ifdef HLRAD_TEXLIGHTGAP
-                              ,
-                              facenum
-#endif
-            );
+            GatherSampleLight(patch->origin, pvs, l.facenormal, frontsampled, patch->totalstyle_all, 1, l.miptex,
+                              facenum, patchgpu);
             GatherSampleLight(spot2, pvs2, normal2, backsampled,
 #ifdef ZHLT_XASH
                               backsampled_direction,
@@ -7815,27 +7711,8 @@ static void BuildFacelightsPost(const int facenum, lightinfo_t& l
         }
         else
         {
-            GatherSampleLight(patch->origin, pvs, l.facenormal,
-#ifdef HLRAD_AUTOCORING
-                              patch->totallight_all,
-#ifdef ZHLT_XASH
-                              patch->totallight_all_direction,
-#endif
-                              patch->totalstyle_all
-#else
-                              patch->totallight, patch->totalstyle
-#endif
-                              ,
-                              1
-#ifdef HLRAD_DIVERSE_LIGHTING
-                              ,
-                              l.miptex
-#endif
-#ifdef HLRAD_TEXLIGHTGAP
-                              ,
-                              facenum
-#endif
-            );
+            GatherSampleLight(patch->origin, pvs, l.facenormal, patch->totallight_all, patch->totalstyle_all, 1,
+                              l.miptex, facenum, patchgpu);
         }
 #else
         GatherSampleLight(patch->origin, pvs, l.facenormal,
@@ -8305,6 +8182,20 @@ static bfl_tile_t* g_bfl_tiles;
 static int g_bfl_numtiles;
 static int g_bfl_facebase;
 
+// What BuildFacelightsNGTile does with its samples.
+enum
+{
+    BFL_TILE_ALL,      // position and light, on the CPU
+    BFL_TILE_POSITION, // position only, and the point record for the GPU
+    BFL_TILE_LIGHT     // light, from the stored position and the GPU's result
+};
+static int g_bfl_tilemode = BFL_TILE_ALL;
+static luxel_t** g_bfl_luxels;               // per face of the batch: its samples (GPU path)
+static int* g_bfl_pointbase;                 // per face of the batch: its first sample among the GPU points
+static std::vector<gpupoint_t> g_bfl_points; // the samples of the batch as the GPU reads them
+static gpudirect_t g_bfl_direct;             // what the GPU gathered for them
+static bool g_bfl_direct_ready = false;
+
 static void BuildFacelightsNGSetup(const int index)
 {
     const int facenum = g_bfl_facebase + index;
@@ -8312,6 +8203,7 @@ static void BuildFacelightsNGSetup(const int index)
     hlassume(l != NULL, assume_NoMemory);
     g_bfl_lightinfo[index] = l;
     g_bfl_active[index] = true;
+    g_bfl_luxels[index] = NULL;
     BuildFacelightsSetup(facenum, *l, g_bfl_styles[index]);
     if (l->lmcache == NULL)
     {
@@ -8329,6 +8221,11 @@ static void BuildFacelightsNGSetup(const int index)
     g_bfl_nlux[index] = l->lmcachewidth * l->lmcacheheight;
     g_bfl_luxstyles[index] = (byte*)malloc((size_t)g_bfl_nlux[index] * ALLSTYLES);
     hlassume(g_bfl_luxstyles[index] != NULL, assume_NoMemory);
+    if (g_gpudirect_job)
+    {
+        g_bfl_luxels[index] = (luxel_t*)malloc((size_t)g_bfl_nlux[index] * sizeof(luxel_t));
+        hlassume(g_bfl_luxels[index] != NULL, assume_NoMemory);
+    }
 }
 
 static void BuildFacelightsNGTile(const int threadnum)
@@ -8340,28 +8237,49 @@ static void BuildFacelightsNGTile(const int threadnum)
         const bfl_tile_t* tile = &g_bfl_tiles[tileindex];
         lightinfo_t* l = g_bfl_lightinfo[tile->facenum];
         byte* luxstyles_all = g_bfl_luxstyles[tile->facenum];
+        luxel_t* luxels = g_bfl_luxels[tile->facenum];
+        const int pointbase = g_bfl_pointbase[tile->facenum];
         byte pvs[(MAX_MAP_LEAFS + 7) / 8];
-        int lastoffset = -1;
-#ifdef HLRAD_TRANSLUCENT
+        int lastoffset = VIS_NOTHING;
         byte pvs2[(MAX_MAP_LEAFS + 7) / 8];
-        int lastoffset2 = -1;
-#endif
+        int lastoffset2 = VIS_NOTHING;
         int i;
 
         for (i = tile->begin; i < tile->end; i++)
         {
+            if (g_bfl_tilemode == BFL_TILE_POSITION)
+            {
+                CalcLuxelPosition(l, i, &luxels[i]);
+                GpuDirectPoint(&g_bfl_points[(size_t)pointbase + (size_t)i], luxels[i].spot, luxels[i].normal,
+                               l->miptex, 0, luxels[i].blocked);
+                continue;
+            }
+
             byte* luxstyles = &luxstyles_all[(size_t)i * ALLSTYLES];
+            luxel_t here;
+            const luxel_t* lux = &here;
+            gpugather_t gather;
+            const gpugather_t* gpu = NULL;
             int j;
             luxstyles[0] = 0;
             for (j = 1; j < ALLSTYLES; j++)
             {
                 luxstyles[j] = 255;
             }
-            CalcLightmapLuxel(l, luxstyles, i, tile->begin, pvs, &lastoffset,
-#ifdef HLRAD_TRANSLUCENT
-                              pvs2, &lastoffset2,
-#endif
-                              sizeof(pvs), l->lmcache[i]);
+            if (g_bfl_tilemode == BFL_TILE_LIGHT)
+            {
+                lux = &luxels[i];
+                if (g_bfl_direct_ready)
+                {
+                    GpuDirectGather(&g_bfl_direct, pointbase + i, &gather);
+                    gpu = &gather;
+                }
+            }
+            else
+            {
+                CalcLuxelPosition(l, i, &here);
+            }
+            CalcLuxelLight(l, luxstyles, lux, pvs, &lastoffset, pvs2, &lastoffset2, sizeof(pvs), l->lmcache[i], gpu);
         }
     }
 }
@@ -8424,6 +8342,9 @@ static void BuildFacelightsNGFinish(const int index)
             for (j = 0; j < nlocal; j++)
             {
                 VectorCopy(l->lmcache[i][j], temp[j]);
+                // the slot may belong to another style on the face: nothing of
+                // this luxel's light may stay behind in it
+                VectorClear(l->lmcache[i][j]);
             }
             for (j = 0; j < nlocal; j++)
             {
@@ -8450,6 +8371,8 @@ static void BuildFacelightsNGFinish(const int index)
 
     free(g_bfl_luxstyles[index]);
     g_bfl_luxstyles[index] = NULL;
+    free(g_bfl_luxels[index]);
+    g_bfl_luxels[index] = NULL;
     free(l);
     g_bfl_lightinfo[index] = NULL;
 }
@@ -8468,24 +8391,36 @@ void BuildFacelightsAll()
     hlassume(g_bfl_luxstyles != NULL, assume_NoMemory);
     g_bfl_nlux = (int*)calloc(BFL_BATCH_FACES, sizeof(int));
     hlassume(g_bfl_nlux != NULL, assume_NoMemory);
+    g_bfl_luxels = (luxel_t**)calloc(BFL_BATCH_FACES, sizeof(luxel_t*));
+    hlassume(g_bfl_luxels != NULL, assume_NoMemory);
+    g_bfl_pointbase = (int*)calloc(BFL_BATCH_FACES, sizeof(int));
+    hlassume(g_bfl_pointbase != NULL, assume_NoMemory);
     g_bfl_tiles = NULL;
     g_bfl_numtiles = 0;
     g_bfl_facebase = 0;
 
+    // one line in the log for the whole phase; the batches run quietly
+    PhaseBegin(g_gpudirect_job ? "Direct lighting (GPU)" : "Direct lighting");
+    g_threadquiet = true;
     while (face < g_numfaces)
     {
         const int count = qmin(BFL_BATCH_FACES, g_numfaces - face);
+        int numpoints = 0;
+        bool positions = false; // the setup made room for the sample positions: the GPU was in use then
         int t;
         g_bfl_facebase = face;
 
-        NamedRunThreadsOnIndividual(count, g_estimate, BuildFacelightsNGSetup);
+        RunThreadsOnIndividual(count, false, BuildFacelightsNGSetup);
 
         g_bfl_numtiles = 0;
         for (t = 0; t < count; t++)
         {
+            g_bfl_pointbase[t] = numpoints;
             if (g_bfl_active[t])
             {
                 g_bfl_numtiles += (g_bfl_nlux[t] + BFL_TILE_LUXELS - 1) / BFL_TILE_LUXELS;
+                numpoints += g_bfl_nlux[t];
+                positions = positions || g_bfl_luxels[t] != NULL;
             }
         }
         if (g_bfl_numtiles > 0)
@@ -8508,16 +8443,41 @@ void BuildFacelightsAll()
                     tilecount++;
                 }
             }
-            NamedRunThreadsOn(g_bfl_numtiles, g_estimate, BuildFacelightsNGTile);
+            // if the GPU stops in this batch, the CPU lights the stored positions
+            if (positions)
+            {
+                g_bfl_points.resize((size_t)numpoints);
+                g_bfl_tilemode = BFL_TILE_POSITION;
+                RunThreadsOn(g_bfl_numtiles, false, BuildFacelightsNGTile);
+                g_bfl_direct_ready = g_gpudirect_job && GpuDirectRun(&g_bfl_points[0], numpoints, &g_bfl_direct, false);
+                g_bfl_tilemode = BFL_TILE_LIGHT;
+            }
+            else
+            {
+                g_bfl_tilemode = BFL_TILE_ALL;
+            }
+            RunThreadsOn(g_bfl_numtiles, false, BuildFacelightsNGTile);
+            g_bfl_direct_ready = false;
             free(g_bfl_tiles);
             g_bfl_tiles = NULL;
         }
 
-        NamedRunThreadsOnIndividual(count, g_estimate, BuildFacelightsNGFinish);
+        RunThreadsOnIndividual(count, false, BuildFacelightsNGFinish);
 
         face += count;
+        PhaseProgress((double)face / g_numfaces);
     }
+    g_threadquiet = false;
+    PhaseEnd();
 
+    std::vector<gpupoint_t>().swap(g_bfl_points);
+    std::vector<gpuresult_t>().swap(g_bfl_direct.results);
+    std::vector<unsigned>().swap(g_bfl_direct.nearfirst);
+    std::vector<unsigned>().swap(g_bfl_direct.nearlights);
+    free(g_bfl_pointbase);
+    g_bfl_pointbase = NULL;
+    free((void*)g_bfl_luxels);
+    g_bfl_luxels = NULL;
     free(g_bfl_nlux);
     g_bfl_nlux = NULL;
     free((void*)g_bfl_luxstyles);

@@ -1,8 +1,8 @@
 # VHLT (Vluzacn's Zoner's Half-Life Tools)
 
-> Legacy C++11 command-line compilers that turn Half-Life `.map` source files into playable `.bsp` levels: `hlcsg` → `hlbsp` → `hlvis` → `hlrad`, plus `ripent` for editing compiled BSPs. About 67k lines across `common/` and one folder per tool. CMake is the primary build. The code uses heavy global state, threads, and fixed-size arrays, and it has no unit tests (only the map-compile regression harness in `tools/regress.ps1`). This file gives an agent everything it needs to build, navigate, change and verify the code safely.
+> Legacy C++11 command-line compilers that turn Half-Life `.map` source files into playable `.bsp` levels: `hlcsg` → `hlbsp` → `hlvis` → `hlrad` (or `hlrad-ng`, the fast GPU-capable one), plus `ripent` for editing compiled BSPs. About 67k lines across `common/` and one folder per tool. CMake is the primary build. The code uses heavy global state, threads, and fixed-size arrays, and it has no unit tests (only the map-compile regression harness in `tools/regress.ps1`). This file gives an agent everything it needs to build, navigate, change and verify the code safely.
 
-Current version: 3.5.4 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `ZHLT_VERSIONSTRING`, `docs/api/Doxyfile.in` `PROJECT_NUMBER`). Main branch: `master`. Remote: `https://git.example.invalid/vhlt` (Gitea), with releases and their zips on the tags. Targets: Windows x86_64 and Linux x86_64, both built with **Zig 0.17.1** (bundled Clang) through CMake and Ninja. There is no MinGW GCC, MSVC or GitHub CI.
+Current version: 3.6.0 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `ZHLT_VERSIONSTRING`, `docs/api/Doxyfile.in` `PROJECT_NUMBER`). Main branch: `master`. Remote: `https://git.example.invalid/vhlt` (Gitea), with releases and their zips on the tags. Targets: Windows x86_64 and Linux x86_64, both built with **Zig 0.17.1** (bundled Clang) through CMake and Ninja. There is no MinGW GCC, MSVC or GitHub CI.
 
 ## Docs
 
@@ -17,7 +17,7 @@ Current version: 3.5.4 (`CMakeLists.txt` `project(VERSION)`, `common/cmdlib.h` `
 - [docs/developer/warning-cleanup-plan.md](developer/warning-cleanup-plan.md): baseline and batched plan to reach zero compiler warnings (completed).
 - [docs/developer/lint-cleanup-plan.md](developer/lint-cleanup-plan.md): completed clang-tidy cleanup plan (zero findings, 0 errors).
 - [tools/regress.ps1](../tools/regress.ps1): deterministic map-compile regression harness (see Tests in the developer guide).
-- [tools/diffhlrad.ps1](../tools/diffhlrad.ps1): hlrad vs hlrad-ng byte-parity harness (Phase 0 of docs/research/hlrad-optimizations.md).
+- [tools/diffhlrad.ps1](../tools/diffhlrad.ps1): compares the output of hlrad and hlrad-ng byte by byte. A diff tool, not a gate: hlrad-ng no longer has to match hlrad.
 
 ## Build and verify
 
@@ -26,9 +26,21 @@ cmake --preset windows && cmake --build --preset windows   # build/windows/bin/*
 cmake --preset linux   && cmake --build --preset linux     # build/linux/bin/* (cross-compiled, glibc 2.28+)
 cmake --build build/windows --target docs                  # Doxygen -> build/windows/docs/html/index.html
 cmake --build build/<preset> --target package              # vhlt-<version>-win64.zip / vhlt-<version>-Linux.zip
-cmake --preset windows -DVHLT_HLRAD_NG=ON && cmake --build --preset windows   # also builds hlrad-ng.exe
+# hlrad-ng is built, installed and packaged by default; -DVHLT_HLRAD_NG=OFF leaves it out
 # -DVHLT_HLRAD_NG_PROFILE=ON compiles hlrad-ng with the profiling counters (hlrad-ng/profile.*)
 # HLRAD_NG_LEGACY=1 makes hlrad-ng use the scalar per-face BuildFacelights flow (fallback/A-B switch)
+# HLRAD_NG_NOPACKETS=1 traces every ray with the scalar TestLine walk (output then equals hlrad byte for byte)
+# HLRAD_NG_NOAVX2=1 forces the 4-wide SSE packet kernel (same output as the 8-wide AVX2 one)
+# HLRAD_NG_NOFASTBOUNCE=1 uses the original per-transfer bounce loop instead of the emitter table
+# HLRAD_NG_GPU=0 keeps everything on the CPU, HLRAD_NG_GPU=1 uses whatever Vulkan device there is (default: a graphics card or a device with ray queries, from 4,096 patches up)
+# HLRAD_NG_GPU_RAYQUERY=0 makes the shaders walk the BSP instead of using hardware ray queries, HLRAD_NG_GPU_RADIOSITY=0 keeps transfers and bounces on the CPU
+# HLRAD_NG_GPU_VALIDATE=1 enables the Vulkan validation layer (needs the Vulkan SDK), HLRAD_NG_GPU_CHECK=1 gathers every 64th GPU point on the CPU too and reports the differences (=2: every point)
+# Regenerate the embedded shaders after editing hlrad-ng/*.comp or gputrace.glsl (dev-time only, needs glslangValidator from the Vulkan SDK; the build never runs it). Run in hlrad-ng/:
+#   glslangValidator -V --target-env vulkan1.2 -DGPU_RAYQUERY --vn g_gpudirect_rq_spv -o gpudirect_rq_spv.inc gpudirect.comp
+#   glslangValidator -V --target-env vulkan1.1 --vn g_gpudirect_bsp_spv -o gpudirect_bsp_spv.inc gpudirect.comp
+#   glslangValidator -V --target-env vulkan1.2 -DGPU_RAYQUERY --vn g_gpuvis_rq_spv -o gpuvis_rq_spv.inc gpuvis.comp
+#   glslangValidator -V --target-env vulkan1.1 --vn g_gpuvis_bsp_spv -o gpuvis_bsp_spv.inc gpuvis.comp
+#   glslangValidator -V --target-env vulkan1.1 --vn g_gpurad_spv -o gpurad_spv.inc gpurad.comp
 cmake -S . -B build/lint --preset windows -DVHLT_CLANG_TIDY=ON && cmake --build build/lint   # clang-tidy lint
 cmake --build build/windows --target format                # clang-format all sources in place
 cmake --build build/windows --target format-check          # gate: fails on unformatted code
@@ -59,7 +71,7 @@ cmake --build build/windows --target format-check          # gate: fails on unfo
   7. `format-check` passes.
   8. Map regression: `tools/regress.ps1` matches the recorded baseline.
   9. Review the working tree for stray artifacts.
-- **Smoke test:** run each `build/windows/bin/<tool>.exe` with **no arguments**. It prints `<tool> v3.5.4 VL35 64-bit (<date>)` as its first line and then usage. **The exit code is 1 by design**; check the banner, not the exit code. Linux binaries can't run on a Windows host; check them with `file` (expect `ELF 64-bit … x86-64`), or run them on Linux.
+- **Smoke test:** run each `build/windows/bin/<tool>.exe` with **no arguments**. It prints `<tool> v3.6.0 VL35 64-bit (<date>)` (`hlrad-ng` prints `hlrad`) as its first line and then usage. **The exit code is 1 by design**; check the banner, not the exit code. Linux binaries can't run on a Windows host; check them with `file` (expect `ELF 64-bit … x86-64`), or run them on Linux.
 - **Warning baseline:** zero. Both presets compile with `-Wall -Werror` (`VHLT_WERROR`, ON by default). Fix new warnings in code; do not add flags or pragmas. The completed cleanup plan and the original 154-site baseline are in `docs/developer/warning-cleanup-plan.md`.
 - **Debug builds:** `-DCMAKE_BUILD_TYPE=Debug` enables `hlassert`/`assert`. `NDEBUG` comes only from CMake's Release flags.
 - **No CI:** there is no hosted CI and no `.github/`; the gates are run locally.
@@ -100,7 +112,7 @@ cmake --build build/windows --target format-check          # gate: fails on unfo
 - `hlbsp/`: `qbsp.cpp` (`main`, reads hlcsg output), `solidbsp.cpp`, `brink.cpp`, `surfaces.cpp`, `merge.cpp`, `tjunc.cpp`, `outside.cpp` (leaks), `portals.cpp` (`WritePortalfile`), `writebsp.cpp`.
 - `hlvis/`: `vis.cpp` (`main`, `LoadPortals` .prt parser), `flow.cpp` (`BasePortalVis`, `RecursiveLeafFlow`, `ChopWinding`, `MaxDistVis`). `zones.cpp` is compiled out (no `ZHLT_ZONES`).
 - `hlrad/`: `qrad.cpp` (`main`, options, `.rad` texlights, patches, `GatherLight`), `lightmap.cpp` (direct lighting, sample positions, blur cache, `FinalLightFace`, `GetPhongNormal`), `lerp.cpp` (interpolation triangulation), `vismatrix.cpp`/`sparse.cpp`/`nomatrix.cpp` (three visibility-matrix strategies), `vismatrixutil.cpp` (transfer creation), `transfers.cpp` (`.inc` read and write), `loadtextures.cpp` (`LoadTexture`, reflectivity), `trace.cpp` (opaque ray tracing), `transparency.cpp`, `compress.{h,cpp}` (float/vector packing for transfers), `mathutil.cpp`, `qradutil.cpp`.
-- `hlrad-ng/`: the next-generation hlrad under development; today an exact copy of `hlrad/` that must stay byte-identical while being optimized. Built only with `-DVHLT_HLRAD_NG=ON`, never installed or packaged. Plan and exactness contract: `docs/research/hlrad-optimizations.md`. Differential gate: `tools/diffhlrad.ps1`.
+- `hlrad-ng/`: the next-generation hlrad, built for speed. It keeps hlrad's lighting math but is **not** required to match hlrad byte for byte (owner decision, 2026-11-10); the bar is correct lighting. Built, installed and packaged by default (`VHLT_HLRAD_NG`, ON); user-facing description in `docs/user/manual.md`. `trace.cpp` + `tracepacket.h` hold the packet ray tracer (`TestLinePacket`, `TraceSkyVisibility`): up to 8 rays from one start point per BSP walk, same plane rules as `TestLine_r`, results independent of thread count and of SSE/AVX2. `tracepacket.h` is included twice (4-wide and 8-wide) and passes no vector by value across a non-inlined call. `GatherSampleLight` requires the default feature macros (`#error` otherwise). `gpu.{h,cpp}` is the optional Vulkan compute backend: the loader (`vulkan-1.dll` / `libvulkan.so.1`) is opened at run time with `VK_NO_PROTOTYPES`, headers are vendored in `third_party/vulkan/`, the shaders are embedded as SPIR-V (`*_spv.inc`), and every failure falls back to the CPU. A device with `VK_KHR_ray_query` traces rays in hardware against triangles that `trace.cpp` `BuildSceneTriangles` cuts out of the BSP tree (the surfaces between leaves of different contents, grown slightly so they overlap, plus the faces of plain opaque entities); any other Vulkan 1.1 device walks the BSP in the shader (`gputrace.glsl`, both builds of every ray shader). Three jobs run there: `gpudirect.comp` gathers direct light per point (`lightmap.cpp`: every patch in `PrecomputePatchDirect`, then the samples of each face batch; `GatherSampleLight` takes the result and adds only the texlight patches closer than their emitter range), `gpuvis.comp` decides patch-pair visibility (`vismatrix.cpp`), and `gpurad.comp` holds the transfers on the device and runs the bounces (`GpuRadiosityBuild`, `GpuBounce` in `qrad.cpp`; transfers in the 16-bit format; pairs closer than an emitter range keep their transfers on the CPU). The GPU scene cannot stand in for opaque entities with a custom shadow, a light style or a `{` texture; such maps, `-incremental`, RGB transfers and translucent textures use the CPU paths (`MakeScalesBlocks` in `vismatrixutil.cpp` is the CPU transfer builder for the dense matrix, which hlrad-ng also uses for the default sparse setting up to 1 GB). The log has one line per phase (`PhaseBegin`/`PhaseProgress`/`PhaseEnd` in `qradutil.cpp`, `g_threadquiet` in `common/threads`). `vismatrix.cpp`/`sparse.cpp` defer patch-pair rays into packets; `vismatrix.cpp` sets vis bits with `__atomic_fetch_or` (never put a global lock back there). `qrad.cpp` `GatherLight` has a fast path through a per-bounce emitter table (`BuildBounceEmitters`). The `normal` vis matrix uses a 64-bit bit index and has no 65,535-patch cap. **Verify lighting changes on a map with several light styles** (the town test map in `docs/research/hlrad-optimizations.md` §15): a style-slot bug in the sample-tile queue passed every single-style parity run. Status and measurements: `docs/research/hlrad-optimizations.md` §13-§16. `tools/diffhlrad.ps1` compares bytes with hlrad and is not a gate; the closest hlrad-ng gets to hlrad is with `HLRAD_NG_GPU=0`, `HLRAD_NG_NOPACKETS=1` and `HLRAD_NG_NOFASTBOUNCE=1`.
 - `ripent/ripent.cpp`: entity and texture import/export (`-export`, `-import`, `-textureexport`, `-textureimport`, `-textureparse`, `-texdata`, `-lightdata`).
 - `docs/`: `user/manual.md`, `developer/developer.md`, `research/` (optimization plans), `api/Doxyfile.in` (CMake `configure_file` → `build/Doxyfile`; output follows `CMAKE_BINARY_DIR`), and this `llms.txt`.
 - `audits/`: audit reports. The canonical record is the consolidated or final report.

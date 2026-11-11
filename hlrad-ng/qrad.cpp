@@ -18,6 +18,7 @@
 
 #include "qrad.h"
 #include "profile.h"
+#include "gpu.h"
 
 
 /*
@@ -2946,6 +2947,423 @@ static void CollectLight()
 //      Get light from other g_patches
 //      Run multi-threaded
 // =====================================================================================
+// hlrad-ng: fast path of GatherLight. In a bounce every transfer adds
+// (light of the emitting patch) * (transfer factor) to the receiving patch.
+// What a patch emits does not depend on the receiver, so it is computed once
+// per bounce into a compact table; a transfer then costs a few multiply-adds
+// instead of a walk over the emitter's patch record and style lists. The
+// table holds the style 0 light of a patch and up to BOUNCE_EXTRA_STYLES
+// other styles; patches that emit more styles, and maps with per-pair opaque
+// styles, take the original path.
+#if defined(HLRAD_AUTOCORING) && defined(HLRAD_TRANSFERDATA_COMPRESS) && defined(HLRAD_REFLECTIVITY) &&                \
+    defined(HLRAD_OPAQUE_STYLE_BOUNCE) && defined(HLRAD_BOUNCE_STYLE) && defined(ZHLT_TEXLIGHT) &&                     \
+    defined(HLRAD_STYLE_CORING) && !defined(ZHLT_XASH)
+#define HLRAD_NG_FASTBOUNCE 1
+#define BOUNCE_EXTRA_STYLES 3
+#define BOUNCE_NOT_IN_TABLE 255
+typedef struct
+{
+    vec3_t rgb0;                              // style 0 light, times the patch's reflectivity
+    vec3_t rgb[BOUNCE_EXTRA_STYLES];          // light of the other styles, times the reflectivity
+    unsigned char style[BOUNCE_EXTRA_STYLES]; // their style numbers
+    unsigned char count;                      // how many other styles, or BOUNCE_NOT_IN_TABLE
+} bounceemitter_t;
+static bounceemitter_t* g_bounce_emitters = NULL;
+static bool g_bounce_fast = false; // the table may be used in this bounce
+
+// Most transfers come from patches that emit style 0 and perhaps one of a few
+// other styles. Their light is also laid out as plain arrays, one per colour
+// channel, for style 0 and for the styles most patches emit; the transfers of
+// a run of such patches then are a few dot products (BounceAddRun). A patch
+// that emits anything else is flagged and takes the element loop.
+#define BOUNCE_DENSE_STYLES 4
+#define BOUNCE_CHUNK 64
+typedef float bouncevec_t __attribute__((vector_size(16)));
+typedef struct
+{
+    bouncevec_t wide[BOUNCE_DENSE_STYLES][3]; // four partial sums per dense slot and colour channel
+    float tail[BOUNCE_DENSE_STYLES][3];       // and what did not fill a group of four
+} bouncesums_t;
+static float* g_bounce_dense[BOUNCE_DENSE_STYLES][3]; // light per patch, by dense slot and colour channel
+static int g_bounce_densestyle[BOUNCE_DENSE_STYLES];  // light style of each dense slot; slot 0 is style 0
+static int g_bounce_numdense = 0;
+static unsigned char* g_bounce_flagged = NULL;  // per patch: its light is not in the dense arrays
+static unsigned* g_bounce_flaggedbefore = NULL; // per patch: how many flagged patches have a lower number
+
+static void FreeBounceEmitters()
+{
+    for (int d = 0; d < BOUNCE_DENSE_STYLES; d++)
+    {
+        for (int c = 0; c < 3; c++)
+        {
+            free(g_bounce_dense[d][c]);
+            g_bounce_dense[d][c] = NULL;
+        }
+    }
+    free(g_bounce_flagged);
+    g_bounce_flagged = NULL;
+    free(g_bounce_flaggedbefore);
+    g_bounce_flaggedbefore = NULL;
+    free(g_bounce_emitters);
+    g_bounce_emitters = NULL;
+}
+
+// Adds count transfers of one receiver: factors (floats, at any alignment)
+// times the light of the patches patchnum .. patchnum + count - 1.
+static inline void BounceAddRun(bouncesums_t* sums, const unsigned char* factors, const unsigned patchnum,
+                                const unsigned count)
+{
+    const int numdense = g_bounce_numdense;
+    const float* light[BOUNCE_DENSE_STYLES][3];
+    unsigned k = 0;
+
+    for (int d = 0; d < numdense; d++)
+    {
+        for (int c = 0; c < 3; c++)
+        {
+            light[d][c] = g_bounce_dense[d][c] + patchnum;
+        }
+    }
+    for (; k + 4 <= count; k += 4)
+    {
+        bouncevec_t f;
+        memcpy(&f, factors + (size_t)k * sizeof(float), sizeof(f));
+        for (int d = 0; d < numdense; d++)
+        {
+            for (int c = 0; c < 3; c++)
+            {
+                bouncevec_t v;
+                memcpy(&v, light[d][c] + k, sizeof(v));
+                sums->wide[d][c] += f * v;
+            }
+        }
+    }
+    for (; k < count; k++)
+    {
+        float f;
+        memcpy(&f, factors + (size_t)k * sizeof(float), sizeof(f));
+        for (int d = 0; d < numdense; d++)
+        {
+            for (int c = 0; c < 3; c++)
+            {
+                sums->tail[d][c] += f * light[d][c][k];
+            }
+        }
+    }
+}
+
+static void BuildBounceEmitters()
+{
+    unsigned i;
+
+    if (!g_bounce_emitters)
+    {
+        g_bounce_emitters = (bounceemitter_t*)malloc((size_t)(g_num_patches + 1) * sizeof(bounceemitter_t));
+        hlassume(g_bounce_emitters != NULL, assume_NoMemory);
+    }
+    // HLRAD_NG_NOFASTBOUNCE=1 keeps the original path, for comparing the two
+    g_bounce_fast = GetStyleArrayCount() == 0 && getenv("HLRAD_NG_NOFASTBOUNCE") == NULL;
+
+    for (i = 0; i < g_num_patches; i++)
+    {
+        const patch_t* emitpatch = &g_patches[i];
+        bounceemitter_t* emitter = &g_bounce_emitters[i];
+        bool fits = true;
+
+        memset(emitter, 0, sizeof(*emitter));
+        for (int pass = 0; pass < 2 && fits; pass++)
+        {
+            const unsigned char* styles = pass == 0 ? emitpatch->directstyle : emitpatch->totalstyle;
+            for (int emitstyle = 0; emitstyle < MAXLIGHTMAPS && styles[emitstyle] != 255; emitstyle++)
+            {
+                const vec_t* light = pass == 0 ? emitpatch->directlight[emitstyle] : emitlight[i][emitstyle];
+                int addstyle = styles[emitstyle];
+                vec_t* sum = NULL;
+                vec3_t v;
+                if (emitpatch->bouncestyle != -1)
+                {
+                    if (addstyle != 0 && addstyle != emitpatch->bouncestyle)
+                    {
+                        continue;
+                    }
+                    addstyle = emitpatch->bouncestyle;
+                }
+                VectorMultiply(light, emitpatch->bouncereflectivity, v);
+                if (!isPointFinite(v))
+                {
+                    fits = false;
+                    break;
+                }
+                if (addstyle == 0)
+                {
+                    sum = emitter->rgb0;
+                }
+                else
+                {
+                    int slot;
+                    for (slot = 0; slot < emitter->count; slot++)
+                    {
+                        if (emitter->style[slot] == addstyle)
+                        {
+                            break;
+                        }
+                    }
+                    if (slot == BOUNCE_EXTRA_STYLES)
+                    {
+                        fits = false;
+                        break;
+                    }
+                    if (slot == emitter->count)
+                    {
+                        emitter->style[slot] = (unsigned char)addstyle;
+                        emitter->count++;
+                    }
+                    sum = emitter->rgb[slot];
+                }
+                VectorAdd(sum, v, sum);
+            }
+        }
+        if (!fits)
+        {
+            emitter->count = BOUNCE_NOT_IN_TABLE;
+        }
+    }
+
+    // the dense arrays: style 0 and the other styles most patches emit
+    {
+        int stylecount[ALLSTYLES];
+        int denseslot[ALLSTYLES];
+        unsigned flagged = 0;
+
+        memset(stylecount, 0, sizeof(stylecount));
+        for (i = 0; i < g_num_patches; i++)
+        {
+            const bounceemitter_t* emitter = &g_bounce_emitters[i];
+            for (int slot = 0; emitter->count != BOUNCE_NOT_IN_TABLE && slot < emitter->count; slot++)
+            {
+                stylecount[emitter->style[slot]]++;
+            }
+        }
+        for (int style = 0; style < ALLSTYLES; style++)
+        {
+            denseslot[style] = -1;
+        }
+        g_bounce_densestyle[0] = 0;
+        denseslot[0] = 0;
+        g_bounce_numdense = 1;
+        while (g_bounce_numdense < BOUNCE_DENSE_STYLES)
+        {
+            int best = 0;
+            for (int style = 1; style < ALLSTYLES; style++)
+            {
+                if (stylecount[style] > stylecount[best])
+                {
+                    best = style;
+                }
+            }
+            if (best == 0)
+            {
+                break; // stylecount[0] is 0: no style is left
+            }
+            denseslot[best] = g_bounce_numdense;
+            g_bounce_densestyle[g_bounce_numdense] = best;
+            g_bounce_numdense++;
+            stylecount[best] = 0;
+        }
+
+        if (!g_bounce_flagged)
+        {
+            g_bounce_flagged = (unsigned char*)malloc((size_t)g_num_patches + 1);
+            g_bounce_flaggedbefore = (unsigned*)malloc(((size_t)g_num_patches + 1) * sizeof(unsigned));
+            hlassume(g_bounce_flagged != NULL && g_bounce_flaggedbefore != NULL, assume_NoMemory);
+        }
+        for (int d = 0; d < g_bounce_numdense; d++)
+        {
+            for (int c = 0; c < 3; c++)
+            {
+                // a few more than there are patches: BounceAddRun reads them four at a time
+                free(g_bounce_dense[d][c]);
+                g_bounce_dense[d][c] = (float*)calloc((size_t)g_num_patches + 8, sizeof(float));
+                hlassume(g_bounce_dense[d][c] != NULL, assume_NoMemory);
+            }
+        }
+        for (i = 0; i < g_num_patches; i++)
+        {
+            const bounceemitter_t* emitter = &g_bounce_emitters[i];
+            bool isflagged = emitter->count == BOUNCE_NOT_IN_TABLE;
+
+            for (int slot = 0; !isflagged && slot < emitter->count; slot++)
+            {
+                if (denseslot[emitter->style[slot]] < 0)
+                {
+                    isflagged = true;
+                }
+            }
+            g_bounce_flaggedbefore[i] = flagged;
+            g_bounce_flagged[i] = isflagged ? 1 : 0;
+            if (isflagged)
+            {
+                flagged++;
+                continue;
+            }
+            for (int c = 0; c < 3; c++)
+            {
+                g_bounce_dense[0][c][i] = emitter->rgb0[c];
+                for (int slot = 0; slot < emitter->count; slot++)
+                {
+                    g_bounce_dense[denseslot[emitter->style[slot]]][c][i] = emitter->rgb[slot][c];
+                }
+            }
+        }
+        g_bounce_flaggedbefore[g_num_patches] = flagged;
+    }
+}
+#endif
+
+#ifdef HLRAD_NG_FASTBOUNCE
+// hlrad-ng: a bounce on the GPU (GpuRadiosityBounce). GpuBounce lays out what
+// every patch emits, per light style in use, and has the device gather it;
+// GatherLight then takes the sums instead of walking transfer lists.
+#define GPU_BOUNCE_SLOTS 8             // light styles the device gathers in one pass
+static float* g_gpubounce_emit = NULL; // per patch and style in use: rgb and a pad
+static float* g_gpubounce_sums = NULL; // the same shape: what each patch gathered
+static int g_gpubounce_styles[ALLSTYLES];
+static int g_gpubounce_numstyles = 0;
+
+static void FreeGpuBounce()
+{
+    free(g_gpubounce_emit);
+    g_gpubounce_emit = NULL;
+    free(g_gpubounce_sums);
+    g_gpubounce_sums = NULL;
+    g_gpubounce_numstyles = 0;
+}
+
+// Calls add(style, light) for everything a patch emits in this bounce: the
+// terms BuildBounceEmitters and GatherLight take from an emitting patch.
+template <class adder_t> static void ForEachEmittedLight(const unsigned i, adder_t add)
+{
+    const patch_t* emitpatch = &g_patches[i];
+
+    for (int pass = 0; pass < 2; pass++)
+    {
+        const unsigned char* styles = pass == 0 ? emitpatch->directstyle : emitpatch->totalstyle;
+        for (int emitstyle = 0; emitstyle < MAXLIGHTMAPS && styles[emitstyle] != 255; emitstyle++)
+        {
+            const vec_t* light = pass == 0 ? emitpatch->directlight[emitstyle] : emitlight[i][emitstyle];
+            int addstyle = styles[emitstyle];
+            vec3_t v;
+            if (emitpatch->bouncestyle != -1)
+            {
+                if (addstyle != 0 && addstyle != emitpatch->bouncestyle)
+                {
+                    continue;
+                }
+                addstyle = emitpatch->bouncestyle;
+            }
+            VectorMultiply(light, emitpatch->bouncereflectivity, v);
+            if (isPointFinite(v))
+            {
+                add(addstyle, v);
+            }
+        }
+    }
+}
+
+struct MarkStyle
+{
+    bool* used;
+    void operator()(const int style, const vec_t* /*light*/) const
+    {
+        used[style] = true;
+    }
+};
+
+struct AddEmit
+{
+    float* emit; // of one patch
+    const int* slotof;
+    void operator()(const int style, const vec_t* light) const
+    {
+        float* sum = emit + (size_t)slotof[style] * 4;
+        VectorAdd(sum, light, sum);
+    }
+};
+
+static void GpuBounce()
+{
+    bool used[ALLSTYLES];
+    int slotof[ALLSTYLES];
+    unsigned i;
+
+    // the light styles that are emitted in this bounce
+    memset(used, 0, sizeof(used));
+    used[0] = true;
+    for (i = 0; i < g_num_patches; i++)
+    {
+        MarkStyle mark;
+        mark.used = used;
+        ForEachEmittedLight(i, mark);
+    }
+    g_gpubounce_numstyles = 0;
+    for (int style = 0; style < ALLSTYLES; style++)
+    {
+        slotof[style] = -1;
+        if (used[style])
+        {
+            slotof[style] = g_gpubounce_numstyles;
+            g_gpubounce_styles[g_gpubounce_numstyles++] = style;
+        }
+    }
+
+    const size_t perpatch = (size_t)g_gpubounce_numstyles * 4;
+    free(g_gpubounce_emit);
+    free(g_gpubounce_sums);
+    g_gpubounce_emit = (float*)calloc((size_t)g_num_patches * perpatch, sizeof(float));
+    g_gpubounce_sums = (float*)calloc((size_t)g_num_patches * perpatch, sizeof(float));
+    hlassume(g_gpubounce_emit != NULL && g_gpubounce_sums != NULL, assume_NoMemory);
+    for (i = 0; i < g_num_patches; i++)
+    {
+        AddEmit add;
+        add.emit = g_gpubounce_emit + (size_t)i * perpatch;
+        add.slotof = slotof;
+        ForEachEmittedLight(i, add);
+    }
+
+    bool ok = true;
+    if (g_gpubounce_numstyles <= GPU_BOUNCE_SLOTS)
+    {
+        ok = GpuRadiosityBounce(g_gpubounce_emit, g_gpubounce_numstyles, g_gpubounce_sums);
+    }
+    else
+    {
+        // more styles than the shader takes at once: a few at a time
+        std::vector<float> emit((size_t)g_num_patches * GPU_BOUNCE_SLOTS * 4);
+        std::vector<float> sums(emit.size());
+        for (int first = 0; ok && first < g_gpubounce_numstyles; first += GPU_BOUNCE_SLOTS)
+        {
+            const int count = qmin(GPU_BOUNCE_SLOTS, g_gpubounce_numstyles - first);
+            for (i = 0; i < g_num_patches; i++)
+            {
+                memcpy(&emit[(size_t)i * count * 4], g_gpubounce_emit + (size_t)i * perpatch + (size_t)first * 4,
+                       (size_t)count * 4 * sizeof(float));
+            }
+            ok = GpuRadiosityBounce(&emit[0], count, &sums[0]);
+            for (i = 0; ok && i < g_num_patches; i++)
+            {
+                memcpy(g_gpubounce_sums + (size_t)i * perpatch + (size_t)first * 4, &sums[(size_t)i * count * 4],
+                       (size_t)count * 4 * sizeof(float));
+            }
+        }
+    }
+    if (!ok)
+    {
+        Error("The GPU stopped working during the light bounces. Run again with HLRAD_NG_GPU_RADIOSITY=0 to keep "
+              "them on the CPU.");
+    }
+}
+#endif
+
 static void GatherLight(int threadnum)
 {
     int j;
@@ -2988,6 +3406,17 @@ static void GatherLight(int threadnum)
         {
             break;
         }
+#ifdef HLRAD_NG_FASTBOUNCE
+        bool usefast = g_bounce_fast;
+    retry:
+        // style 0 light gathered through the emitter table
+        float fast0 = 0;
+        float fast1 = 0;
+        float fast2 = 0;
+        // light gathered through the dense arrays
+        bouncesums_t sums;
+        memset(&sums, 0, sizeof(sums));
+#endif
 #ifdef HLRAD_STYLE_CORING
 #ifdef ZHLT_TEXLIGHT
         memset(adds, 0, ALLSTYLES * sizeof(vec3_t));
@@ -3030,12 +3459,63 @@ static void GatherLight(int threadnum)
 #endif
 #endif
 
+#ifdef HLRAD_NG_FASTBOUNCE
+        if (g_gpubounce_sums)
+        {
+            // the GPU gathered this bounce; the close emitters are added here
+            const float* gathered = g_gpubounce_sums + (size_t)j * g_gpubounce_numstyles * 4;
+            const unsigned* nearindex = NULL;
+            const float* nearvalue = NULL;
+            const unsigned nearcount = GpuRadiosityNear((unsigned)j, &nearindex, &nearvalue);
+            for (int s = 0; s < g_gpubounce_numstyles; s++)
+            {
+                vec_t* sum = adds[g_gpubounce_styles[s]];
+                const float* slot = gathered + (size_t)s * 4;
+                VectorAdd(sum, slot, sum);
+                for (unsigned n = 0; n < nearcount; n++)
+                {
+                    const float* light = g_gpubounce_emit + ((size_t)nearindex[n] * g_gpubounce_numstyles + s) * 4;
+                    VectorMA(sum, nearvalue[n], light, sum);
+                }
+            }
+        }
+#endif
         for (k = 0; k < iIndex; k++, tIndex++)
         {
             unsigned l;
             unsigned size = (tIndex->size + 1);
             unsigned patchnum = tIndex->index;
 
+#ifdef HLRAD_NG_FASTBOUNCE
+            if (usefast)
+            {
+                // the whole run through the dense arrays; flagged patches hold nothing there
+                if (g_transfer_compress_type == FLOAT32)
+                {
+                    BounceAddRun(&sums, tData, patchnum, size);
+                }
+                else
+                {
+                    for (unsigned done = 0; done < size; done += BOUNCE_CHUNK)
+                    {
+                        float factors[BOUNCE_CHUNK];
+                        const unsigned n = qmin(size - done, (unsigned)BOUNCE_CHUNK);
+                        for (unsigned x = 0; x < n; x++)
+                        {
+                            float_decompress(g_transfer_compress_type,
+                                             tData + (size_t)(done + x) * float_size[g_transfer_compress_type],
+                                             &factors[x]);
+                        }
+                        BounceAddRun(&sums, (const unsigned char*)factors, patchnum + done, n);
+                    }
+                }
+                if (g_bounce_flaggedbefore[patchnum + size] == g_bounce_flaggedbefore[patchnum])
+                {
+                    tData += (size_t)size * float_size[g_transfer_compress_type];
+                    continue;
+                }
+            }
+#endif
 #ifdef HLRAD_TRANSFERDATA_COMPRESS
             for (l = 0; l < size; l++, tData += float_size[g_transfer_compress_type], patchnum++)
 #else
@@ -3043,6 +3523,25 @@ static void GatherLight(int threadnum)
 #endif
             {
                 vec3_t v;
+#ifdef HLRAD_NG_FASTBOUNCE
+                if (usefast && !g_bounce_flagged[patchnum])
+                {
+                    continue; // gathered above
+                }
+                if (usefast && g_bounce_emitters[patchnum].count != BOUNCE_NOT_IN_TABLE)
+                {
+                    const bounceemitter_t* emitter = &g_bounce_emitters[patchnum];
+                    float_decompress(g_transfer_compress_type, tData, &f);
+                    fast0 += emitter->rgb0[0] * f;
+                    fast1 += emitter->rgb0[1] * f;
+                    fast2 += emitter->rgb0[2] * f;
+                    for (int extra = 0; extra < emitter->count; extra++)
+                    {
+                        VectorMA(adds[emitter->style[extra]], f, emitter->rgb[extra], adds[emitter->style[extra]]);
+                    }
+                    continue;
+                }
+#endif
 #ifdef ZHLT_TEXLIGHT
                 //LRC:
                 patch_t* emitpatch = &g_patches[patchnum];
@@ -3245,6 +3744,31 @@ static void GatherLight(int threadnum)
             }
         }
 
+#ifdef HLRAD_NG_FASTBOUNCE
+        if (usefast)
+        {
+            adds[0][0] += fast0;
+            adds[0][1] += fast1;
+            adds[0][2] += fast2;
+            for (int d = 0; d < g_bounce_numdense; d++)
+            {
+                for (int c = 0; c < 3; c++)
+                {
+                    const bouncevec_t wide = sums.wide[d][c];
+                    adds[g_bounce_densestyle[d]][c] += (wide[0] + wide[1]) + (wide[2] + wide[3]) + sums.tail[d][c];
+                }
+            }
+            for (style = 0; style < ALLSTYLES; style++)
+            {
+                if (!isPointFinite(adds[style]))
+                {
+                    // the original path drops single non-finite terms; redo this patch with it
+                    usefast = false;
+                    goto retry;
+                }
+            }
+        }
+#endif
 #ifdef HLRAD_AUTOCORING
         vec_t maxlights[ALLSTYLES];
         for (style = 0; style < ALLSTYLES; style++)
@@ -3795,33 +4319,46 @@ static void BounceLight()
 #endif
     }
 
+    // one line in the log for all bounces; each runs quietly
+    safe_snprintf(name, sizeof(name), GpuRadiosityActive() ? "Light bounces (%u, GPU)" : "Light bounces (%u)",
+                  g_numbounce);
+    PhaseBegin(name);
+    g_threadquiet = true;
     for (i = 0; i < g_numbounce; i++)
     {
-#ifdef ZHLT_CONSOLE
-        Log("Bounce %u ", i + 1);
-#else
-        printf("Bounce %u ", i + 1);
-#endif
-#ifdef HLRAD_HULLU
         if (g_rgb_transfers)
         {
-            NamedRunThreadsOn(g_num_patches, g_estimate, GatherRGBLight);
+            RunThreadsOn(g_num_patches, false, GatherRGBLight);
         }
         else
         {
-            NamedRunThreadsOn(g_num_patches, g_estimate, GatherLight);
-        }
-#else
-        NamedRunThreadsOn(g_num_patches, g_estimate, GatherLight);
+#ifdef HLRAD_NG_FASTBOUNCE
+            if (GpuRadiosityActive())
+            {
+                GpuBounce();
+            }
+            else
+            {
+                BuildBounceEmitters();
+            }
 #endif
+            RunThreadsOn(g_num_patches, false, GatherLight);
+        }
         CollectLight();
+        PhaseProgress((double)(i + 1) / g_numbounce);
 
         if (g_dumppatches)
         {
-            sprintf(name, "bounce%u.txt", i);
+            safe_snprintf(name, sizeof(name), "bounce%u.txt", i);
             WriteWorld(name);
         }
     }
+    g_threadquiet = false;
+    PhaseEnd();
+#ifdef HLRAD_NG_FASTBOUNCE
+    FreeBounceEmitters();
+    FreeGpuBounce();
+#endif
 #ifdef HLRAD_AUTOCORING
     for (i = 0; i < g_num_patches; i++)
     {
@@ -3842,28 +4379,28 @@ static void BounceLight()
 // =====================================================================================
 static void CheckMaxPatches()
 {
-    switch (g_method)
-    {
-    case eMethodVismatrix:
-        hlassume(g_num_patches < MAX_VISMATRIX_PATCHES, assume_MAX_PATCHES); // should use "<=" instead. --vluzacn
-        break;
-    // NOLINTNEXTLINE(bugprone-branch-clone): each method has a different patch limit
-    // NOLINTNEXTLINE(bugprone-branch-clone): each method has a different patch limit
-    case eMethodSparseVismatrix:
-        hlassume(g_num_patches < MAX_SPARSE_VISMATRIX_PATCHES, assume_MAX_PATCHES);
-        break;
-    case eMethodNoVismatrix:
-        hlassume(g_num_patches < MAX_PATCHES, assume_MAX_PATCHES);
-        break;
-    }
+    // hlrad-ng: every vis method takes MAX_PATCHES now (MAX_VISMATRIX_PATCHES
+    // and MAX_SPARSE_VISMATRIX_PATCHES equal it); the normal matrix is limited
+    // by memory and reports that itself.
+    hlassume(g_num_patches < MAX_PATCHES, assume_MAX_PATCHES);
 }
 
 // =====================================================================================
 //  MakeScalesStub
 // =====================================================================================
+// hlrad-ng: the sparse matrix (the default) saves memory and gives the same
+// transfers as the dense one, which is several times faster to build and to
+// read. The dense one is used while it stays below this size.
+#define DENSE_VISMATRIX_BYTES (1024.0 * 1024.0 * 1024.0)
+
 static void MakeScalesStub()
 {
-    switch (g_method)
+    eVisMethods method = g_method;
+    if (method == eMethodSparseVismatrix && (double)g_num_patches * g_num_patches / 16 <= DENSE_VISMATRIX_BYTES)
+    {
+        method = eMethodVismatrix;
+    }
+    switch (method)
     {
     case eMethodVismatrix:
         MakeScalesVismatrix();
@@ -3880,31 +4417,35 @@ static void MakeScalesStub()
 // =====================================================================================
 //  FreeTransfers
 // =====================================================================================
+static void FreeTransfersOf(const int x)
+{
+    patch_t* patch = &g_patches[x];
+
+    if (patch->tData)
+    {
+        FreeBlock(patch->tData);
+        patch->tData = NULL;
+    }
+#ifdef HLRAD_HULLU
+    if (patch->tRGBData)
+    {
+        FreeBlock(patch->tRGBData);
+        patch->tRGBData = NULL;
+    }
+#endif
+    if (patch->tIndex)
+    {
+        FreeBlock(patch->tIndex);
+        patch->tIndex = NULL;
+    }
+}
+
 static void FreeTransfers()
 {
-    unsigned x;
-    patch_t* patch = g_patches;
-
-    for (x = 0; x < g_num_patches; x++, patch++)
-    {
-        if (patch->tData)
-        {
-            FreeBlock(patch->tData);
-            patch->tData = NULL;
-        }
-#ifdef HLRAD_HULLU
-        if (patch->tRGBData)
-        {
-            FreeBlock(patch->tRGBData);
-            patch->tRGBData = NULL;
-        }
-#endif
-        if (patch->tIndex)
-        {
-            FreeBlock(patch->tIndex);
-            patch->tIndex = NULL;
-        }
-    }
+    // hlrad-ng: the lists are many and large; one thread takes seconds to free them
+    g_threadquiet = true;
+    RunThreadsOnIndividual(g_num_patches, false, FreeTransfersOf);
+    g_threadquiet = false;
 }
 
 #ifdef ZHLT_XASH
@@ -4107,6 +4648,9 @@ static void RadWorld()
 
 #ifdef HLRAD_SOFTSKY
     BuildDiffuseNormals();
+    // hlrad-ng: sky visibility is traced in packets over this set of normals
+    BuildSkyTrace(g_skynormals[g_softsky ? SKYLEVEL_SOFTSKYON : SKYLEVEL_SOFTSKYOFF],
+                  g_numskynormals[g_softsky ? SKYLEVEL_SOFTSKYON : SKYLEVEL_SOFTSKYOFF]);
 #endif
     // create directlights out of g_patches and lights
     CreateDirectLights();
@@ -4115,23 +4659,29 @@ static void RadWorld()
 
 #ifdef HLRAD_GROWSAMPLE
     // generate a position map for each face
-    NamedRunThreadsOnIndividual(g_numfaces, g_estimate, FindFacePositions);
+    PhaseBegin("Sample positions");
+    RunThreadsOnIndividual(g_numfaces, g_estimate, FindFacePositions);
 
 #endif
     // build initial facelights
+    PrecomputePatchDirect();
 #ifdef HLRAD_NG_SAMPLEQUEUE
     if (getenv("HLRAD_NG_LEGACY"))
     {
-        NamedRunThreadsOnIndividual(g_numfaces, g_estimate, BuildFacelights);
+        PhaseBegin("Direct lighting");
+        RunThreadsOnIndividual(g_numfaces, g_estimate, BuildFacelights);
     }
     else
     {
         BuildFacelightsAll();
     }
 #else
-    NamedRunThreadsOnIndividual(g_numfaces, g_estimate, BuildFacelights);
+    PhaseBegin("Direct lighting");
+    RunThreadsOnIndividual(g_numfaces, g_estimate, BuildFacelights);
 #endif
 
+    FreePatchDirect();
+    ReportGpuDirectCheck();
 #ifdef HLRAD_NG_PROFILE
     ProfileReport();
 #endif
@@ -4168,6 +4718,8 @@ static void RadWorld()
 #endif
         // spread light around
         BounceLight();
+        GpuRadiosityFree();
+        GpuShutdown();
 
 #ifndef HLRAD_AUTOCORING
         for (i = 0; i < g_num_patches; i++)
@@ -4231,7 +4783,8 @@ static void RadWorld()
 #endif
 
 #ifdef HLRAD_LOCALTRIANGULATION
-    NamedRunThreadsOnIndividual(g_numfaces, g_estimate, CreateTriangulations);
+    PhaseBegin("Patch triangulation");
+    RunThreadsOnIndividual(g_numfaces, g_estimate, CreateTriangulations);
 
 #endif
     // blend bounced light into direct light and save
@@ -4255,7 +4808,8 @@ static void RadWorld()
 
         CreateFacelightDependencyList();
 
-        NamedRunThreadsOnIndividual(g_numfaces, g_estimate, AddPatchLights);
+        PhaseBegin("Bounced light on lightmaps");
+        RunThreadsOnIndividual(g_numfaces, g_estimate, AddPatchLights);
 
         FreeFacelightDependencyList();
     }
@@ -4265,7 +4819,8 @@ static void RadWorld()
     FreeTriangulations();
 
 #endif
-    NamedRunThreadsOnIndividual(g_numfaces, g_estimate, FinalLightFace);
+    PhaseBegin("Final lightmaps");
+    RunThreadsOnIndividual(g_numfaces, g_estimate, FinalLightFace);
 #ifdef HLRAD_AUTOCORING
     if (g_maxdiscardedlight > 0.01)
     {

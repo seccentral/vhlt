@@ -2,13 +2,13 @@
 
 ## Project
 
-Vluzacn ZHLT (VHLT) is a set of Half-Life compilation tools: `hlcsg`, `hlbsp`, `hlvis`, `hlrad`, and `ripent`. The repository also contains shared common code (`common/`), build tooling (`cmake/`, `tools/`), documentation and audits.
+Vluzacn ZHLT (VHLT) is a set of Half-Life compilation tools: `hlcsg`, `hlbsp`, `hlvis`, `hlrad`, `hlrad-ng` (the fast, GPU-capable hlrad), and `ripent`. The repository also contains shared common code (`common/`), build tooling (`cmake/`, `tools/`), documentation and audits.
 
 **Agent context:** read [`docs/llms.txt`](docs/llms.txt) first. It is the complete agent reference: pipeline and file flow, layout, feature macros, limits, core APIs, concurrency, gotchas, and the release checklist. Keep it current when the build, limits, APIs or rules change.
 
 ## Build
 
-Primary build system: CMake (3.16 or newer) with Ninja and Zig 0.17.1 as the only compiler, for both Windows and Linux. Do not use or add MinGW GCC, MSVC or any other toolchain. If `.env` sets `CMAKE` or `ZIG`, use those paths (see `.env.example`). `.env` is git-ignored and holds secrets, so never commit it or print its values.
+Primary build system: CMake (3.16 or newer) with Ninja and Zig 0.17.1 as the only compiler, for both Windows and Linux. Do not use or add MinGW GCC, MSVC or any other toolchain. One dev-time exception, not part of the build: the `hlrad-ng/*_spv.inc` files are generated from the `hlrad-ng/*.comp` shaders with `glslangValidator` from the Vulkan SDK (commands in `docs/llms.txt`) and committed. If `.env` sets `CMAKE` or `ZIG`, use those paths (see `.env.example`). `.env` is git-ignored and holds secrets, so never commit it or print its values.
 
 ```sh
 cmake --preset windows && cmake --build --preset windows   # build/windows
@@ -42,7 +42,7 @@ Outputs are written to `build/<preset>/bin/`, `build/<preset>/docs/html/`, and `
 
 Before committing, all of the following must pass:
 
-1. Configure and build both presets: `windows` and `linux` (all five tools each)
+1. Configure and build both presets: `windows` and `linux` (all six tools each)
 2. Zero compiler warnings; both presets build with `-Werror` (`VHLT_WERROR`, ON by default)
 3. Docs: `cmake --build build/windows --target docs`
 4. Smoke test: each Windows tool runs with no arguments and prints its version banner (exit code 1 is expected)

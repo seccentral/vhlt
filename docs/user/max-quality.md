@@ -48,6 +48,7 @@ This increases the lighting data, so run with `-chart` to see whether you're nea
 ## Practical tips
 
 - **Iterate fast, finish slow:** iterate with `hlvis -fast` and `hlrad` without `-extra`, then run this preset for final builds. Save it as a second preset in your editor's compile dialog, for example *Run Map → Expert* in J.A.C.K. or Hammer.
+- **Use `hlrad-ng` for this preset.** It takes the same options as `hlrad` and is built for exactly this load: on a graphics card with hardware ray tracing the preset takes seconds where `hlrad` takes minutes, and it has no 65,535-patch limit with `-vismatrix normal`. See [hlrad-ng in the user manual](manual.md#hlrad-ng).
 - **Running out of memory or time** with `-chop 16 -compress 0`: raise `-chop` to 32 (and `-texchop` to 16) first, then drop `-vismatrix normal` (use the default `sparse`).
 - **Keep `-texchop` at or below `-chop`.**
 

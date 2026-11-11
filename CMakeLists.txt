@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(vhlt
-    VERSION 3.5.4
+    VERSION 3.6.0
     LANGUAGES CXX
 )
 
@@ -51,9 +51,9 @@ endif()
 # The project is warning-clean; keep it that way.
 option(VHLT_WERROR "Treat compiler warnings as errors" ON)
 
-# hlrad-ng: next-generation hlrad with byte-identical output to hlrad.
-# Off by default while under development; see docs/research/hlrad-optimizations.md.
-option(VHLT_HLRAD_NG "Build the next-generation hlrad" OFF)
+# hlrad-ng: next-generation hlrad, built for speed on the CPU and the GPU. hlrad stays as
+# the reference; see docs/research/hlrad-optimizations.md.
+option(VHLT_HLRAD_NG "Build the next-generation hlrad" ON)
 # Compile hlrad-ng with the profiling counters from hlrad-ng/profile.{h,cpp}.
 option(VHLT_HLRAD_NG_PROFILE "Build hlrad-ng with profiling counters" OFF)
 
@@ -253,15 +253,15 @@ add_vhlt_tool(hlrad
         HLRAD
 )
 
-# hlrad-ng is an exact copy of hlrad today; it must keep producing
-# byte-identical output while being optimized (docs/research/hlrad-optimizations.md).
-# Not installed or packaged until parity is accepted.
+# hlrad-ng started as a copy of hlrad and keeps its lighting math, but is not required to
+# match it byte for byte (docs/research/hlrad-optimizations.md). Installed and packaged
+# next to hlrad.
 if(VHLT_HLRAD_NG)
     add_vhlt_tool(hlrad-ng
-        NO_INSTALL
         INCLUDE_FIRST
         SOURCES
             hlrad-ng/compress.cpp
+            hlrad-ng/gpu.cpp
             hlrad-ng/lerp.cpp
             hlrad-ng/lightmap.cpp
             hlrad-ng/loadtextures.cpp
@@ -282,6 +282,10 @@ if(VHLT_HLRAD_NG)
     if(VHLT_HLRAD_NG_PROFILE)
         target_compile_definitions(hlrad-ng PRIVATE HLRAD_NG_PROFILE)
     endif()
+    # GPU backend: Vulkan headers are vendored in third_party/vulkan; the loader is opened at
+    # run time (dlopen needs libdl on older glibc), so nothing is linked against Vulkan.
+    target_include_directories(hlrad-ng SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/vulkan")
+    target_link_libraries(hlrad-ng PRIVATE ${CMAKE_DL_LIBS})
 endif()
 
 add_vhlt_tool(ripent

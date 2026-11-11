@@ -1,6 +1,11 @@
 # hlrad-ng: Zero-Quality-Loss Optimization Plan
 
-**Status (2026-11-10):** Phase 0 complete and verified (byte parity at threads
+**Contract change (2026-11-10, owner decision):** byte-identical output to
+`hlrad` is no longer required. The bar is correct lighting and much faster
+compiles. Sections 1–12 below record the earlier byte-exact plan and are kept
+for history; §13 is the current state.
+
+**Earlier status (2026-11-10):** Phase 0 complete and verified (byte parity at threads
 1/2/4/8/16 with determinism checks, recorded baseline). Phase 1 complete:
 flat contiguous light storage, profiling counters, sample-tile work queue —
 all byte-identical. Phase 2 partial: conservative light BVH (zero/topatch/
@@ -596,3 +601,259 @@ An exact SSE2 batch pre-rejection over 4 consecutive lights (point/spot plane
 test plus the surface `MINIMUM_PATCH_DISTANCE` predicate) was prototyped and
 removed: it did not pass byte parity and showed no gain before that, so it is
 not part of the build.
+
+## 13. Packet ray tracer (2026-11-10)
+
+Reference: `stalkyard_custom.map` with `stalkyard_custom.rad`, `-extra`,
+Windows build, 8-core/16-thread host.
+
+### What changed
+
+- `hlrad-ng/tracepacket.h`, `hlrad-ng/trace.cpp`: a packet tracer over the
+  world BSP. Up to 8 rays that share a start point are walked through the tree
+  together, with the plane rules of `TestLine_r` applied per ray. Each ray
+  keeps a parameter interval on its original segment instead of moving its end
+  points at every split. The walk is iterative with an explicit stack; trees
+  deeper than the stack use the scalar walk. The 8-wide build needs AVX2
+  (checked at run time), the 4-wide build runs everywhere, and both give the
+  same output.
+- Sky visibility (`TraceSkyVisibility`) is traced once per point and shared by
+  every `light_environment`. The sky normals are grouped along a Morton curve
+  so the rays of a packet point the same way. Sky and sun rays stop just
+  outside the world bounds instead of 131,072 units away.
+- Sun rays are traced in packets per skylight (`TraceSunRays`); light rays are
+  collected and traced in packets, then added in the order the lights were met
+  (`FlushPendingLights`).
+- The per-sample light walk visits only leaves that hold lights.
+- `profile.{h,cpp}` now has real timers (`PROFILE_SCOPE`) besides counters.
+
+### Measured
+
+| | hlrad | hlrad-ng |
+|---|---:|---:|
+| total, 1 thread | 33.7 s | 17.6 s |
+| total, 16 threads | 3.79 s | 2.21 s |
+
+Lightmaps against hlrad: only the lighting lump differs, in 1 byte of 281,946,
+by one level. With `HLRAD_NG_NOPACKETS=1` the output equals hlrad's byte for
+byte, so every difference comes from the packet kernel's rounding. Output is
+identical at 1 and 16 threads and with `HLRAD_NG_NOAVX2=1`.
+
+### Where the time goes now
+
+`-DVHLT_HLRAD_NG_PROFILE=ON`, 1 thread, share of direct-lighting time:
+
+| section | share |
+|---|---:|
+| packet kernel (sky, sun and light rays) | 43% |
+| rest of `GatherSampleLight` (per-light math) | about 31% |
+| sample setup in `CalcLightmapLuxel` | about 19% |
+| rest of the per-face post pass | about 6% |
+
+The kernel visits 41 tree nodes per packet at about 52 cycles each. Most of
+those nodes are the descent from the root to the leaf of the start point,
+which every packet repeats.
+
+### Next levers, by expected gain
+
+1. Wider packets (64 rays) so the shared descent is paid once per 64 rays, or
+   a surface BVH that skips empty space.
+2. A GPU backend (Vulkan compute) for the same rays.
+3. The per-light math and the per-sample setup, which are now as large as the
+   rays.
+
+## 14. Max-quality preset, lock removal, bounces and the GPU backend (2026-11-10)
+
+Reference: `stalkyard_custom.map`, 16 threads, RTX 2080. "Max quality" is the
+preset of `docs/user/max-quality.md`: `-extra -bounce 16 -chop 16 -texchop 8
+-dlight 1 -compress 0 -vismatrix normal` (57,470 patches, 226M transfers).
+
+### Measured, back to back
+
+| preset | hlrad | hlrad-ng |
+|---|---:|---:|
+| default (`-extra`) | 4.1-4.3 s | 2.5 s |
+| max quality | 95.4 s | 21.9-22.4 s (22.8-25.7 s with `HLRAD_NG_GPU=0`) |
+
+Lightmaps against hlrad: 2 bytes of 281,946 differ on the default preset and
+12 on max quality, each by one level. GPU on and GPU off give identical files.
+
+### What changed
+
+- `vismatrix.cpp`: the vis bit of a visible patch pair was set under the
+  global `ThreadLock`, about 113 million times; that serialized
+  `BuildVisLeafs`. It is now `__atomic_fetch_or`. This alone took the phase
+  from 45 s to 8.4 s and left the output byte-identical.
+- `vismatrix.cpp`, `sparse.cpp`: pairs traced from the patch's own origin are
+  collected and traced as packets (`FlushPendingPairs`); 8.4 s to about 4.5 s.
+- `qrad.cpp` `GatherLight`: a per-bounce table of what each patch emits
+  (`BuildBounceEmitters`) turns a transfer into one multiply-add when the
+  emitter sends style 0 only and there are no per-pair opaque styles; other
+  cases take the original path. 16 bounces: about 7 s to about 1.4 s.
+- `gpu.{h,cpp}`, `gpusky.comp`: Vulkan compute backend. The sky visibility of
+  every patch is computed in one batch before `BuildFacelights`
+  (`PrecomputePatchSkyVisibility`), used from 16,384 patches up. On the
+  reference map: 57,470 patches (about 470 million rays) in 2.0-2.7 s,
+  against about 4 s for the same rays on 16 CPU threads. With
+  `HLRAD_NG_GPU_CHECK=1`, 0 of 6.47 million sampled rays differed from the CPU
+  tracer, and the Vulkan validation layer reported nothing.
+
+### Where the time goes now (max quality, quiet machine, 19-22 s total)
+
+`MakeScales` about 5 s, `BuildVisLeafs` about 4.5 s, per-sample direct
+lighting about 3.5 s, GPU sky about 2 s, post pass about 1 s, bounces about
+1.4 s, the rest about 1.5 s.
+
+### Findings worth keeping
+
+- The GPU walk of the BSP is only about twice as fast as 16 CPU threads on
+  this hardware; a per-ray tree walk diverges badly on a GPU. A large GPU gain
+  needs hardware ray tracing over real surfaces (`VK_KHR_ray_query`) or moving
+  whole phases (`MakeScales`) to the GPU, not this kernel run harder.
+- With the max-quality patch count the sparse vis matrix makes `MakeScales`
+  take 34 s against 5 s for `-vismatrix normal`; the outputs are identical.
+- Run timings back to back: the same binary varied by up to 40% across this
+  session with machine load.
+
+## 15. Town map: patch limit, light styles, spread sun (2026-11-11)
+
+Second test map: `testmap_town` (10,602 faces, 3 light styles, a
+`light_environment` with `_spread 90`, texlights). With the max-quality
+preset it has 111,371 patches, 12,058 direct lights and 1.3 billion transfers.
+
+### Fixed
+
+- `-vismatrix normal` stopped with "Exceeded MAX_PATCHES" above 65,535 patches
+  because the matrix bit index was 32-bit. It is `size_t` now, the matrix is
+  allocated with `calloc` (`AllocBlock` takes a 32-bit size on Win64), and
+  `MAX_VISMATRIX_PATCHES` equals `MAX_PATCHES`.
+- Wrong light styles on multi-style maps, from the sample-tile queue of
+  section 12: `BuildFacelightsNGFinish` remapped a luxel's local style slots
+  to the face's slots without clearing the slots it moved out of, so a
+  luxel's light could stay behind under another style. The earlier byte
+  parity runs could not see it: the stalkyard map has one style. Against
+  hlrad on the town map, default settings: 1,544 faces with a different style
+  set before the fix, 2 after; 94 of 1,107,972 lightmap bytes differ, by one
+  level. **Test every change on a multi-style map.**
+
+### Faster
+
+- Bounces: the emitter table holds up to three styles besides style 0 per
+  patch (`bounceemitter_t`). 16 bounces: 107 s to 15 s.
+  `HLRAD_NG_NOFASTBOUNCE=1` selects the original path for comparison (1 face
+  and 27 bytes differ on the town map).
+- Spread suns: `TraceCoherentOrder` sorts a light's sun normals once
+  (`directlight_t::sunorder`), so `TraceSunRays` fills packets with rays that
+  point the same way. Direct lighting: 301 s to 253 s.
+
+### Measured (16 threads)
+
+| town map | hlrad | hlrad-ng |
+|---|---:|---:|
+| default (`-extra`) | 6 m 38 s | 3 m 04 s |
+| max quality | stops: Exceeded MAX_PATCHES | 6 m 04 s |
+
+### Where the time goes (max quality, about 6 minutes)
+
+Per-sample direct lighting about 250 s, patch visibility about 50 s,
+`MakeScales` about 32 s, bounces 15 s, GPU sky 4 s.
+
+Profile of the direct lighting (profiling build, 16 threads, shares only):
+sun rays 69%, light rays 22%, sky rays 3%. `_spread 90` makes the sun a dome
+of about 8,000 directions that is traced for every lightmap sample, and each
+sample also sees about 3,400 texlight patches.
+
+### Next lever
+
+The sun dome per sample. Ideas, none built: prove whole blocks of directions
+visible with one walk of their bounding pyramid through the BSP and trace
+only the blocks that touch geometry; skip samples whose leaf sees no sky
+leaf in the PVS; packets wider than 8.
+
+## 16. Ray queries, GPU radiosity and the one-line log (2026-11-11)
+
+Reference machine as before (Ryzen 7 2700X, RTX 2080), max-quality preset,
+16 threads. The town map changed since section 15 (10,569 faces, 111,324
+patches, a sun with `_spread 10`); its baseline at the start of this section
+was 209 s, the reference map's 20.3 s.
+
+### Measured
+
+| max quality | start of section | GPU off (`HLRAD_NG_GPU=0`) | GPU |
+|---|---:|---:|---:|
+| reference map (57,442 patches) | 20.3 s | 17.7 s | 5.6 s |
+| town map (111,324 patches) | 209 s | not timed | 23.6 s |
+
+Default preset (`-extra`): reference map 2.1 s, town map 7.5 s with the GPU
+(25 s without).
+
+Town map, per phase:
+
+| phase | before | now |
+|---|---:|---:|
+| direct lighting (patches and samples) | 98 s | 6.0 s |
+| patch visibility | 53 s | 2.3 s |
+| transfers | 34 s | 0.9 s |
+| 16 bounces | 15 s | 9.2 s |
+| bounced light on lightmaps | 3.1 s | 3.5 s |
+| GPU start, scene | - | 0.5 s |
+
+### What changed
+
+- **Hardware ray tracing.** A device with `VK_KHR_ray_query` traces against
+  triangles. `trace.cpp` `BuildSceneTriangles` cuts every node plane down to
+  its node's region and pushes it through both subtrees; the pieces that end
+  up between two leaves of different contents are the scene (sky pieces last,
+  so the primitive number says "sky"). Pieces are grown by 1/512 unit plus a
+  millionth of their largest coordinate so they overlap. The town map is
+  22,000 triangles. Devices without ray queries run the same shaders with the
+  BSP walk; that build is about as fast as 16 CPU threads on this machine.
+- **Direct lighting** (`gpudirect.comp`): one invocation gathers one point:
+  sun over its spread directions, sky over the sky normals, and every light
+  in the leaves the point's leaf sees. Texlight patches closer than their
+  emitter range go to a pair list and the CPU adds them with the patch shape.
+  The CPU still finds the sample positions and runs the per-face post pass.
+- **Patch visibility** (`gpuvis.comp`): one invocation handles one patch
+  against 32 others. Pairs closer than an emitter range (plus one unit) come
+  back as bits and are tested on the CPU with `GetAlternateOrigin`.
+- **Radiosity** (`gpurad.comp`): the visibility shader writes a full matrix
+  on the device; the radiosity shader counts each row, fills in the 16-bit
+  transfer factors (the form factor of `MakeScales` for pairs that are not
+  close) and gathers every bounce. The close pairs keep their transfers on
+  the CPU. The town map holds 1.55 billion factors in 4.4 GB of video memory;
+  a map that does not fit uses the CPU path.
+- **CPU path**: `MakeScalesBlocks` reads the half matrix in blocks of 32
+  patches instead of one bit per row (town map: 34 s to 7.5 s), bounces
+  gather through per-style arrays (15 s to 9 s), and the default sparse
+  setting uses the dense matrix up to 1 GB.
+- **Log**: one line per phase.
+
+### Checked
+
+- BSP-walk shaders against the CPU path: 17 of 1.1 million lightmap bytes
+  differ on the town map, by one level.
+- Ray-query shaders against the CPU path, town map at default settings: 1.2%
+  of the bytes differ, nearly all by one level; a handful of luxels at shadow
+  edges differ by up to 21. About 280 faces gain or lose a style map whose
+  brightest value is 1 or 2.
+- GPU radiosity against the CPU transfer path: 55 bytes differ on the town
+  map, by one level.
+- With `HLRAD_NG_GPU=0` the reference map compiles to the same bytes as
+  before this section.
+- Both maps were looked at in the engine by the owner after the direct
+  lighting moved to the GPU.
+
+### Where the time goes now (town map, 23.6 s)
+
+Bounces 9.2 s, direct lighting 6 s, bounced light on lightmaps 3.5 s, patch
+visibility 2.3 s, everything else under 1 s each.
+
+### Next levers
+
+1. Bounces: each one reads 1.55 billion factors and, per factor, what the
+   emitter sends in every style in use; it is bound by memory traffic on the
+   device as it was on the CPU. Packing the emitted light smaller, or
+   stopping when a bounce adds nothing visible, would help.
+2. Direct lighting: the CPU half (sample positions, per-face post pass) and
+   the GPU half are not overlapped; the GPU waits while the CPU works.
+3. `AddPatchLights` (bounced light on lightmaps) is untouched CPU code.
